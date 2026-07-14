@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.open/schemas/dna.schema.json",
+  "title": "APSAL Open DNA Asset",
+  "type": "object",
+  "required": ["schema_version", "namespace", "id", "type", "version", "status", "parent_version", "changed_fields", "change_summary", "prompt_fragment", "negative_fragment", "rights", "qa_status"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "namespace": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "type": {"enum": ["character", "style", "environment", "lighting", "composition", "shot", "qa"]},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "parent_version": {"type": ["string", "null"]},
+    "changed_fields": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "rights": {"type": "object", "required": ["license", "status", "attribution"]},
+    "qa_status": {"enum": ["static_validated", "visual_qa_pending", "visual_qa_passed"]}
+  },
+  "additionalProperties": true
+}

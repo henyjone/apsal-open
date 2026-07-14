@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_version": "0.1.0",
+  "assets": [
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_CHAR_ADULT_001", "type": "character", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Original fictional adult identity baseline.",
+      "prompt_fragment": "one fictional East Asian adult woman aged 28-35, calm oval face, balanced natural features, dark shoulder-length hair, realistic skin texture, stable facial geometry and adult age across every image",
+      "negative_fragment": "minor, childlike proportions, identity drift, face substitution, plastic skin",
+      "locks": ["adult_age", "facial_geometry", "hair_color", "body_proportions"],
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_STYLE_EDITORIAL_001", "type": "style", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Restrained contemporary editorial photography style.",
+      "prompt_fragment": "restrained contemporary editorial photography, believable materials, subtle film grain, controlled contrast, natural color separation, tactile detail without excessive retouching",
+      "negative_fragment": "illustration, CGI gloss, excessive HDR, beauty-filter face, oversaturation",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_ENV_WINDOW_001", "type": "environment", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Original quiet window-room environment.",
+      "prompt_fragment": "one coherent quiet studio room with limewashed walls, a tall east-facing window, pale oak floor, linen curtain, low wooden table, and physically consistent spatial geometry across the set",
+      "negative_fragment": "location drift, changing window count, impossible room geometry, copied landmark, damaged heritage site",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_LIGHT_WINDOW_001", "type": "lighting", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Three-phase natural window-light progression.",
+      "prompt_fragment": "soft directional window light with plausible falloff, three coherent phases from cool arrival through neutral midday to warm late afterglow, consistent shadow direction per phase",
+      "negative_fragment": "multiple suns, contradictory shadows, clipped highlights, neon color cast",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_COMP_SEQUENCE_001", "type": "composition", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Balanced multi-shot editorial coverage.",
+      "prompt_fragment": "editorial sequence with deliberate variation across environmental, full-body, medium, close-up, and detail frames; clean subject separation and purposeful negative space",
+      "negative_fragment": "repeated composition, centered passport pose in every frame, accidental crop, collage, contact sheet",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_SHOT_NINE_001", "type": "shot", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Nine-shot independent-image baseline.",
+      "prompt_fragment": "each shot is one independent finished photograph in a continuous set, with a distinct narrative function and observable action before pose",
+      "negative_fragment": "nine-grid, diptych, triptych, storyboard, typography, logo, watermark",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    },
+    {
+      "schema_version": "1.0.0", "namespace": "official", "id": "OPEN_QA_PORTRAIT_001", "type": "qa", "version": "1.0.0", "status": "production", "parent_version": null,
+      "changed_fields": ["initial_version"], "change_summary": "Portrait-set structural and visual review policy.",
+      "prompt_fragment": "verify adult identity, hands and anatomy, wardrobe continuity, prop ownership, room geometry, reflections, lighting direction, shot intent, non-target drift, and absence of text or watermark",
+      "negative_fragment": "extra fingers, fused hands, broken reflection, floating prop, duplicate subject, text, signature",
+      "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors", "reference_images_included": false},
+      "qa_status": "static_validated"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.venv/
+build/
+dist/
+*.zip
+*.sha256
+private/
+references/private/
+generated/

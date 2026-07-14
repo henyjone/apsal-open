@@ -1,0 +1,9 @@
+[project]
+name = "apsal-open"
+version = "0.1.0"
+description = "Offline APSAL DNA compiler and Codex Skill packager"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

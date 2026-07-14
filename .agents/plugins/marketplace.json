@@ -1,0 +1,20 @@
+{
+  "name": "apsal-open",
+  "interface": {
+    "displayName": "APSAL Open"
+  },
+  "plugins": [
+    {
+      "name": "apsal-studio",
+      "source": {
+        "source": "local",
+        "path": "./plugins/apsal-studio"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

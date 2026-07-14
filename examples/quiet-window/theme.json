@@ -1,0 +1,227 @@
+{
+  "schema_version": "1.0.0",
+  "id": "APSAL-OPEN-001",
+  "version": "1.0.0",
+  "name": "Quiet Window / 窗边未寄",
+  "parent_version": null,
+  "changed_fields": [
+    "initial_version"
+  ],
+  "change_summary": "Initial original APSAL Open theme.",
+  "dna": [
+    {
+      "namespace": "official",
+      "id": "OPEN_CHAR_ADULT_001",
+      "type": "character",
+      "version": "1.0.0",
+      "content_digest": "d017eacdcd9fb94b6b2a05b6847f0e71017f77013e2050f62e3d87b0782bafd2"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_STYLE_EDITORIAL_001",
+      "type": "style",
+      "version": "1.0.0",
+      "content_digest": "5dd2eae8f4022068406f7141010d94f09ac5bfdcbcef2a9ee538cbba28f7e953"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_ENV_WINDOW_001",
+      "type": "environment",
+      "version": "1.0.0",
+      "content_digest": "4c73fdc9c7c679a2bffd7479e8165a91b077c369e4b6bb4976289d940de60fa0"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_LIGHT_WINDOW_001",
+      "type": "lighting",
+      "version": "1.0.0",
+      "content_digest": "82ee1421187113b320e510d9d0c74e21b2c704b79f31e6e03e82abada740382b"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_COMP_SEQUENCE_001",
+      "type": "composition",
+      "version": "1.0.0",
+      "content_digest": "0aa4a21ced85672e7812e6781f410c59ef404b9c3093a411350c106d84e9cd0b"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_SHOT_NINE_001",
+      "type": "shot",
+      "version": "1.0.0",
+      "content_digest": "60fed6be922b979f7207055b4567d2cfe85509e28a09b7a9256c17688896f823"
+    },
+    {
+      "namespace": "official",
+      "id": "OPEN_QA_PORTRAIT_001",
+      "type": "qa",
+      "version": "1.0.0",
+      "content_digest": "5ef51933854d06e7265a9f1050e3790d803a72380e198b547d7ab5e16b8ac383"
+    }
+  ],
+  "output": {
+    "count": 9,
+    "aspect_ratio": "2:3",
+    "independent_images": true,
+    "forbid": [
+      "collage",
+      "grid",
+      "contact sheet",
+      "text",
+      "logo",
+      "watermark"
+    ]
+  },
+  "shots": [
+    {
+      "shot_id": "SHOT_01",
+      "title": "Arrival",
+      "narrative_purpose": "Establish the room and solitary arrival",
+      "framing": "environment",
+      "action": "steps into the room while the curtain moves",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "output_filename": "apsal-open-001_01.jpg"
+    },
+    {
+      "shot_id": "SHOT_02",
+      "title": "Window Figure",
+      "narrative_purpose": "Reveal the full silhouette at the window",
+      "framing": "full",
+      "action": "stands beside the window and steadies the curtain",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "output_filename": "apsal-open-001_02.jpg"
+    },
+    {
+      "shot_id": "SHOT_03",
+      "title": "Unfolding",
+      "narrative_purpose": "Begin a small act of unfolding a letter",
+      "framing": "medium",
+      "action": "unfolds a blank cream sheet",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "output_filename": "apsal-open-001_03.jpg"
+    },
+    {
+      "shot_id": "SHOT_04",
+      "title": "Before Reading",
+      "narrative_purpose": "Hold the pause before reading",
+      "framing": "close-up",
+      "action": "pauses with the sheet held below eye level",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "output_filename": "apsal-open-001_04.jpg"
+    },
+    {
+      "shot_id": "SHOT_05",
+      "title": "Paper Detail",
+      "narrative_purpose": "Observe fingertips on textured paper",
+      "framing": "detail",
+      "action": "smooths one corner of the paper",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "output_filename": "apsal-open-001_05.jpg"
+    },
+    {
+      "shot_id": "SHOT_06",
+      "title": "Light Turns",
+      "narrative_purpose": "Turn toward changing light",
+      "framing": "environment",
+      "action": "turns her head toward the late light",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "output_filename": "apsal-open-001_06.jpg"
+    },
+    {
+      "shot_id": "SHOT_07",
+      "title": "Crossing",
+      "narrative_purpose": "Cross the room with the letter lowered",
+      "framing": "full",
+      "action": "walks past the low table",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "output_filename": "apsal-open-001_07.jpg"
+    },
+    {
+      "shot_id": "SHOT_08",
+      "title": "Decision",
+      "narrative_purpose": "Return to the table after deciding",
+      "framing": "medium",
+      "action": "places the sheet face down on the table",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "output_filename": "apsal-open-001_08.jpg"
+    },
+    {
+      "shot_id": "SHOT_09",
+      "title": "Afterword",
+      "narrative_purpose": "Close on a calm, unresolved expression",
+      "framing": "close-up",
+      "action": "breathes out and looks just beyond camera",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "output_filename": "apsal-open-001_09.jpg"
+    }
+  ],
+  "rights": {
+    "license": "CC-BY-4.0",
+    "status": "original_open_content",
+    "attribution": "APSAL Open contributors"
+  },
+  "qa_status": "visual_qa_pending"
+}

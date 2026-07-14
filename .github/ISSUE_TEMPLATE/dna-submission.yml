@@ -1,0 +1,28 @@
+name: DNA submission
+description: Propose an original, redistributable APSAL DNA asset
+title: "[DNA] "
+labels: ["dna", "review-required"]
+body:
+  - type: input
+    id: namespace
+    attributes: {label: Namespace}
+    validations: {required: true}
+  - type: input
+    id: asset
+    attributes: {label: Asset ID and semantic version}
+    validations: {required: true}
+  - type: dropdown
+    id: rights
+    attributes:
+      label: Rights basis
+      options: ["Entirely original", "Authorized contribution"]
+    validations: {required: true}
+  - type: checkboxes
+    id: declarations
+    attributes:
+      label: Declarations
+      options:
+        - label: I agree to license the submitted content under CC BY 4.0.
+          required: true
+        - label: The submission contains no private reference image, credential, or unauthorized third-party work.
+          required: true
