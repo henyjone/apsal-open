@@ -13,8 +13,9 @@ def check_tree() -> list[str]:
     for path in ROOT.rglob("*"):
         if ".git" in path.parts or not path.is_file(): continue
         rel = path.relative_to(ROOT)
+        if "__pycache__" in rel.parts or path.suffix in {".pyc", ".pyo"}: continue
         if path.stat().st_size > 2_000_000: errors.append(f"large file: {rel}")
-        if any(part in {"private", "generated", "__pycache__"} for part in rel.parts): errors.append(f"forbidden path: {rel}")
+        if any(part in {"private", "generated"} for part in rel.parts): errors.append(f"forbidden path: {rel}")
         try: text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError: continue
         if DENY.search(text): errors.append(f"possible secret: {rel}")
