@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "namespace": "your-namespace",
+  "id": "YOUR_MODULE_ID",
+  "type": "subject",
+  "version": "1.0.0",
+  "parent_version": null,
+  "changed_fields": ["initial_version"],
+  "change_summary": "Describe this original module.",
+  "dependencies": [],
+  "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Your name", "reference_media": "none"},
+  "qa_status": "static_validated",
+  "payload": {}
+}

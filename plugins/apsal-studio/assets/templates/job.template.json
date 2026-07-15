@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "namespace": "your-namespace",
+  "id": "YOUR_JOB_01",
+  "type": "job",
+  "version": "1.0.0",
+  "parent_version": null,
+  "changed_fields": ["initial_version"],
+  "change_summary": "One independent shot job.",
+  "dependencies": [],
+  "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Your name", "reference_media": "none"},
+  "qa_status": "visual_qa_pending",
+  "payload": {"output": {"independent_image": true, "filename": "shot_01.png"}}
+}

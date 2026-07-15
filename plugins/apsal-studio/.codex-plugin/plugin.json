@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.1.0",
-  "description": "Create versioned photography themes from an offline DNA catalog and export installable Codex Skills.",
+  "version": "0.2.0",
+  "description": "Create and validate open, modular photography-protocol packages from an offline DNA catalog and export Codex Skills.",
   "author": {
     "name": "APSAL Open contributors"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "APSAL Studio",
     "shortDescription": "用开放 DNA 生成摄影主题 JSON 和 Skill",
-    "longDescription": "APSAL Studio bundles an offline photography DNA catalog, deterministic validation and compilation engine, and a reproducible Codex Skill packager.",
+    "longDescription": "APSAL Studio bundles the APSAL Open Protocol, offline photography DNA catalog, modular-package validator, deterministic compiler, and reproducible Codex Skill packager.",
     "developerName": "APSAL Open",
     "category": "Developer Tools",
     "capabilities": ["Skills"],

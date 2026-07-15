@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.open/schemas/package.schema.json",
+  "title": "APSAL Open Protocol Package Manifest",
+  "type": "object",
+  "required": ["protocol", "protocol_version", "id", "version", "parent_version", "changed_fields", "change_summary", "license", "rights", "modules", "sequence", "jobs", "checksums", "output", "qa_status"],
+  "properties": {
+    "protocol": {"const": "apsal-open"},
+    "protocol_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "license": {"type": "object", "required": ["code", "content"]},
+    "rights": {"type": "object", "required": ["status", "attribution", "reference_media", "ai_disclosure"]},
+    "modules": {"type": "object"},
+    "jobs": {"type": "array", "minItems": 1, "maxItems": 24},
+    "checksums": {"type": "object"},
+    "qa_status": {"enum": ["static_validated", "visual_qa_pending", "visual_qa_passed"]}
+  },
+  "additionalProperties": true
+}

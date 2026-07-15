@@ -5,7 +5,7 @@ description: Create, validate, compile, or package an APSAL photography theme fr
 
 # APSAL Theme Creator
 
-Use the bundled `scripts/apsal.py`; it performs no network calls.
+Use the bundled `scripts/apsal.py`; it performs no network calls. APSAL Open has three separate layers: Apache-2.0 protocol, Apache-2.0 reference engine, and explicitly licensed content.
 
 1. Ask for the overall creative brief, subject constraints, and desired shot count. Default to nine independent images.
 2. Run `python3 scripts/apsal.py catalog` and select one compatible asset from every required category. Never invent a catalog ID or version.
@@ -15,5 +15,7 @@ Use the bundled `scripts/apsal.py`; it performs no network calls.
 6. Record rights status, semantic version, parent version, changed fields, change summary, and QA status. Static checks must not be described as visual QA.
 7. Run `validate`, then `compile`. Fix every error before packaging.
 8. Run `pack` to create an installable theme Skill ZIP. Report its SHA-256 and the validation result.
+
+When reviewing or importing an existing modular package, extract it outside the repository and run `validate-package`. Calling a file a protocol is not a license. Do not import any content until license, attribution, reference-media rights, lineage, checksums, and QA state all pass.
 
 For a generation-intent change, create a new semantic version. Never overwrite a published version or include private reference media in a theme package.

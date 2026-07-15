@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-07-15T00:00:00Z",
+  "project": "APSAL Open",
+  "protocol": {"id": "apsal-open", "version": "0.2.0", "license": "Apache-2.0"},
+  "reference_engine": {"version": "0.2.0", "license": "Apache-2.0"},
+  "plugin": {"id": "apsal-studio", "version": "0.2.0"},
+  "catalog": {"version": "0.1.0", "status": "unchanged starter catalog", "content_license": "CC-BY-4.0"},
+  "migration_inputs": {
+    "APSAL-006-001@4.0.0": {
+      "status": "structure_reference_only_rights_unresolved",
+      "redistributed": false,
+      "report": "protocol/MIGRATION_APSAL_006_001.md"
+    }
+  }
+}

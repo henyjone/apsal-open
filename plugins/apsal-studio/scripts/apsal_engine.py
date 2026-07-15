@@ -8,8 +8,9 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
+PROTOCOL_TYPES = ("subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job")
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SAFE_ID = re.compile(r"^[A-Z][A-Z0-9-]*$")
 
@@ -156,6 +157,74 @@ def validate_theme(theme: dict[str, Any]) -> list[str]:
     if rights.get("status") != "original_open_content": errors.append("theme: rights status must be original_open_content")
     if theme.get("qa_status") == "visual_qa_passed" and not theme.get("visual_qa_evidence"):
         errors.append("theme: visual_qa_passed requires evidence")
+    return errors
+
+
+def validate_protocol_package(root: Path) -> list[str]:
+    """Validate the publishable APSAL Open Protocol boundary of an extracted package."""
+    errors: list[str] = []
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file():
+        return ["package: missing manifest.json"]
+    try:
+        manifest = load_json(manifest_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return [f"package: invalid manifest.json: {exc}"]
+    required = ("protocol", "protocol_version", "id", "version", "parent_version", "changed_fields", "change_summary", "license", "rights", "modules", "sequence", "jobs", "checksums", "output", "qa_status")
+    for key in required:
+        if key not in manifest: errors.append(f"manifest: missing {key}")
+    if manifest.get("protocol") != "apsal-open": errors.append("manifest: protocol must be apsal-open")
+    for key in ("protocol_version", "version"):
+        if not SEMVER.fullmatch(str(manifest.get(key, ""))): errors.append(f"manifest: invalid {key}")
+    if not manifest.get("changed_fields"): errors.append("manifest: changed_fields cannot be empty")
+    licenses = manifest.get("license", {})
+    if not licenses.get("code") or not licenses.get("content"): errors.append("manifest: code and content licenses are required")
+    rights = manifest.get("rights", {})
+    for key in ("status", "attribution", "reference_media", "ai_disclosure"):
+        if key not in rights: errors.append(f"manifest rights: missing {key}")
+    if rights.get("status") not in {"original_open_content", "authorized_open_content"}:
+        errors.append("manifest rights: content is not approved for open redistribution")
+    if rights.get("reference_media") not in {"none", "separately_licensed"}:
+        errors.append("manifest rights: reference_media must be none or separately_licensed")
+    modules = manifest.get("modules", {})
+    if not isinstance(modules, dict): errors.append("manifest: modules must be an object"); modules = {}
+    missing = set(PROTOCOL_TYPES[:11]) - set(modules)
+    if missing: errors.append(f"manifest: missing module roles {sorted(missing)}")
+    jobs = manifest.get("jobs", [])
+    if not isinstance(jobs, list) or not 1 <= len(jobs) <= 24: errors.append("manifest: jobs must contain 1-24 paths"); jobs = []
+    listed = list(modules.values()) + ([manifest.get("sequence")] if manifest.get("sequence") else []) + jobs
+    checksums = manifest.get("checksums", {})
+    filenames: set[str] = set()
+    for rel in listed:
+        if not isinstance(rel, str): errors.append("manifest: package path must be a string"); continue
+        candidate = (root / rel).resolve()
+        try: candidate.relative_to(root.resolve())
+        except ValueError: errors.append(f"package: path escapes root: {rel}"); continue
+        if not candidate.is_file(): errors.append(f"package: missing file {rel}"); continue
+        actual = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        if checksums.get(rel) != actual: errors.append(f"package: checksum mismatch for {rel}")
+        try: value = load_json(candidate)
+        except (OSError, ValueError, json.JSONDecodeError) as exc: errors.append(f"package: invalid JSON {rel}: {exc}"); continue
+        kind = "job" if rel in jobs else "sequence" if rel == manifest.get("sequence") else next((k for k,v in modules.items() if v == rel), "")
+        for key in ("schema_version", "namespace", "id", "type", "version", "parent_version", "changed_fields", "change_summary", "dependencies", "rights", "qa_status", "payload"):
+            if key not in value: errors.append(f"{rel}: missing {key}")
+        if value.get("type") != kind: errors.append(f"{rel}: type must be {kind}")
+        if not SEMVER.fullmatch(str(value.get("version", ""))): errors.append(f"{rel}: invalid semantic version")
+        module_rights = value.get("rights", {})
+        if not module_rights.get("license") or not module_rights.get("attribution"): errors.append(f"{rel}: incomplete rights")
+        if value.get("qa_status") == "visual_qa_passed" and not value.get("visual_qa_evidence"): errors.append(f"{rel}: visual QA evidence required")
+        if kind == "job":
+            output = value.get("payload", {}).get("output", {})
+            if output.get("independent_image") is not True: errors.append(f"{rel}: job must output one independent image")
+            filename = output.get("filename")
+            if not filename: errors.append(f"{rel}: output filename required")
+            elif filename in filenames: errors.append(f"{rel}: duplicate output filename {filename}")
+            filenames.add(filename)
+    output = manifest.get("output", {})
+    if output.get("one_job_one_image") is not True: errors.append("manifest: one_job_one_image must be true")
+    if output.get("count") != len(jobs): errors.append("manifest: output count does not match jobs")
+    if manifest.get("qa_status") == "visual_qa_passed" and not manifest.get("visual_qa_evidence"):
+        errors.append("manifest: visual_qa_passed requires evidence")
     return errors
 
 

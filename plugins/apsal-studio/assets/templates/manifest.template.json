@@ -1,0 +1,22 @@
+{
+  "protocol": "apsal-open",
+  "protocol_version": "0.2.0",
+  "id": "YOUR_PACKAGE_ID",
+  "version": "1.0.0",
+  "parent_version": null,
+  "changed_fields": ["initial_version"],
+  "change_summary": "Describe the original package intent.",
+  "license": {"code": "Apache-2.0", "content": "CC-BY-4.0"},
+  "rights": {"status": "original_open_content", "attribution": "Your name", "reference_media": "none", "ai_disclosure": true},
+  "modules": {
+    "subject": "modules/subject.json", "world": "modules/world.json", "style": "modules/style.json",
+    "look": "modules/look.json", "emotion": "modules/emotion.json", "event": "modules/event.json",
+    "camera": "modules/camera.json", "light": "modules/light.json", "color_post": "modules/color_post.json",
+    "quality_control": "modules/quality_control.json", "content": "modules/content.json"
+  },
+  "sequence": "sequences/sequence.json",
+  "jobs": ["jobs/shot_01.json"],
+  "checksums": {},
+  "output": {"one_job_one_image": true, "count": 1},
+  "qa_status": "visual_qa_pending"
+}
