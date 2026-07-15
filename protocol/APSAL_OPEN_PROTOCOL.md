@@ -1,8 +1,37 @@
-# APSAL Open Protocol 0.2
+# APSAL Open Protocol 0.3
 
 License: Apache-2.0.
 
 APSAL Open Protocol is a vendor-neutral format for portable, versioned photography-generation packages. The protocol is open; an individual package is redistributable only when its own content license and rights metadata permit it.
+
+Protocol 0.3 adds the APSAL Semantic Contract and safe YAML authoring while preserving Protocol 0.2 JSON packages. The [0.2 compatibility specification](APSAL_OPEN_PROTOCOL_0.2.md) remains available.
+
+## Authoring and canonical formats
+
+- `.apsal.yaml` is the editable authoring source for creators and Codex.
+- `.apsal.json` is the canonical machine artifact used for validation, hashing and packaging.
+- YAML and JSON express the same data model and MUST NOT be maintained as independent sources.
+- YAML is restricted to the safe APSAL YAML 1.2 subset: no custom tags, anchors, aliases, merge keys, duplicate keys, tabs or multiple documents.
+- Integrity digests are calculated over normalized canonical JSON values, not YAML bytes or comments.
+
+Legacy JSON remains valid. New Semantic Contract assets use theme/module schema `1.1.0` and record `semantic_contract_version: 0.3.0`.
+
+## Semantic Contract
+
+Every new semantic module and every meaningful creative choice declares:
+
+- bilingual `purpose`;
+- semantic paths it `affects`;
+- non-target fields it `must_preserve`;
+- fields that `may_vary`;
+- bilingual, observable `expected_effects`;
+- evidence-based `qa_expectations`;
+- controlled `semantic_tags` from the registry;
+- integer conflict `priority` from 0 through 100.
+
+Schema descriptions define what a field always means. Instance intent explains why one value was chosen for one world or Job. Tags support retrieval and reasoning; they never replace stable IDs, dependencies or explicit constraints.
+
+Chinese visual concepts such as 经营位置、意境、气韵、虚实 and 游观 are interpretive and methodological context. They MUST NOT be reduced to unvalidated numeric parameters or used as substitutes for observable machine fields.
 
 ## Three layers
 
@@ -61,6 +90,14 @@ Identity locks outrank prose fluency. Platform/model parameters belong in option
 `subject → world → style → look → emotion → event → camera → light → color_post → content → sequence → job → quality_control`
 
 Negative constraints are inherited and cannot disappear silently. Each Job compiles into exactly one independent finished image.
+
+Protocol 0.3 exposes three deterministic compilation targets:
+
+1. `design` preserves purpose, relations, constraints and intent for Codex or another planning model.
+2. `image` emits only observable image instructions and inherited negative constraints.
+3. `qa` turns expected effects and QA expectations into evidence-based checks.
+
+Conflict precedence is fixed: identity and rights; world physics and continuity; event and shot function; camera, light and color; style rhetoric.
 
 ## Public-package safeguards
 

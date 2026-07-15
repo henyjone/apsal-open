@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 DENY = re.compile("(" + "|".join(("gh" + "o_", "github" + "_pat_", "s" + "k-[A-Za-z0-9]", "BEGIN (RSA|OPENSSH|EC)" + " PRIVATE KEY", "APSAL_ACCESS" + r"_TOKEN\s*=")) + ")")
 
 def check_tree() -> list[str]:
@@ -23,7 +23,11 @@ def check_tree() -> list[str]:
 
 def build() -> tuple[Path, str]:
     subprocess.run([sys.executable, str(ROOT / "scripts/build_example.py")], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/migrate_quiet_window_1_1.py"), "--check"], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/generate_semantic_docs.py"), "--check"], check=True)
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "validate", str(ROOT / "examples/quiet-window/theme.json")], check=True)
+    subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "validate", str(ROOT / "examples/quiet-window/theme.apsal.yaml")], check=True)
+    subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "check-sync", str(ROOT / "examples/quiet-window")], check=True)
     dist = ROOT / "dist"; dist.mkdir(exist_ok=True)
     out = dist / f"apsal-studio-codex-plugin-v{VERSION}.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:

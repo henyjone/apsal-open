@@ -14,7 +14,7 @@
   <a href="https://github.com/henyjone/apsal-open/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/henyjone/apsal-open?color=78988A"></a>
   <a href="LICENSE"><img alt="Code license" src="https://img.shields.io/badge/code-Apache--2.0-B79A62"></a>
   <a href="CONTENT_LICENSE.md"><img alt="Content license" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
-  <a href="protocol/APSAL_OPEN_PROTOCOL.md"><img alt="Protocol" src="https://img.shields.io/badge/protocol-APSAL%20Open%200.2-F1EEE4?labelColor=111412"></a>
+  <a href="protocol/APSAL_OPEN_PROTOCOL.md"><img alt="Protocol" src="https://img.shields.io/badge/protocol-APSAL%20Open%200.3-F1EEE4?labelColor=111412"></a>
   <a href="plugins/apsal-studio"><img alt="Codex plugin" src="https://img.shields.io/badge/Codex-APSAL%20Studio-78988A"></a>
 </p>
 
@@ -77,11 +77,16 @@ APSAL Studio will:
 3. Validate rights, lineage, checksums, filenames, and output rules.
 4. Export canonical JSON, compiled shot prompts, and a reproducible Skill ZIP.
 
+Protocol 0.3 keeps the reason behind every creative decision. Creators edit safe YAML; APSAL normalizes canonical JSON and compiles separate scene-design, image-generation, and QA outputs.
+
 Expected artifacts:
 
 ```text
-theme.json
-compiled.json
+theme.apsal.yaml
+theme.apsal.json
+compiled.design.json
+compiled.image.json
+compiled.qa.json
 your-theme-1-0-0.zip
 your-theme-1-0-0.zip.sha256
 ```
@@ -92,9 +97,14 @@ No account, hosted API, or model key is required for validation and packaging.
 
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py catalog
-python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.json
-python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.json -o build/compiled.json
-python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.json -o build
+python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.apsal.yaml
+python3 plugins/apsal-studio/scripts/apsal.py normalize examples/quiet-window/theme.apsal.yaml -o build/theme.apsal.json
+python3 plugins/apsal-studio/scripts/apsal.py explain examples/quiet-window/theme.apsal.yaml --path shots.SHOT_04.framing
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target design -o build/design.json
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target image -o build/image.json
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target qa -o build/qa.json
+python3 plugins/apsal-studio/scripts/apsal.py check-sync examples/quiet-window
+python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.apsal.yaml -o build
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
@@ -113,10 +123,12 @@ Static validation proves structure and reproducibility—not generated-image qua
 ## Project map
 
 - [Building Visible Worlds — APSAL methodology monograph](docs/monograph/README.md)
+- [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
+- [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
 - [Starter DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
-- [Example theme](examples/quiet-window/theme.json)
+- [Semantic example theme](examples/quiet-window/theme.apsal.yaml)
 - [Contribution guide](CONTRIBUTING.md)
 - [Governance](GOVERNANCE.md)
 - [Security policy](SECURITY.md)

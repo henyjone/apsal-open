@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.open/schemas/semantic-contract.schema.json",
+  "title": "APSAL Semantic Contract / APSAL 语义契约",
+  "description": "Explains why an element exists, what it affects, what it preserves, and how its success is observed. / 解释元素为什么存在、影响什么、保护什么以及如何观察其成功。",
+  "$defs": {
+    "localizedText": {
+      "type": "object",
+      "required": ["en", "zh"],
+      "properties": {
+        "en": {"type": "string", "minLength": 1, "description": "English meaning. / 英文含义。"},
+        "zh": {"type": "string", "minLength": 1, "description": "Chinese meaning. / 中文含义。"}
+      },
+      "additionalProperties": false
+    },
+    "statement": {
+      "type": "object",
+      "required": ["id", "en", "zh"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "description": "Stable statement identifier. / 稳定的语义陈述标识。"},
+        "en": {"type": "string", "minLength": 1},
+        "zh": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "fieldIntent": {
+      "type": "object",
+      "required": ["purpose", "affects", "expected_effects", "qa_expectations"],
+      "properties": {
+        "purpose": {"$ref": "#/$defs/localizedText"},
+        "affects": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "expected_effects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/statement"}},
+        "qa_expectations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/statement"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["purpose", "affects", "must_preserve", "may_vary", "expected_effects", "qa_expectations", "semantic_tags", "priority"],
+  "properties": {
+    "purpose": {"$ref": "#/$defs/localizedText", "description": "Why this element exists in the world. / 该元素为何存在于世界中。"},
+    "affects": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "Downstream semantic paths affected by this decision. / 该决定影响的下游语义路径。"},
+    "must_preserve": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "Non-target invariants. / 不得漂移的非目标不变量。"},
+    "may_vary": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "Declared space for controlled variation. / 允许受控变化的范围。"},
+    "expected_effects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/statement"}, "description": "Observable visual consequences. / 可观察的视觉结果。"},
+    "qa_expectations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/statement"}, "description": "Evidence-based acceptance criteria. / 基于证据的验收标准。"},
+    "semantic_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}, "description": "Controlled registry tags used for retrieval and reasoning. / 用于检索与推理的受控注册标签。"},
+    "priority": {"type": "integer", "minimum": 0, "maximum": 100, "description": "Conflict precedence; higher values win. / 冲突优先级，数值越高越优先。"}
+  },
+  "additionalProperties": false
+}

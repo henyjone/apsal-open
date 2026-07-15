@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-07-15
+
+- Added Semantic Contract 0.3 with bilingual purpose, effects, locks, controlled tags, priorities, and evidence-oriented QA expectations.
+- Added dependency-free safe APSAL YAML authoring and deterministic canonical JSON normalization.
+- Added `normalize`, `explain`, `check-sync`, and `compile --target design|image|qa` CLI workflows.
+- Added `APSAL-OPEN-001@1.1.0` as the only semantic pilot while preserving `1.0.0` and all seven DNA dependencies.
+- Added the thirteen-element monograph companion and generated bilingual semantic references.
+
 ## 0.2.0 - 2026-07-15
 
 - Defined APSAL Open Protocol as a separately licensed specification, reference engine, and content layer.

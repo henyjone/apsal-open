@@ -1,7 +1,7 @@
 [project]
 name = "apsal-open"
-version = "0.2.0"
-description = "Offline APSAL DNA compiler and Codex Skill packager"
+version = "0.3.0"
+description = "Offline APSAL semantic YAML compiler, canonical JSON validator, and Codex Skill packager"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 

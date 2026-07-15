@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "namespace": "your-namespace",
   "id": "YOUR_MODULE_ID",
   "type": "subject",
@@ -10,5 +10,15 @@
   "dependencies": [],
   "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Your name", "reference_media": "none"},
   "qa_status": "static_validated",
+  "semantics": {
+    "purpose": {"en": "Explain why this subject module exists.", "zh": "解释这个主体模块为什么存在。"},
+    "affects": ["subject.identity"],
+    "must_preserve": ["subject.identity", "rights.provenance"],
+    "may_vary": ["subject.declared_variables"],
+    "expected_effects": [{"id": "subject.observable", "en": "The subject is consistently observable.", "zh": "主体在各镜头中保持可观察的一致性。"}],
+    "qa_expectations": [{"id": "subject.identity", "en": "Identity matches the declared locks.", "zh": "身份符合已声明的锁定字段。"}],
+    "semantic_tags": ["subject.identity.locked"],
+    "priority": 100
+  },
   "payload": {}
 }

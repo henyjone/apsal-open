@@ -1,0 +1,2302 @@
+{
+  "engine_version": "0.3.0",
+  "theme_id": "APSAL-OPEN-001",
+  "theme_version": "1.1.0",
+  "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
+  "target": "design",
+  "semantic_contract_version": "0.3.0",
+  "priority_order": [
+    "identity_and_rights",
+    "world_physics_and_continuity",
+    "event_and_shot_function",
+    "camera_light_and_color",
+    "style_rhetoric"
+  ],
+  "theme_semantics": {
+    "purpose": {
+      "en": "Define a coherent photographic world before selecting its viewpoints.",
+      "zh": "在选择摄影视点之前，定义一个连贯的摄影世界。"
+    },
+    "affects": [
+      "element_semantics",
+      "shots",
+      "output"
+    ],
+    "must_preserve": [
+      "subject.identity",
+      "world.geometry",
+      "rights.provenance"
+    ],
+    "may_vary": [
+      "job.viewpoint",
+      "event.action",
+      "camera.framing"
+    ],
+    "expected_effects": [
+      {
+        "id": "theme.world_coherence",
+        "en": "All Jobs remain inferably inside one world.",
+        "zh": "所有 Job 均可被推断为处于同一世界。"
+      }
+    ],
+    "qa_expectations": [
+      {
+        "id": "theme.distinct_jobs",
+        "en": "Every Job has a distinct narrative function and one output.",
+        "zh": "每个 Job 都有不同叙事职能并只输出一张图。"
+      }
+    ],
+    "semantic_tags": [
+      "sequence.function.progression",
+      "job.output.independent"
+    ],
+    "priority": 95
+  },
+  "protocol_mapping": {
+    "character": [
+      "subject"
+    ],
+    "style": [
+      "style",
+      "color_post"
+    ],
+    "environment": [
+      "world"
+    ],
+    "lighting": [
+      "light"
+    ],
+    "composition": [
+      "camera",
+      "content",
+      "sequence"
+    ],
+    "shot": [
+      "look",
+      "emotion",
+      "event",
+      "job"
+    ],
+    "qa": [
+      "quality_control"
+    ]
+  },
+  "element_semantics": {
+    "subject": {
+      "purpose": {
+        "en": "Keep one fictional adult recognizable across all nine viewpoints.",
+        "zh": "让同一虚构成年人物在九次观看中保持可识别身份。"
+      },
+      "affects": [
+        "job.identity",
+        "emotion.expression",
+        "quality_control.identity"
+      ],
+      "must_preserve": [
+        "subject.adult_age",
+        "subject.facial_geometry",
+        "subject.hair"
+      ],
+      "may_vary": [
+        "subject.gaze",
+        "subject.expression",
+        "subject.pose"
+      ],
+      "expected_effects": [
+        {
+          "id": "subject.same_person",
+          "en": "Every frame reads as the same adult person.",
+          "zh": "每一镜均可识别为同一成年人物。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "subject.identity_evidence",
+          "en": "Compare face, age and proportions across all Jobs.",
+          "zh": "跨全部 Job 比较面部、年龄与比例。"
+        }
+      ],
+      "semantic_tags": [
+        "subject.identity.locked"
+      ],
+      "priority": 100
+    },
+    "world": {
+      "purpose": {
+        "en": "Make the quiet window room a persistent reality rather than a replaceable backdrop.",
+        "zh": "让安静的窗边房间成为持续现实，而不是可随意替换的背景。"
+      },
+      "affects": [
+        "camera.viewpoint",
+        "light.direction",
+        "event.path",
+        "sequence.continuity"
+      ],
+      "must_preserve": [
+        "world.window.east",
+        "world.table.position",
+        "world.room.geometry"
+      ],
+      "may_vary": [
+        "world.visible_area",
+        "world.curtain_motion",
+        "world.light_phase"
+      ],
+      "expected_effects": [
+        {
+          "id": "world.inferable",
+          "en": "Different framings still imply one room.",
+          "zh": "不同景别仍能推断为同一房间。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "world.geometry_evidence",
+          "en": "Window, floor, table and movement path remain physically compatible.",
+          "zh": "窗户、地面、桌子与行动路径保持物理兼容。"
+        }
+      ],
+      "semantic_tags": [
+        "world.space.coherent"
+      ],
+      "priority": 90
+    },
+    "style": {
+      "purpose": {
+        "en": "Use restrained editorial photography without overriding identity, event or material truth.",
+        "zh": "采用克制的编辑摄影语言，但不得压过身份、事件或材质真实。"
+      },
+      "affects": [
+        "camera.composition",
+        "color_post.rendering",
+        "light.contrast"
+      ],
+      "must_preserve": [
+        "subject.realistic_skin",
+        "world.believable_materials",
+        "content.quiet_tone"
+      ],
+      "may_vary": [
+        "style.grain",
+        "style.depth",
+        "style.negative_space"
+      ],
+      "expected_effects": [
+        {
+          "id": "style.coherent",
+          "en": "The set shares a restrained tactile editorial character.",
+          "zh": "整组保持克制、可触的编辑摄影气质。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "style.no_gloss",
+          "en": "Reject CGI gloss, beauty-filter skin and decorative excess.",
+          "zh": "拒绝 CGI 光泽、美颜皮肤与装饰过量。"
+        }
+      ],
+      "semantic_tags": [
+        "style.editorial.restrained"
+      ],
+      "priority": 50
+    },
+    "look": {
+      "purpose": {
+        "en": "Keep LOOK_A and the blank cream paper physically owned by the subject.",
+        "zh": "保持 LOOK_A，并让米白信纸始终具有明确的主体归属。"
+      },
+      "affects": [
+        "subject.silhouette",
+        "event.hand_action",
+        "sequence.prop_state"
+      ],
+      "must_preserve": [
+        "look.wardrobe.LOOK_A",
+        "look.paper.owner"
+      ],
+      "may_vary": [
+        "look.fabric_motion",
+        "look.paper.orientation"
+      ],
+      "expected_effects": [
+        {
+          "id": "look.continuous",
+          "en": "Wardrobe and paper remain continuous while their state changes naturally.",
+          "zh": "服装与信纸保持连续，同时状态自然变化。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "look.ownership",
+          "en": "The paper never floats, duplicates or changes owner.",
+          "zh": "信纸不得漂浮、复制或改变归属。"
+        }
+      ],
+      "semantic_tags": [
+        "look.wardrobe.locked",
+        "world.prop.ownership"
+      ],
+      "priority": 88
+    },
+    "emotion": {
+      "purpose": {
+        "en": "Externalize a quiet unresolved decision through gaze, breath and action rather than labels.",
+        "zh": "通过视线、呼吸和动作外化安静而未决的决定，而不是直接贴情绪标签。"
+      },
+      "affects": [
+        "subject.gaze",
+        "event.tempo",
+        "camera.distance"
+      ],
+      "must_preserve": [
+        "emotion.restrained_range",
+        "content.unspoken_decision"
+      ],
+      "may_vary": [
+        "emotion.intensity",
+        "emotion.external_expression"
+      ],
+      "expected_effects": [
+        {
+          "id": "emotion.observable",
+          "en": "Emotion is inferred from behavior, not theatrical posing.",
+          "zh": "情绪由行为推断，而非戏剧化摆姿。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "emotion.motivated",
+          "en": "Expression and gaze follow the current event phase.",
+          "zh": "表情与视线符合当前事件阶段。"
+        }
+      ],
+      "semantic_tags": [
+        "emotion.expression.restrained"
+      ],
+      "priority": 75
+    },
+    "event": {
+      "purpose": {
+        "en": "Turn the blank paper from an active object of reading into a closed object after decision.",
+        "zh": "让空白信纸从正在阅读的对象转变为决定之后被关闭的对象。"
+      },
+      "affects": [
+        "world.paper_state",
+        "look.hands",
+        "sequence.phase"
+      ],
+      "must_preserve": [
+        "event.paper.owner",
+        "event.causal_order"
+      ],
+      "may_vary": [
+        "event.action",
+        "event.tempo"
+      ],
+      "expected_effects": [
+        {
+          "id": "event.transition",
+          "en": "Paper orientation and hand action make state changes legible.",
+          "zh": "信纸方向与手部动作使状态变化清楚可见。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "event.causality",
+          "en": "Each action follows the prior state and leaves a usable next state.",
+          "zh": "每个动作承接前一状态，并留下可供下一镜继承的状态。"
+        }
+      ],
+      "semantic_tags": [
+        "event.state.transition",
+        "world.prop.ownership"
+      ],
+      "priority": 82
+    },
+    "camera": {
+      "purpose": {
+        "en": "Use one coherent viewpoint per Job and varied distances across the sequence.",
+        "zh": "每个 Job 使用一个连贯视点，并在序列中改变观看距离。"
+      },
+      "affects": [
+        "world.visible_information",
+        "emotion.viewer_distance",
+        "content.emphasis"
+      ],
+      "must_preserve": [
+        "camera.single_viewpoint",
+        "world.perspective"
+      ],
+      "may_vary": [
+        "camera.framing",
+        "camera.height",
+        "camera.distance"
+      ],
+      "expected_effects": [
+        {
+          "id": "camera.youguan",
+          "en": "Nine single viewpoints form a deliberate movement through the world.",
+          "zh": "九个单一视点形成对世界的有意游观。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "camera.distinct",
+          "en": "Framings are distinct without breaking room geometry.",
+          "zh": "景别彼此不同，但不破坏房间几何。"
+        }
+      ],
+      "semantic_tags": [
+        "camera.viewpoint.single"
+      ],
+      "priority": 70
+    },
+    "light": {
+      "purpose": {
+        "en": "Let one east-facing source progress from cool arrival to warm afterglow.",
+        "zh": "让同一东向光源从冷静进入阶段推进到温暖余晖。"
+      },
+      "affects": [
+        "world.time",
+        "subject.visibility",
+        "sequence.phase"
+      ],
+      "must_preserve": [
+        "light.source.east_window",
+        "light.shadow_direction"
+      ],
+      "may_vary": [
+        "light.temperature",
+        "light.intensity",
+        "light.falloff"
+      ],
+      "expected_effects": [
+        {
+          "id": "light.time",
+          "en": "Light phase makes narrative time perceptible.",
+          "zh": "光线阶段让叙事时间可以被感知。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "light.physical",
+          "en": "Reject contradictory shadows, multiple suns and clipped highlights.",
+          "zh": "拒绝矛盾阴影、多重太阳和高光溢出。"
+        }
+      ],
+      "semantic_tags": [
+        "light.direction.consistent"
+      ],
+      "priority": 70
+    },
+    "color_post": {
+      "purpose": {
+        "en": "Keep natural separation and tactile grain subordinate to world and skin.",
+        "zh": "让自然色彩分离与触感颗粒服从世界和肤质。"
+      },
+      "affects": [
+        "style.materiality",
+        "light.phase",
+        "subject.skin"
+      ],
+      "must_preserve": [
+        "color.skin_natural",
+        "color.world_palette"
+      ],
+      "may_vary": [
+        "color.warmth_by_phase",
+        "color.grain"
+      ],
+      "expected_effects": [
+        {
+          "id": "color.relational",
+          "en": "Color changes with light phase without becoming a preset filter.",
+          "zh": "色彩随光线阶段变化，但不退化为预设滤镜。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "color.no_drift",
+          "en": "Skin and room materials do not drift between Jobs.",
+          "zh": "肤色与房间材质不得跨 Job 漂移。"
+        }
+      ],
+      "semantic_tags": [
+        "color.palette.natural"
+      ],
+      "priority": 65
+    },
+    "quality_control": {
+      "purpose": {
+        "en": "Separate static validity from evidence-based human visual QA.",
+        "zh": "严格区分静态合法性与基于证据的人工视觉 QA。"
+      },
+      "affects": [
+        "subject",
+        "world",
+        "look",
+        "event",
+        "camera",
+        "light",
+        "job"
+      ],
+      "must_preserve": [
+        "qa.honest_status",
+        "rights.disclosure"
+      ],
+      "may_vary": [
+        "qa.evidence_links"
+      ],
+      "expected_effects": [
+        {
+          "id": "qa.actionable",
+          "en": "Every semantic purpose has an observable acceptance check.",
+          "zh": "每个语义目的都有可观察的验收检查。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "qa.no_false_pass",
+          "en": "Do not claim visual pass without linked generated-image evidence.",
+          "zh": "没有关联生成图证据时不得声称视觉通过。"
+        }
+      ],
+      "semantic_tags": [
+        "qa.identity",
+        "qa.anatomy",
+        "qa.continuity",
+        "qa.no_text"
+      ],
+      "priority": 100
+    },
+    "content": {
+      "purpose": {
+        "en": "Express an unspoken decision through world and action instead of written explanation.",
+        "zh": "通过世界与行动表达未说出口的决定，而不依赖文字解释。"
+      },
+      "affects": [
+        "event.paper_state",
+        "emotion.restraint",
+        "sequence.resolution"
+      ],
+      "must_preserve": [
+        "content.no_text",
+        "content.quiet_decision"
+      ],
+      "may_vary": [
+        "content.viewer_interpretation"
+      ],
+      "expected_effects": [
+        {
+          "id": "content.felt",
+          "en": "The decision is felt through the paper sequence and final breath.",
+          "zh": "决定通过信纸序列与最后呼吸被感知。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "content.no_caption",
+          "en": "The story remains legible without generated captions or typography.",
+          "zh": "故事无需生成字幕或排版文字仍可理解。"
+        }
+      ],
+      "semantic_tags": [
+        "content.theme.decision"
+      ],
+      "priority": 80
+    },
+    "sequence": {
+      "purpose": {
+        "en": "Move from arrival through encounter and decision to an unresolved afterword.",
+        "zh": "从进入、接触、决定推进到未完全封闭的余韵。"
+      },
+      "affects": [
+        "event.order",
+        "camera.coverage",
+        "light.phase",
+        "emotion.intensity"
+      ],
+      "must_preserve": [
+        "sequence.causal_order",
+        "sequence.unique_functions"
+      ],
+      "may_vary": [
+        "sequence.viewpoint",
+        "sequence.distance"
+      ],
+      "expected_effects": [
+        {
+          "id": "sequence.progression",
+          "en": "Each Job adds a new function rather than repeating a pose.",
+          "zh": "每个 Job 增加新职能，而不是重复姿势。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "sequence.coverage",
+          "en": "Removing any Job creates a clear information or rhythm loss.",
+          "zh": "移除任一 Job 都会造成明确的信息或节奏损失。"
+        }
+      ],
+      "semantic_tags": [
+        "sequence.function.progression",
+        "qa.continuity"
+      ],
+      "priority": 85
+    },
+    "job": {
+      "purpose": {
+        "en": "Make each shot one complete, independently usable act of looking.",
+        "zh": "让每一镜成为完整且可独立使用的一次观看。"
+      },
+      "affects": [
+        "camera",
+        "event",
+        "output.filename",
+        "quality_control"
+      ],
+      "must_preserve": [
+        "job.one_image",
+        "job.unique_filename",
+        "subject.identity"
+      ],
+      "may_vary": [
+        "job.viewpoint",
+        "job.action"
+      ],
+      "expected_effects": [
+        {
+          "id": "job.independent",
+          "en": "Every Job produces one finished photograph with a unique role.",
+          "zh": "每个 Job 产生一张具有独特职能的完成照片。"
+        }
+      ],
+      "qa_expectations": [
+        {
+          "id": "job.output",
+          "en": "Reject grids, collages, storyboards, text, logos and watermarks.",
+          "zh": "拒绝网格、拼图、故事板、文字、标志和水印。"
+        }
+      ],
+      "semantic_tags": [
+        "job.output.independent",
+        "camera.viewpoint.single"
+      ],
+      "priority": 82
+    }
+  },
+  "dna": [
+    {
+      "id": "OPEN_CHAR_ADULT_001",
+      "type": "character",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_STYLE_EDITORIAL_001",
+      "type": "style",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_ENV_WINDOW_001",
+      "type": "environment",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_LIGHT_WINDOW_001",
+      "type": "lighting",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_COMP_SEQUENCE_001",
+      "type": "composition",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_SHOT_NINE_001",
+      "type": "shot",
+      "version": "1.0.0"
+    },
+    {
+      "id": "OPEN_QA_PORTRAIT_001",
+      "type": "qa",
+      "version": "1.0.0"
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "SHOT_01",
+      "title": "Arrival",
+      "narrative_purpose": "Establish the room and solitary arrival",
+      "framing": "environment",
+      "action": "steps into the room while the curtain moves",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Establish the room and solitary arrival",
+          "zh": "建立房间几何与独自进入。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "arrival",
+            "en": "Establish room geometry and solitary arrival.",
+            "zh": "建立房间几何与独自进入。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "arrival.legible",
+            "en": "The intended function 'Establish room geometry and solitary arrival.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“建立房间几何与独自进入。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='environment' to serve this Job's narrative purpose: Establish the room and solitary arrival",
+            "zh": "使用 framing='environment' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='steps into the room while the curtain moves' to serve this Job's narrative purpose: Establish the room and solitary arrival",
+            "zh": "使用 action='steps into the room while the curtain moves' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='hands relaxed, anatomically plausible, and consistent with the action' to serve this Job's narrative purpose: Establish the room and solitary arrival",
+            "zh": "使用 hands='hands relaxed, anatomically plausible, and consistent with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Establish the room and solitary arrival",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Establish the room and solitary arrival",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_01.jpg"
+    },
+    {
+      "shot_id": "SHOT_02",
+      "title": "Window Figure",
+      "narrative_purpose": "Reveal the full silhouette at the window",
+      "framing": "full",
+      "action": "stands beside the window and steadies the curtain",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Reveal the full silhouette at the window",
+          "zh": "揭示人物身份、轮廓及其与窗户的关系。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "window_figure",
+            "en": "Reveal identity and silhouette in relation to the window.",
+            "zh": "揭示人物身份、轮廓及其与窗户的关系。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "window_figure.legible",
+            "en": "The intended function 'Reveal identity and silhouette in relation to the window.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“揭示人物身份、轮廓及其与窗户的关系。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='full' to serve this Job's narrative purpose: Reveal the full silhouette at the window",
+            "zh": "使用 framing='full' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='stands beside the window and steadies the curtain' to serve this Job's narrative purpose: Reveal the full silhouette at the window",
+            "zh": "使用 action='stands beside the window and steadies the curtain' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='hands relaxed, anatomically plausible, and consistent with the action' to serve this Job's narrative purpose: Reveal the full silhouette at the window",
+            "zh": "使用 hands='hands relaxed, anatomically plausible, and consistent with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Reveal the full silhouette at the window",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Reveal the full silhouette at the window",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_02.jpg"
+    },
+    {
+      "shot_id": "SHOT_03",
+      "title": "Unfolding",
+      "narrative_purpose": "Begin a small act of unfolding a letter",
+      "framing": "medium",
+      "action": "unfolds a blank cream sheet",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_1"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Begin a small act of unfolding a letter",
+          "zh": "以物理清楚的手部动作启动信纸事件。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "unfolding",
+            "en": "Begin the paper event with physically legible hands.",
+            "zh": "以物理清楚的手部动作启动信纸事件。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "unfolding.legible",
+            "en": "The intended function 'Begin the paper event with physically legible hands.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“以物理清楚的手部动作启动信纸事件。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='medium' to serve this Job's narrative purpose: Begin a small act of unfolding a letter",
+            "zh": "使用 framing='medium' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='unfolds a blank cream sheet' to serve this Job's narrative purpose: Begin a small act of unfolding a letter",
+            "zh": "使用 action='unfolds a blank cream sheet' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='both hands visible and naturally engaged with the action' to serve this Job's narrative purpose: Begin a small act of unfolding a letter",
+            "zh": "使用 hands='both hands visible and naturally engaged with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Begin a small act of unfolding a letter",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Begin a small act of unfolding a letter",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_03.jpg"
+    },
+    {
+      "shot_id": "SHOT_04",
+      "title": "Before Reading",
+      "narrative_purpose": "Hold the pause before reading",
+      "framing": "close-up",
+      "action": "pauses with the sheet held below eye level",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Hold the pause before reading",
+          "zh": "暂停动作，并把注意力转向内在决定。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "before_reading",
+            "en": "Suspend action and move attention toward inner decision.",
+            "zh": "暂停动作，并把注意力转向内在决定。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "before_reading.legible",
+            "en": "The intended function 'Suspend action and move attention toward inner decision.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“暂停动作，并把注意力转向内在决定。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='close-up' to serve this Job's narrative purpose: Hold the pause before reading",
+            "zh": "使用 framing='close-up' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='pauses with the sheet held below eye level' to serve this Job's narrative purpose: Hold the pause before reading",
+            "zh": "使用 action='pauses with the sheet held below eye level' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='both hands visible and naturally engaged with the action' to serve this Job's narrative purpose: Hold the pause before reading",
+            "zh": "使用 hands='both hands visible and naturally engaged with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Hold the pause before reading",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Hold the pause before reading",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_04.jpg"
+    },
+    {
+      "shot_id": "SHOT_05",
+      "title": "Paper Detail",
+      "narrative_purpose": "Observe fingertips on textured paper",
+      "framing": "detail",
+      "action": "smooths one corner of the paper",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Observe fingertips on textured paper",
+          "zh": "让材质、触觉与道具归属变得可观察。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "paper_detail",
+            "en": "Make texture, touch and prop ownership observable.",
+            "zh": "让材质、触觉与道具归属变得可观察。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "paper_detail.legible",
+            "en": "The intended function 'Make texture, touch and prop ownership observable.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“让材质、触觉与道具归属变得可观察。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='detail' to serve this Job's narrative purpose: Observe fingertips on textured paper",
+            "zh": "使用 framing='detail' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='smooths one corner of the paper' to serve this Job's narrative purpose: Observe fingertips on textured paper",
+            "zh": "使用 action='smooths one corner of the paper' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='both hands visible and naturally engaged with the action' to serve this Job's narrative purpose: Observe fingertips on textured paper",
+            "zh": "使用 hands='both hands visible and naturally engaged with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Observe fingertips on textured paper",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Observe fingertips on textured paper",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_05.jpg"
+    },
+    {
+      "shot_id": "SHOT_06",
+      "title": "Light Turns",
+      "narrative_purpose": "Turn toward changing light",
+      "framing": "environment",
+      "action": "turns her head toward the late light",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_2"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Turn toward changing light",
+          "zh": "表现时间变化如何改变人物注意方向。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "light_turns",
+            "en": "Show time changing the subject's attention.",
+            "zh": "表现时间变化如何改变人物注意方向。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "light_turns.legible",
+            "en": "The intended function 'Show time changing the subject's attention.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“表现时间变化如何改变人物注意方向。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='environment' to serve this Job's narrative purpose: Turn toward changing light",
+            "zh": "使用 framing='environment' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='turns her head toward the late light' to serve this Job's narrative purpose: Turn toward changing light",
+            "zh": "使用 action='turns her head toward the late light' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='hands relaxed, anatomically plausible, and consistent with the action' to serve this Job's narrative purpose: Turn toward changing light",
+            "zh": "使用 hands='hands relaxed, anatomically plausible, and consistent with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Turn toward changing light",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Turn toward changing light",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_06.jpg"
+    },
+    {
+      "shot_id": "SHOT_07",
+      "title": "Crossing",
+      "narrative_purpose": "Cross the room with the letter lowered",
+      "framing": "full",
+      "action": "walks past the low table",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Cross the room with the letter lowered",
+          "zh": "通过穿越房间的动作启动解决阶段。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "crossing",
+            "en": "Use movement through the room to begin resolution.",
+            "zh": "通过穿越房间的动作启动解决阶段。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "crossing.legible",
+            "en": "The intended function 'Use movement through the room to begin resolution.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“通过穿越房间的动作启动解决阶段。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='full' to serve this Job's narrative purpose: Cross the room with the letter lowered",
+            "zh": "使用 framing='full' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='walks past the low table' to serve this Job's narrative purpose: Cross the room with the letter lowered",
+            "zh": "使用 action='walks past the low table' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='hands relaxed, anatomically plausible, and consistent with the action' to serve this Job's narrative purpose: Cross the room with the letter lowered",
+            "zh": "使用 hands='hands relaxed, anatomically plausible, and consistent with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Cross the room with the letter lowered",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Cross the room with the letter lowered",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_07.jpg"
+    },
+    {
+      "shot_id": "SHOT_08",
+      "title": "Decision",
+      "narrative_purpose": "Return to the table after deciding",
+      "framing": "medium",
+      "action": "places the sheet face down on the table",
+      "hands": "both hands visible and naturally engaged with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Return to the table after deciding",
+          "zh": "把信纸翻面作为决定的可见后果。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "decision",
+            "en": "Turn the paper face down as the visible consequence of decision.",
+            "zh": "把信纸翻面作为决定的可见后果。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "decision.legible",
+            "en": "The intended function 'Turn the paper face down as the visible consequence of decision.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“把信纸翻面作为决定的可见后果。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='medium' to serve this Job's narrative purpose: Return to the table after deciding",
+            "zh": "使用 framing='medium' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='places the sheet face down on the table' to serve this Job's narrative purpose: Return to the table after deciding",
+            "zh": "使用 action='places the sheet face down on the table' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='both hands visible and naturally engaged with the action' to serve this Job's narrative purpose: Return to the table after deciding",
+            "zh": "使用 hands='both hands visible and naturally engaged with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Return to the table after deciding",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Return to the table after deciding",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_08.jpg"
+    },
+    {
+      "shot_id": "SHOT_09",
+      "title": "Afterword",
+      "narrative_purpose": "Close on a calm, unresolved expression",
+      "framing": "close-up",
+      "action": "breathes out and looks just beyond camera",
+      "hands": "hands relaxed, anatomically plausible, and consistent with the action",
+      "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
+      "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "continuity": {
+        "identity": "locked",
+        "wardrobe": "LOOK_A",
+        "phase": "PHASE_3"
+      },
+      "intent": {
+        "purpose": {
+          "en": "Close on a calm, unresolved expression",
+          "zh": "以呼吸和未完全解决的情绪余韵收束。"
+        },
+        "affects": [
+          "event",
+          "camera",
+          "sequence",
+          "job"
+        ],
+        "must_preserve": [
+          "subject.identity",
+          "world.geometry",
+          "look.wardrobe",
+          "rights.provenance"
+        ],
+        "may_vary": [
+          "camera.framing",
+          "event.action",
+          "emotion.external_expression"
+        ],
+        "expected_effects": [
+          {
+            "id": "afterword",
+            "en": "Close with breath and unresolved emotional remainder.",
+            "zh": "以呼吸和未完全解决的情绪余韵收束。"
+          }
+        ],
+        "qa_expectations": [
+          {
+            "id": "afterword.legible",
+            "en": "The intended function 'Close with breath and unresolved emotional remainder.' is visible without explanatory text.",
+            "zh": "无需解释文字即可看出“以呼吸和未完全解决的情绪余韵收束。”这一职能。"
+          }
+        ],
+        "semantic_tags": [
+          "job.output.independent",
+          "camera.viewpoint.single",
+          "sequence.function.progression"
+        ],
+        "priority": 82
+      },
+      "field_intents": {
+        "framing": {
+          "purpose": {
+            "en": "Use framing='close-up' to serve this Job's narrative purpose: Close on a calm, unresolved expression",
+            "zh": "使用 framing='close-up' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.subject_scale",
+            "world.visible_information",
+            "emotion.viewer_distance"
+          ],
+          "expected_effects": [
+            {
+              "id": "framing.observable",
+              "en": "The declared framing is observable and supports the action.",
+              "zh": "已声明的 framing 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "framing_matches_intent",
+              "en": "Framing matches intent.",
+              "zh": "framing matches intent。"
+            }
+          ]
+        },
+        "action": {
+          "purpose": {
+            "en": "Use action='breathes out and looks just beyond camera' to serve this Job's narrative purpose: Close on a calm, unresolved expression",
+            "zh": "使用 action='breathes out and looks just beyond camera' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "event.state_transition",
+            "look.prop_state",
+            "sequence.continuity"
+          ],
+          "expected_effects": [
+            {
+              "id": "action.observable",
+              "en": "The declared action is observable and supports the action.",
+              "zh": "已声明的 action 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "action_is_physically_legible",
+              "en": "Action is physically legible.",
+              "zh": "action is physically legible。"
+            }
+          ]
+        },
+        "hands": {
+          "purpose": {
+            "en": "Use hands='hands relaxed, anatomically plausible, and consistent with the action' to serve this Job's narrative purpose: Close on a calm, unresolved expression",
+            "zh": "使用 hands='hands relaxed, anatomically plausible, and consistent with the action' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "subject.anatomy",
+            "event.legibility",
+            "look.prop_ownership"
+          ],
+          "expected_effects": [
+            {
+              "id": "hands.observable",
+              "en": "The declared hands is observable and supports the action.",
+              "zh": "已声明的 hands 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "hands_are_anatomically_plausible",
+              "en": "Hands are anatomically plausible.",
+              "zh": "hands are anatomically plausible。"
+            }
+          ]
+        },
+        "gaze": {
+          "purpose": {
+            "en": "Use gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' to serve this Job's narrative purpose: Close on a calm, unresolved expression",
+            "zh": "使用 gaze='motivated by the window, paper, or path of movement; never an arbitrary fashion stare' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "emotion.external_expression",
+            "event.motivation",
+            "composition.attention"
+          ],
+          "expected_effects": [
+            {
+              "id": "gaze.observable",
+              "en": "The declared gaze is observable and supports the action.",
+              "zh": "已声明的 gaze 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "gaze_has_motivation",
+              "en": "Gaze has motivation.",
+              "zh": "gaze has motivation。"
+            }
+          ]
+        },
+        "composition": {
+          "purpose": {
+            "en": "Use composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' to serve this Job's narrative purpose: Close on a calm, unresolved expression",
+            "zh": "使用 composition='distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space' 服务本 Job 的叙事目的，而不是作为孤立的形式标签。"
+          },
+          "affects": [
+            "camera.viewpoint",
+            "world.geometry",
+            "content.emphasis"
+          ],
+          "expected_effects": [
+            {
+              "id": "composition.observable",
+              "en": "The declared composition is observable and supports the action.",
+              "zh": "已声明的 composition 在画面中可观察，并服务于动作。"
+            }
+          ],
+          "qa_expectations": [
+            {
+              "id": "composition_is_distinct",
+              "en": "Composition is distinct.",
+              "zh": "composition is distinct。"
+            }
+          ]
+        }
+      },
+      "output_filename": "apsal-open-001_09.jpg"
+    }
+  ],
+  "compiled_digest": "24d9790339baecde4bc2f25e381454cc7ff45c152155d5490091c09ea24cd97d"
+}

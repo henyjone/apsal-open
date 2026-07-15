@@ -66,9 +66,14 @@ codex plugin add apsal-studio@apsal-open
 3. 校验权利、版本血缘、SHA-256、输出文件名和单图规则。
 4. 输出主题 JSON、逐镜头编译结果和可复现 Skill ZIP。
 
+Protocol 0.3 还会保存每个创作决定“为什么存在”。创作者编辑安全 YAML，APSAL 规范化为 canonical JSON，并分别输出场景设计语境、图像生成语言和 QA 检查。
+
 ```text
-theme.json
-compiled.json
+theme.apsal.yaml
+theme.apsal.json
+compiled.design.json
+compiled.image.json
+compiled.qa.json
 your-theme-1-0-0.zip
 your-theme-1-0-0.zip.sha256
 ```
@@ -79,9 +84,14 @@ your-theme-1-0-0.zip.sha256
 
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py catalog
-python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.json
-python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.json -o build/compiled.json
-python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.json -o build
+python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.apsal.yaml
+python3 plugins/apsal-studio/scripts/apsal.py normalize examples/quiet-window/theme.apsal.yaml -o build/theme.apsal.json
+python3 plugins/apsal-studio/scripts/apsal.py explain examples/quiet-window/theme.apsal.yaml --path shots.SHOT_04.framing
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target design -o build/design.json
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target image -o build/image.json
+python3 plugins/apsal-studio/scripts/apsal.py compile examples/quiet-window/theme.apsal.yaml --target qa -o build/qa.json
+python3 plugins/apsal-studio/scripts/apsal.py check-sync examples/quiet-window
+python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.apsal.yaml -o build
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
@@ -100,10 +110,12 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 ## 项目导航
 
 - [《构建可见世界：APSAL 元素摄影法》](docs/monograph/README.md)
+- [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
+- [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)
 - [DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
-- [示例主题](examples/quiet-window/theme.json)
+- [语义化示例主题](examples/quiet-window/theme.apsal.yaml)
 - [贡献指南](CONTRIBUTING.md)
 - [治理规则](GOVERNANCE.md)
 - [安全策略](SECURITY.md)

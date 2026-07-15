@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "namespace": "your-namespace",
   "id": "YOUR_JOB_01",
   "type": "job",
@@ -10,5 +10,15 @@
   "dependencies": [],
   "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Your name", "reference_media": "none"},
   "qa_status": "visual_qa_pending",
+  "semantics": {
+    "purpose": {"en": "Explain the unique act of looking completed by this Job.", "zh": "解释这个 Job 必须完成的独特观看。"},
+    "affects": ["camera", "event", "output"],
+    "must_preserve": ["subject.identity", "world.geometry", "rights.provenance"],
+    "may_vary": ["job.viewpoint", "job.action"],
+    "expected_effects": [{"id": "job.independent", "en": "The Job produces one distinct finished image.", "zh": "该 Job 产生一张具有独特职能的完成图。"}],
+    "qa_expectations": [{"id": "job.output", "en": "Output is independent and matches its intent.", "zh": "输出独立且符合本镜意图。"}],
+    "semantic_tags": ["job.output.independent", "camera.viewpoint.single"],
+    "priority": 82
+  },
   "payload": {"output": {"independent_image": true, "filename": "shot_01.png"}}
 }

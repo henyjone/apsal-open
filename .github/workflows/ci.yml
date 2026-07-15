@@ -10,6 +10,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - run: python3 -m unittest discover -s tests -v
+      - run: python3 scripts/migrate_quiet_window_1_1.py --check
+      - run: python3 scripts/generate_semantic_docs.py --check
+      - run: python3 plugins/apsal-studio/scripts/apsal.py check-sync examples/quiet-window
       - run: python3 scripts/check_homepage.py
       - run: python3 scripts/release.py --check
       - run: python3 scripts/release.py

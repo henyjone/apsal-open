@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.2.0",
-  "description": "Create and validate open, modular photography-protocol packages from an offline DNA catalog and export Codex Skills.",
+  "version": "0.3.0",
+  "description": "Design semantic APSAL worlds in safe YAML, normalize canonical JSON, compile design/image/QA targets, and export Codex Skills.",
   "author": {
     "name": "APSAL Open contributors"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "APSAL Studio",
     "shortDescription": "用开放 DNA 生成摄影主题 JSON 和 Skill",
-    "longDescription": "APSAL Studio bundles the APSAL Open Protocol, offline photography DNA catalog, modular-package validator, deterministic compiler, and reproducible Codex Skill packager.",
+    "longDescription": "APSAL Studio bundles Semantic Contract 0.3, safe YAML authoring, canonical JSON normalization, the offline DNA catalog, three-target compiler, validators, and reproducible Skill packaging.",
     "developerName": "APSAL Open",
     "category": "Developer Tools",
     "capabilities": ["Skills"],

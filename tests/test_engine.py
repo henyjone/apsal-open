@@ -11,6 +11,7 @@ engine = importlib.util.module_from_spec(spec); spec.loader.exec_module(engine)
 
 class EngineTests(unittest.TestCase):
     def test_catalog_is_complete_and_open(self): self.assertEqual(engine.validate_catalog(), [])
+    def test_semantic_registry_covers_roles_categories_and_fields(self): self.assertEqual(engine.validate_semantic_registry(), [])
     def test_default_theme_has_nine_unique_independent_outputs(self):
         theme = engine.new_theme("TEST-THEME", "Test", 9)
         self.assertEqual(engine.validate_theme(theme), [])
@@ -23,6 +24,66 @@ class EngineTests(unittest.TestCase):
     def test_compilation_is_deterministic(self):
         theme = engine.new_theme("TEST-THEME", "Test")
         self.assertEqual(engine.compile_theme(theme), engine.compile_theme(theme))
+
+    def test_safe_yaml_round_trip_and_canonical_digest(self):
+        theme = engine.new_semantic_theme("TEST-THEME", "Test")
+        encoded = engine.dump_yaml(theme)
+        decoded = engine.load_yaml_text(encoded)
+        self.assertEqual(decoded, theme)
+        self.assertEqual(engine.digest(decoded), engine.digest(theme))
+
+    def test_safe_yaml_rejects_duplicate_keys_tags_anchors_aliases_and_tabs(self):
+        rejected = (
+            "id: A\nid: B\n", "id: !python/object bad\n", "id: &x A\n",
+            "id: *x\n", "id:\tA\n", "base: A\ncopy:\n  <<: base\n",
+        )
+        for value in rejected:
+            with self.subTest(value=value):
+                with self.assertRaises(engine.YamlError): engine.load_yaml_text(value)
+
+    def test_semantic_pilot_validates_and_preserves_parent_intent(self):
+        legacy = engine.load_document(ROOT / "examples/quiet-window/theme.json")
+        pilot = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
+        self.assertEqual(engine.validate_theme(pilot), [])
+        self.assertEqual(pilot["parent_version"], legacy["version"])
+        self.assertEqual(pilot["dna"], legacy["dna"])
+        for before, after in zip(legacy["shots"], pilot["shots"]):
+            for key in ("shot_id", "title", "narrative_purpose", "framing", "action", "hands", "gaze", "composition", "continuity", "output_filename"):
+                self.assertEqual(before[key], after[key])
+
+    def test_unknown_semantic_tag_is_rejected(self):
+        theme = engine.new_semantic_theme("TEST-THEME", "Test")
+        theme["semantics"]["semantic_tags"].append("unknown.tag")
+        self.assertTrue(any("unknown tags" in error for error in engine.validate_theme(theme)))
+
+    def test_three_compile_targets_are_distinct_and_deterministic(self):
+        theme = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
+        design = engine.compile_theme(theme, "design")
+        image = engine.compile_theme(theme, "image")
+        qa = engine.compile_theme(theme, "qa")
+        self.assertEqual(design, engine.compile_theme(theme, "design"))
+        self.assertIn("element_semantics", design)
+        self.assertIn("positive_prompt", image["shots"][0])
+        self.assertNotIn("element_semantics", image)
+        self.assertIn("checks", qa["shots"][0])
+
+    def test_explain_resolves_shot_id_and_field_intent(self):
+        theme = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
+        value = engine.explain_theme_path(theme, "shots.SHOT_04.framing")
+        self.assertEqual(value["value"], "close-up")
+        self.assertEqual(value["normalized_path"], "shots.*.framing")
+        self.assertIn("purpose", value["instance_intent"])
+
+    def test_check_sync_detects_divergence(self):
+        theme = engine.new_semantic_theme("TEST-THEME", "Test")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "theme.apsal.yaml").write_text(engine.dump_yaml(theme), encoding="utf-8")
+            engine.write_canonical_json(theme, root / "theme.apsal.json")
+            self.assertEqual(engine.check_sync(root), [])
+            changed = dict(theme); changed["name"] = "Drift"
+            engine.write_canonical_json(changed, root / "theme.apsal.json")
+            self.assertTrue(any("differs" in error for error in engine.check_sync(root)))
     def test_skill_zip_is_reproducible_and_safe(self):
         theme = engine.new_theme("TEST-THEME", "Test")
         with tempfile.TemporaryDirectory() as tmp:
@@ -30,6 +91,19 @@ class EngineTests(unittest.TestCase):
             second, sha2 = engine.pack_theme(theme, Path(tmp) / "b")
             self.assertEqual(sha1, sha2)
             with zipfile.ZipFile(first) as z: self.assertEqual(len(z.namelist()), 5)
+
+    def test_semantic_skill_includes_yaml_design_and_qa(self):
+        theme = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
+        source = (ROOT / "examples/quiet-window/theme.apsal.yaml").read_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            path, first_sha = engine.pack_theme(theme, Path(tmp) / "first", source)
+            _, second_sha = engine.pack_theme(theme, Path(tmp) / "second", source)
+            self.assertEqual(first_sha, second_sha)
+            with zipfile.ZipFile(path) as archive:
+                names = archive.namelist()
+                self.assertTrue(any(name.endswith("theme.apsal.yaml") for name in names))
+                self.assertTrue(any(name.endswith("design_context.json") for name in names))
+                self.assertTrue(any(name.endswith("qa_checklist.json") for name in names))
     def test_visual_pass_requires_evidence(self):
         theme = engine.new_theme("TEST-THEME", "Test"); theme["qa_status"] = "visual_qa_passed"
         self.assertTrue(any("requires evidence" in e for e in engine.validate_theme(theme)))

@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["schema_version", "namespace", "id", "type", "version", "parent_version", "changed_fields", "change_summary", "dependencies", "rights", "qa_status", "payload"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"enum": ["1.0.0", "1.1.0"], "description": "Module model version. / 模块数据模型版本。"},
     "namespace": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
     "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$"},
     "type": {"enum": ["subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job"]},
@@ -15,7 +15,12 @@
     "dependencies": {"type": "array"},
     "rights": {"type": "object", "required": ["license", "status", "attribution", "reference_media"]},
     "qa_status": {"enum": ["static_validated", "visual_qa_pending", "visual_qa_passed"]},
-    "payload": {"type": "object"}
+    "semantics": {"$ref": "semantic-contract.schema.json", "description": "Machine-readable purpose and QA contract. / 机器可读的目的与 QA 契约。"},
+    "payload": {"type": "object", "description": "Canonical observable content for this role. / 该角色的规范化可观察内容。"}
   },
+  "allOf": [{
+    "if": {"properties": {"schema_version": {"const": "1.1.0"}}},
+    "then": {"required": ["semantics"]}
+  }],
   "additionalProperties": false
 }

@@ -1,0 +1,513 @@
+{
+  "engine_version": "0.3.0",
+  "theme_id": "APSAL-OPEN-001",
+  "theme_version": "1.1.0",
+  "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
+  "target": "qa",
+  "global_checks": [
+    {
+      "id": "qa.no_false_pass",
+      "en": "Do not claim visual pass without linked generated-image evidence.",
+      "zh": "没有关联生成图证据时不得声称视觉通过。",
+      "scope": "theme"
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "SHOT_01",
+      "title": "Arrival",
+      "output_filename": "apsal-open-001_01.jpg",
+      "checks": [
+        {
+          "id": "intent.arrival.legible",
+          "en": "The intended function 'Establish room geometry and solitary arrival.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“建立房间几何与独自进入。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_02",
+      "title": "Window Figure",
+      "output_filename": "apsal-open-001_02.jpg",
+      "checks": [
+        {
+          "id": "intent.window_figure.legible",
+          "en": "The intended function 'Reveal identity and silhouette in relation to the window.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“揭示人物身份、轮廓及其与窗户的关系。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_03",
+      "title": "Unfolding",
+      "output_filename": "apsal-open-001_03.jpg",
+      "checks": [
+        {
+          "id": "intent.unfolding.legible",
+          "en": "The intended function 'Begin the paper event with physically legible hands.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“以物理清楚的手部动作启动信纸事件。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_04",
+      "title": "Before Reading",
+      "output_filename": "apsal-open-001_04.jpg",
+      "checks": [
+        {
+          "id": "intent.before_reading.legible",
+          "en": "The intended function 'Suspend action and move attention toward inner decision.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“暂停动作，并把注意力转向内在决定。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_05",
+      "title": "Paper Detail",
+      "output_filename": "apsal-open-001_05.jpg",
+      "checks": [
+        {
+          "id": "intent.paper_detail.legible",
+          "en": "The intended function 'Make texture, touch and prop ownership observable.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“让材质、触觉与道具归属变得可观察。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_06",
+      "title": "Light Turns",
+      "output_filename": "apsal-open-001_06.jpg",
+      "checks": [
+        {
+          "id": "intent.light_turns.legible",
+          "en": "The intended function 'Show time changing the subject's attention.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“表现时间变化如何改变人物注意方向。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_07",
+      "title": "Crossing",
+      "output_filename": "apsal-open-001_07.jpg",
+      "checks": [
+        {
+          "id": "intent.crossing.legible",
+          "en": "The intended function 'Use movement through the room to begin resolution.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“通过穿越房间的动作启动解决阶段。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_08",
+      "title": "Decision",
+      "output_filename": "apsal-open-001_08.jpg",
+      "checks": [
+        {
+          "id": "intent.decision.legible",
+          "en": "The intended function 'Turn the paper face down as the visible consequence of decision.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“把信纸翻面作为决定的可见后果。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    },
+    {
+      "shot_id": "SHOT_09",
+      "title": "Afterword",
+      "output_filename": "apsal-open-001_09.jpg",
+      "checks": [
+        {
+          "id": "intent.afterword.legible",
+          "en": "The intended function 'Close with breath and unresolved emotional remainder.' is visible without explanatory text.",
+          "zh": "无需解释文字即可看出“以呼吸和未完全解决的情绪余韵收束。”这一职能。",
+          "source": "intent"
+        },
+        {
+          "id": "framing.framing_matches_intent",
+          "en": "Framing matches intent.",
+          "zh": "framing matches intent。",
+          "source": "framing"
+        },
+        {
+          "id": "action.action_is_physically_legible",
+          "en": "Action is physically legible.",
+          "zh": "action is physically legible。",
+          "source": "action"
+        },
+        {
+          "id": "hands.hands_are_anatomically_plausible",
+          "en": "Hands are anatomically plausible.",
+          "zh": "hands are anatomically plausible。",
+          "source": "hands"
+        },
+        {
+          "id": "gaze.gaze_has_motivation",
+          "en": "Gaze has motivation.",
+          "zh": "gaze has motivation。",
+          "source": "gaze"
+        },
+        {
+          "id": "composition.composition_is_distinct",
+          "en": "Composition is distinct.",
+          "zh": "composition is distinct。",
+          "source": "composition"
+        },
+        {
+          "id": "continuity.identity",
+          "en": "The same fictional adult identity is preserved.",
+          "zh": "保持同一虚构成年人物身份。",
+          "source": "continuity"
+        },
+        {
+          "id": "output.independent",
+          "en": "The output is one independent finished image with no text or grid.",
+          "zh": "输出为一张无文字、无拼图的独立完成图。",
+          "source": "output"
+        }
+      ]
+    }
+  ],
+  "compiled_digest": "f1dc019b3c3b78545762671309168c23c19cfc2f1e597e1b281a0bfb559ffbac"
+}

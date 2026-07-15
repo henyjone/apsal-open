@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "semantic_contract_version": "0.3.0",
+  "title": "APSAL Semantic Registry / APSAL 语义注册表",
+  "authority": "Machine meanings are normative here; Chinese aesthetic concepts are interpretive context, not mechanical parameters.",
+  "dna_to_protocol": {
+    "character": ["subject"],
+    "style": ["style", "color_post"],
+    "environment": ["world"],
+    "lighting": ["light"],
+    "composition": ["camera", "content", "sequence"],
+    "shot": ["look", "emotion", "event", "job"],
+    "qa": ["quality_control"]
+  },
+  "roles": {
+    "subject": {"en": "Subject", "zh": "主体", "question_en": "Who exists, and what makes the identity remain the same?", "question_zh": "谁存在于世界中，什么使其保持同一身份？", "aesthetic_relation_zh": "与传神、气韵形成思想关联；机器约束仍以明确身份字段为准。", "priority": 100},
+    "world": {"en": "World", "zh": "世界", "question_en": "What reality contains the subject and which rules persist?", "question_zh": "人物处于怎样的现实，哪些规则持续生效？", "aesthetic_relation_zh": "关联意境、卧游以及可行、可望、可游、可居。", "priority": 90},
+    "style": {"en": "Style", "zh": "风格", "question_en": "Which observable visual decisions remain coherent across images?", "question_zh": "哪些可观察的视觉决定需要跨镜头保持一致？", "aesthetic_relation_zh": "关联骨法与气韵，但不以艺术家姓名替代视觉属性。", "priority": 50},
+    "look": {"en": "Look", "zh": "造型", "question_en": "How do wardrobe, grooming and props belong to subject and world?", "question_zh": "服装、妆发和道具如何属于人物与世界？", "aesthetic_relation_zh": "关联应物与随类，造型服从人物、事件和世界。", "priority": 88},
+    "emotion": {"en": "Emotion", "zh": "情绪", "question_en": "How does inner state become observable without becoming a label?", "question_zh": "内在状态如何成为可见行为，而不只是抽象标签？", "aesthetic_relation_zh": "关联情景交融与气韵，通过动作和关系呈现。", "priority": 75},
+    "event": {"en": "Event", "zh": "事件", "question_en": "What changes the world state and leaves a consequence?", "question_zh": "什么改变了世界状态，并留下可延续的结果？", "aesthetic_relation_zh": "关联生动与势，强调事件先于姿势。", "priority": 82},
+    "camera": {"en": "Camera", "zh": "相机", "question_en": "Who looks, from where, and why is this viewpoint necessary now?", "question_zh": "谁从哪里观看，为什么此刻需要这一视点？", "aesthetic_relation_zh": "关联三远与游观；一 Job 一视点，一序列一游观。", "priority": 70},
+    "light": {"en": "Light", "zh": "光线", "question_en": "How does the world become visible and time become perceptible?", "question_zh": "世界如何变得可见，时间如何被感知？", "aesthetic_relation_zh": "与虚实、明晦形成解释关系，不机械参数化阴阳概念。", "priority": 70},
+    "color_post": {"en": "Color and Post", "zh": "色彩与后期", "question_en": "How do color and rendering organize material, mood and time?", "question_zh": "色彩与成像如何组织材质、情绪和时间？", "aesthetic_relation_zh": "关联随类赋彩，色彩服从对象与关系而非滤镜名称。", "priority": 65},
+    "quality_control": {"en": "Quality Control", "zh": "质量控制", "question_en": "What evidence makes an output acceptable or rejectable?", "question_zh": "什么证据决定输出可以接受或必须拒绝？", "aesthetic_relation_zh": "六法提供整体品评启示，现代 QA 另需身份、解剖、连续性与权利证据。", "priority": 100},
+    "content": {"en": "Content", "zh": "内容", "question_en": "What is the work about, beyond the objects shown?", "question_zh": "作品超越画面物体之后，真正表达什么？", "aesthetic_relation_zh": "关联意与境，创作命题通过具体世界变得可感。", "priority": 80},
+    "sequence": {"en": "Sequence", "zh": "序列", "question_en": "How do multiple viewpoints become time, rhythm and narrative?", "question_zh": "多次观看如何形成时间、节奏与叙事？", "aesthetic_relation_zh": "关联卷轴、游观与步移景异。", "priority": 85},
+    "job": {"en": "Job", "zh": "镜头任务", "question_en": "What single independent act of looking must this image complete?", "question_zh": "这张图必须完成哪一次独立观看？", "aesthetic_relation_zh": "关联经营位置，将共享世界重新组织为一个明确视点。", "priority": 82}
+  },
+  "fields": {
+    "shots.*.framing": {"en": "Controls subject scale and visible world information.", "zh": "控制主体尺度以及本镜可见的世界信息量。", "role": "camera", "affects": ["camera.subject_scale", "world.visible_information", "emotion.viewer_distance"], "compile_stage": "camera", "qa": ["framing_matches_intent", "required_action_remains_visible"]},
+    "shots.*.action": {"en": "Defines an observable event before pose and its world-state consequence.", "zh": "定义姿势之前可观察的事件及其世界状态后果。", "role": "event", "affects": ["event.state_transition", "look.prop_state", "sequence.continuity"], "compile_stage": "event", "qa": ["action_is_physically_legible", "action_changes_or_reveals_state"]},
+    "shots.*.hands": {"en": "Defines hand visibility, ownership and physical participation in the action.", "zh": "定义手部可见性、道具归属及其对动作的物理参与。", "role": "quality_control", "affects": ["subject.anatomy", "event.legibility", "look.prop_ownership"], "compile_stage": "quality_control", "qa": ["hands_are_anatomically_plausible", "hands_match_action"]},
+    "shots.*.gaze": {"en": "Defines motivated attention and its relation to event, space or another subject.", "zh": "定义有动机的注意方向，以及它与事件、空间或人物的关系。", "role": "emotion", "affects": ["emotion.external_expression", "event.motivation", "composition.attention"], "compile_stage": "emotion", "qa": ["gaze_has_motivation", "gaze_direction_is_spatially_coherent"]},
+    "shots.*.composition": {"en": "Organizes subject, depth, foreground, background and negative space as a relation system.", "zh": "把主体、景深、前后景与留白组织为关系系统。", "role": "camera", "affects": ["camera.viewpoint", "world.geometry", "content.emphasis"], "compile_stage": "camera", "qa": ["composition_is_distinct", "world_geometry_is_coherent"]}
+  },
+  "tags": [
+    {"id": "subject.identity.locked", "en": "Stable fictional adult identity", "zh": "稳定的虚构成年人物身份", "roles": ["subject", "job", "quality_control"]},
+    {"id": "world.space.coherent", "en": "Coherent reusable spatial geometry", "zh": "连贯且可复用的空间几何", "roles": ["world", "camera", "quality_control"]},
+    {"id": "world.prop.ownership", "en": "Stable prop ownership", "zh": "稳定的道具归属", "roles": ["world", "look", "event", "quality_control"]},
+    {"id": "style.editorial.restrained", "en": "Restrained editorial visual decisions", "zh": "克制的编辑摄影视觉决定", "roles": ["style", "color_post"]},
+    {"id": "look.wardrobe.locked", "en": "Locked wardrobe continuity", "zh": "锁定的服装连续性", "roles": ["look", "quality_control", "job"]},
+    {"id": "emotion.expression.restrained", "en": "Restrained observable expression", "zh": "克制且可观察的情绪表达", "roles": ["emotion", "job"]},
+    {"id": "event.state.transition", "en": "Event changes world state", "zh": "事件改变世界状态", "roles": ["event", "sequence", "job"]},
+    {"id": "camera.viewpoint.single", "en": "One coherent viewpoint per Job", "zh": "每个 Job 保持一个连贯视点", "roles": ["camera", "job", "quality_control"]},
+    {"id": "light.direction.consistent", "en": "Physically consistent light direction", "zh": "物理一致的光线方向", "roles": ["light", "world", "quality_control"]},
+    {"id": "color.palette.natural", "en": "Natural relational color palette", "zh": "自然且关系一致的色彩体系", "roles": ["color_post", "style"]},
+    {"id": "content.theme.decision", "en": "Theme concerns an unspoken decision", "zh": "主题围绕未说出口的决定", "roles": ["content", "emotion", "sequence"]},
+    {"id": "sequence.function.progression", "en": "Distinct functions form narrative progression", "zh": "不同镜头职能形成叙事递进", "roles": ["sequence", "event", "job"]},
+    {"id": "job.output.independent", "en": "One independent finished image", "zh": "一张独立完成图", "roles": ["job", "quality_control"]},
+    {"id": "qa.identity", "en": "Identity evidence check", "zh": "身份一致性证据检查", "roles": ["quality_control"]},
+    {"id": "qa.anatomy", "en": "Anatomy and hands evidence check", "zh": "解剖与手部证据检查", "roles": ["quality_control"]},
+    {"id": "qa.continuity", "en": "World and sequence continuity check", "zh": "世界与序列连续性检查", "roles": ["quality_control", "sequence"]},
+    {"id": "qa.no_text", "en": "No text, logo, watermark or grid", "zh": "无文字、标志、水印或拼图", "roles": ["quality_control", "job"]}
+  ]
+}
