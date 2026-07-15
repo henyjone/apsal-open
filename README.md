@@ -1,11 +1,12 @@
 <p align="center">
-  <img src="assets/brand/apsal-readme-banner.jpg" alt="APSAL — Open Photography Protocol" width="100%">
+  <img src="assets/brand/apsal-worldbuilding-banner.jpg" alt="APSAL — Structure the elements. Build the world." width="100%">
 </p>
 
 <h1 align="center">APSAL — Open Photography Protocol</h1>
 
 <p align="center">
-  Turn a creative brief into versioned photography DNA, independent shot jobs, validated JSON, and an installable Codex Skill.
+  <strong>Structure the elements. Build the world.</strong><br>
+  An open visual language for turning creative intent into reproducible photographic worlds.
 </p>
 
 <p align="center">
@@ -26,22 +27,30 @@
 
 ---
 
-## What is APSAL?
+## AI photography is worldbuilding
 
-APSAL is a vendor-neutral protocol and offline reference engine for modular, reproducible, and traceable AI photography. Instead of hiding an entire photo set inside one giant prompt, APSAL separates identity, world, style, wardrobe, emotion, events, camera, light, color, content, sequence, and per-image Jobs into versioned assets.
+AI photography is not the act of writing one enormous prompt. It is the act of defining a world: its subjects, space, light, time, visual laws, events, and points of view—then expressing those elements in a language that can be composed, tested, versioned, and reproduced.
+
+APSAL is that open visual language. It turns creative intuition into explicit elements, relationships, and constraints, then compiles them into independent photographic Jobs.
 
 ```mermaid
 flowchart LR
-    A["Creative idea"] --> B["DNA Registry"]
-    B --> C["APSAL Protocol"]
-    C --> D["Independent Shot Jobs"]
-    D --> E["Validated JSON"]
-    D --> F["Installable Skill"]
+    A["Intent"] --> B["Elements"]
+    B --> C["Relations + constraints"]
+    C --> D["World model"]
+    D --> E["Independent shot Jobs"]
+    E --> F["JSON · Skill · Images"]
 ```
 
-| Protocol | Registry | Execution | Trust | Delivery |
+| ELEMENTS | GRAMMAR | WORLD | CAMERA | OUTPUT |
 |---|---|---|---|---|
-| 13 modular roles | Bundled offline DNA | One Job, one image | Rights, lineage, SHA-256 | JSON and Codex Skill ZIP |
+| Identity, space, light, color, style, action | Dependencies, locks, variants, continuity | A coherent visual system with memory | One point of view per independent Job | Validated JSON, prompts and installable Skills |
+
+> **Prompting describes an image. APSAL defines the world that makes the image possible.**
+
+## The open system behind the idea
+
+The protocol defines 13 composable module roles. The DNA Registry stores reusable visual elements. The engine resolves versions and dependencies, validates identity and continuity, and packages the result without requiring a hosted service.
 
 ## Install the Codex plugin
 

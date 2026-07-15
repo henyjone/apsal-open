@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/brand/apsal-readme-banner.jpg" alt="APSAL 开放摄影生成协议" width="100%">
+  <img src="assets/brand/apsal-worldbuilding-banner.jpg" alt="APSAL — 结构元素，构建世界" width="100%">
 </p>
 
 <h1 align="center">APSAL — 开放摄影生成协议</h1>
 
-<p align="center">把一个创意描述变成可版本化的摄影 DNA、独立镜头 Job、通过校验的 JSON，以及可安装的 Codex Skill。</p>
+<p align="center"><strong>结构元素，构建世界。</strong><br>把创作意图转译为可组合、可验证、可复现的摄影世界。</p>
 
 <p align="center">
   <a href="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml/badge.svg"></a>
@@ -17,22 +17,30 @@
 
 ---
 
-## APSAL 是什么？
+## AI 摄影的本质，是构建世界
 
-APSAL 是一套与模型厂商无关的开放协议和离线参考引擎，用于构建模块化、可复现、可追溯的 AI 摄影系统。它不把整套摄影方案塞进一个超长提示词，而是把人物、世界、风格、造型、情绪、事件、相机、灯光、影调、内容、序列和单图 Job 分开管理。
+AI 摄影不是写出一段更长的 Prompt，而是定义一个世界：谁存在于其中，空间怎样组织，光从哪里来，时间如何流动，事件怎样发生，相机以什么视点观看。
+
+APSAL 是描述这个世界的开放视觉语言。它把模糊的创作直觉拆解为明确的**元素、关系与约束**，再将它们编译为可独立执行的摄影 Job。
 
 ```mermaid
 flowchart LR
-    A["创意描述"] --> B["DNA 资源库"]
-    B --> C["APSAL 协议"]
-    C --> D["独立镜头 Jobs"]
-    D --> E["可验证 JSON"]
-    D --> F["可安装 Skill"]
+    A["创作意图"] --> B["视觉元素"]
+    B --> C["关系与约束"]
+    C --> D["世界模型"]
+    D --> E["独立镜头 Jobs"]
+    E --> F["JSON · Skill · 图像"]
 ```
 
-| 协议 | 资源库 | 执行 | 可信机制 | 交付 |
+| 元素 ELEMENTS | 语法 GRAMMAR | 世界 WORLD | 相机 CAMERA | 输出 OUTPUT |
 |---|---|---|---|---|
-| 13 类模块角色 | 插件内置离线 DNA | 一个 Job 一张图 | 权利、血缘、SHA-256 | JSON 与 Skill ZIP |
+| 身份、空间、光、色彩、风格、行动 | 依赖、锁定、变体、连续性 | 一个拥有记忆的统一视觉系统 | 每个 Job 对应一个独立观看视点 | 通过校验的 JSON、Prompt 与 Skill |
+
+> **Prompt 描述一张图；APSAL 定义让这张图得以成立的世界。**
+
+## 思想背后的开放系统
+
+协议定义 13 类可组合模块；DNA Registry 保存可复用的视觉元素；引擎解析版本和依赖，校验身份与连续性，并在不依赖托管服务的情况下完成可复现打包。
 
 ## 安装 Codex 插件
 
