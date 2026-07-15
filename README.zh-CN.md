@@ -13,7 +13,7 @@
   <a href="CONTENT_LICENSE.md"><img alt="内容许可" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="#安装-codex-插件">安装插件</a> · <a href="#30-秒开始使用">快速开始</a> · <a href="protocol/APSAL_OPEN_PROTOCOL.md">阅读协议</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="#安装-codex-插件">安装插件</a> · <a href="#30-秒开始使用">快速开始</a> · <a href="docs/monograph/README.md">阅读方法论专著</a> · <a href="protocol/APSAL_OPEN_PROTOCOL.md">阅读协议</a></p>
 
 ---
 
@@ -99,6 +99,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 
 ## 项目导航
 
+- [《构建可见世界：APSAL 元素摄影法》](docs/monograph/README.md)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)
 - [DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)

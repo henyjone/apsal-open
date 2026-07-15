@@ -22,6 +22,7 @@
   <a href="#install-the-codex-plugin"><strong>Install Plugin</strong></a> ·
   <a href="#30-second-start"><strong>Quick Start</strong></a> ·
   <a href="protocol/APSAL_OPEN_PROTOCOL.md"><strong>Read Protocol</strong></a> ·
+  <a href="docs/monograph/README.md"><strong>Read the Method</strong></a> ·
   <a href="README.zh-CN.md"><strong>中文文档</strong></a>
 </p>
 
@@ -111,6 +112,7 @@ Static validation proves structure and reproducibility—not generated-image qua
 
 ## Project map
 
+- [Building Visible Worlds — APSAL methodology monograph](docs/monograph/README.md)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
 - [Starter DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
