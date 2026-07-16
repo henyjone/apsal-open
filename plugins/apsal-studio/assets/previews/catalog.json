@@ -1,6 +1,14 @@
 {
   "schema_version": "0.1.0",
-  "preview_catalog_version": "0.1.0",
+  "preview_catalog_version": "0.2.0",
+  "parent_preview_catalog_version": "0.1.0",
+  "changed_fields": [
+    "previews[*].image",
+    "previews[*].sha256",
+    "previews[*].rights",
+    "previews[*].visual_qa_status"
+  ],
+  "change_summary": "Replace abstract protocol cards with a unified Chinese fashion-photographer editorial system; DNA references and content digests remain unchanged.",
   "previews": [
     {
       "schema_version": "0.1.0",
@@ -12,15 +20,18 @@
         "content_digest": "d017eacdcd9fb94b6b2a05b6847f0e71017f77013e2050f62e3d87b0782bafd2"
       },
       "image": "character.webp",
-      "sha256": "79820f54640bb5d947eb17c72a36554ab46329ff9009d86ca240dcca107a15af",
+      "sha256": "23962817733f87fee23a9715e927ee909940eeab2cfcde70d5d2690f4d4dddd6",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -33,15 +44,18 @@
         "content_digest": "5dd2eae8f4022068406f7141010d94f09ac5bfdcbcef2a9ee538cbba28f7e953"
       },
       "image": "style.webp",
-      "sha256": "246b2bb51afa4d0c7db18ced9b6af962e05a5e5f7620b76c33a1fd9b0b028adb",
+      "sha256": "5847cf10955a24a850c15f4dd2072dbdfd269f3928d296395af828e430f3e00b",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -54,15 +68,18 @@
         "content_digest": "4c73fdc9c7c679a2bffd7479e8165a91b077c369e4b6bb4976289d940de60fa0"
       },
       "image": "environment.webp",
-      "sha256": "6e71af4f7960bd916a2beeec18eda45c3011fa977dab1cdf5d15a809c73a556d",
+      "sha256": "ec6fc45f96cbf9c5ac541cb92e50710a541893917b316da6aa87d3653493cd96",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -75,15 +92,18 @@
         "content_digest": "82ee1421187113b320e510d9d0c74e21b2c704b79f31e6e03e82abada740382b"
       },
       "image": "lighting.webp",
-      "sha256": "ac90398a3420b41e020821011bdd0aaaee452bdce14f8ce0b05d044c4d5ff397",
+      "sha256": "d6f8f1027ea12cd0b12518cc4cc87a138191971ce62a36859cb7e0e5bb0fc200",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -96,15 +116,18 @@
         "content_digest": "0aa4a21ced85672e7812e6781f410c59ef404b9c3093a411350c106d84e9cd0b"
       },
       "image": "composition.webp",
-      "sha256": "12ce36971e6a2df63d61dce67b63cbf3bd49fe22f2e9970b0ff59de02271acb2",
+      "sha256": "08d0f9a328c44444abd716b3a6f59fd8a96cbf245e75b40cba68ee2776f1bbd7",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -117,15 +140,18 @@
         "content_digest": "60fed6be922b979f7207055b4567d2cfe85509e28a09b7a9256c17688896f823"
       },
       "image": "shot.webp",
-      "sha256": "e55158c7324df87d59441a5f042dc3369b25d66fbaae0e70591d8e237852cbd5",
+      "sha256": "40de4d2aad9bf4d9c9cb0fb10b24ff0a878d3cbf78c2da7def5db01d07fc55da",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     },
     {
@@ -138,15 +164,18 @@
         "content_digest": "5ef51933854d06e7265a9f1050e3790d803a72380e198b547d7ab5e16b8ac383"
       },
       "image": "qa.webp",
-      "sha256": "48b66faa65bf093648fc3197e3c05b502b28b8ef0098e67f29cd9de33c88ef54",
+      "sha256": "a1349eb24c67fe8cb7e41cd7a16246c060386b553457b0354cb606e07f8a089b",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
-        "status": "original_open_content",
-        "attribution": "HenyJone / APSAL Open contributors"
+        "status": "ai_assisted_original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors",
+        "reference_media": "none",
+        "ai_disclosure": true,
+        "source_asset": "assets/brand/apsal-worldbuilding-master.png"
       },
       "qa_status": "static_validated",
-      "visual_qa_status": "not_applicable_semantic_card",
+      "visual_qa_status": "human_review_pending",
       "disclaimer": "Design preview; not generated-image quality evidence."
     }
   ]

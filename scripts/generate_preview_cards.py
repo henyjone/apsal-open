@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
 OUTPUT = PLUGIN / "assets" / "previews"
 ENGINE_PATH = PLUGIN / "scripts" / "apsal_engine.py"
+BRAND_MASTER = ROOT / "assets" / "brand" / "apsal-worldbuilding-master.png"
 
 spec = importlib.util.spec_from_file_location("apsal_engine_previews", ENGINE_PATH)
 engine = importlib.util.module_from_spec(spec)
@@ -25,6 +26,16 @@ LABELS = {
     "composition": ("SCENE DNA", "经营位置", "ORDER / RELATION"),
     "shot": ("SHOT DNA", "视点与事件", "VIEWPOINT / EVENT"),
     "qa": ("QA DNA", "证据与边界", "VERIFY / PRESERVE"),
+}
+
+CARD_CROPS = {
+    "character": (1380, 0, 2340, 720),
+    "style": (1140, 0, 2420, 960),
+    "environment": (940, 0, 2540, 1200),
+    "lighting": (1460, 0, 2260, 600),
+    "composition": (1000, 0, 2520, 1140),
+    "shot": (1320, 40, 2120, 640),
+    "qa": (1480, 80, 2120, 560),
 }
 
 
@@ -47,34 +58,36 @@ def _font(size: int):
 def _draw_card(asset: dict, path: Path) -> None:
     from PIL import Image, ImageDraw
 
-    image = Image.new("RGB", (768, 576), "#111513")
-    draw = ImageDraw.Draw(image)
-    ivory, celadon, dim = "#EEEADF", "#84A99C", "#3D4B46"
     asset_type = asset["type"]
     label, zh, axis = LABELS[asset_type]
+    source = Image.open(BRAND_MASTER).convert("RGB")
+    image = source.crop(CARD_CROPS[asset_type]).resize((768, 576), Image.Resampling.LANCZOS).convert("RGBA")
 
-    draw.rectangle((28, 28, 740, 548), outline=dim, width=1)
-    draw.rectangle((52, 52, 716, 524), outline="#26312D", width=1)
-    draw.line((78, 122, 690, 122), fill=dim, width=1)
-    draw.text((78, 73), "APSAL / OPEN PHOTOGRAPHY PROTOCOL", font=_font(17), fill=celadon)
-    draw.text((78, 154), label, font=_font(44), fill=ivory)
-    draw.text((80, 216), zh, font=_font(24), fill="#B9C5BE")
+    shade = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    pixels = shade.load()
+    for x in range(570):
+        alpha = int(226 * (1 - x / 570) ** 1.45)
+        for y in range(576):
+            pixels[x, y] = (7, 9, 8, alpha)
+    image = Image.alpha_composite(image, shade)
 
-    # A reusable protocol glyph: one world frame, modular nodes, and a selected viewpoint.
-    draw.rectangle((80, 302, 414, 438), outline="#60746C", width=2)
-    draw.arc((118, 330, 266, 478), 187, 338, fill=celadon, width=4)
-    draw.line((250, 370, 390, 330), fill="#53665F", width=2)
-    draw.line((250, 370, 390, 408), fill="#53665F", width=2)
-    for x, y, radius in ((250, 370, 10), (390, 330, 7), (390, 408, 7)):
-        draw.ellipse((x-radius, y-radius, x+radius, y+radius), outline=ivory, fill="#111513", width=2)
-    draw.rectangle((468, 302, 690, 438), outline="#60746C", width=2)
-    draw.line((491, 327, 667, 413), fill="#36443F", width=1)
-    draw.line((667, 327, 491, 413), fill="#36443F", width=1)
-    draw.ellipse((548, 342, 610, 404), outline=celadon, width=3)
+    draw = ImageDraw.Draw(image)
+    ivory, celadon, lime, dim = "#F4F0E5", "#91AA9F", "#C8FF00", "#65736D"
+    draw.rectangle((28, 28, 740, 548), outline=(101, 115, 109, 170), width=1)
+    draw.line((62, 102, 512, 102), fill=(101, 115, 109, 170), width=1)
+    draw.text((62, 58), "APSAL  元素摄影法", font=_font(18), fill=celadon)
+    draw.text((62, 151), label, font=_font(48), fill=ivory)
+    draw.text((64, 218), zh, font=_font(25), fill="#C1CBC6")
 
-    draw.text((80, 474), axis, font=_font(16), fill=celadon)
-    draw.text((690, 474), f"0{list(LABELS).index(asset_type) + 1}", anchor="ra", font=_font(16), fill="#7D8983")
-    image.save(path, "WEBP", quality=86, method=6)
+    draw.line((64, 302, 430, 302), fill=dim, width=1)
+    draw.rectangle((444, 295, 458, 309), fill=lime)
+    draw.line((600, 80, 704, 80), fill=(244, 240, 229, 150), width=1)
+    draw.line((704, 80, 704, 184), fill=(244, 240, 229, 150), width=1)
+    draw.ellipse((696, 72, 712, 88), outline=lime, width=2)
+
+    draw.text((64, 492), axis, font=_font(16), fill=celadon)
+    draw.text((704, 492), f"0{list(LABELS).index(asset_type) + 1}", anchor="ra", font=_font(16), fill="#A4AEA9")
+    image.convert("RGB").save(path, "WEBP", quality=88, method=6)
 
 
 def generate() -> None:
@@ -92,14 +105,24 @@ def generate() -> None:
             "kind": "semantic_card",
             "rights": {
                 "license": "CC-BY-4.0",
-                "status": "original_open_content",
+                "status": "ai_assisted_original_open_content",
                 "attribution": "HenyJone / APSAL Open contributors",
+                "reference_media": "none",
+                "ai_disclosure": True,
+                "source_asset": "assets/brand/apsal-worldbuilding-master.png",
             },
             "qa_status": "static_validated",
-            "visual_qa_status": "not_applicable_semantic_card",
+            "visual_qa_status": "human_review_pending",
             "disclaimer": "Design preview; not generated-image quality evidence.",
         })
-    catalog = {"schema_version": "0.1.0", "preview_catalog_version": "0.1.0", "previews": previews}
+    catalog = {
+        "schema_version": "0.1.0",
+        "preview_catalog_version": "0.2.0",
+        "parent_preview_catalog_version": "0.1.0",
+        "changed_fields": ["previews[*].image", "previews[*].sha256", "previews[*].rights", "previews[*].visual_qa_status"],
+        "change_summary": "Replace abstract protocol cards with a unified Chinese fashion-photographer editorial system; DNA references and content digests remain unchanged.",
+        "previews": previews,
+    }
     (OUTPUT / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -112,7 +135,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors))
         return 1
-    print("official DNA previews validated: 7 semantic cards, 768x576 WebP, rights and SHA-256")
+    print("official DNA previews validated: 7 editorial semantic cards, 768x576 WebP, rights and SHA-256")
     return 0
 
 

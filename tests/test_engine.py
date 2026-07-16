@@ -177,7 +177,9 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(len(records), 7)
         for item in records.values():
             self.assertEqual(item["kind"], "semantic_card")
-            self.assertEqual(item["visual_qa_status"], "not_applicable_semantic_card")
+            self.assertEqual(item["visual_qa_status"], "human_review_pending")
+            self.assertTrue(item["rights"]["ai_disclosure"])
+            self.assertEqual(item["rights"]["reference_media"], "none")
 
     def _custom_asset(self, source_type="character", asset_id="MY_CHAR_001", namespace="personal"):
         source = next(item for item in engine.load_catalog()["assets"] if item["type"] == source_type)

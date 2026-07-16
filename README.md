@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/apsal-worldbuilding-banner.jpg" alt="APSAL — Structure the elements. Build the world." width="100%">
+  <img src="assets/brand/apsal-readme-banner.jpg" alt="APSAL 元素摄影法 — Chinese fashion photographer" width="100%">
 </p>
 
 <h1 align="center">APSAL — Open Photography Protocol</h1>
