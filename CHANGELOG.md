@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 - 2026-07-17
+
+- Filled every five-layer element card with the complete APSAL proposal: recommendation, rationale, adjustable directions, concrete values, observable results, invariants and acceptance criteria. Deliberately unset values now explain what should be decided later instead of showing an empty area.
+- Added a default poised East Asian adult female protagonist with stable camera presence and broad compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. An explicit male-subject brief still overrides the default.
+- Separated styling versatility from identity mutability. New sessions lock facial geometry, adult age, natural skin, hair color/hairline and body proportions while allowing declared makeup, hairstyle, wardrobe and period-styling changes.
+- Added presence and styling-fit checks to the quality proposal and compiled the subject observables into every image Prompt, so the requirement is not merely interface copy.
+- Added the missing acceptance-criteria section to the interactive element card and expanded the CLI/IDE text fallback with the same proposal, reason, values, expected effects, locks and QA.
+- Kept Protocol and Semantic Contract at 0.3.0, session schema at 0.7.0, official DNA versions unchanged and legacy themes readable. This release changes the default proposal for newly created sessions; existing frozen themes and DNA remain immutable.
+
 ## 0.11.0 - 2026-07-17
 
 - Added a strict creator-facing Chinese projection for all five creative layers, thirteen protocol roles and seven official Registry DNA categories. Chinese cards no longer expose English machine role names, layer IDs, statuses, sources, field keys, enum values, Registry scopes, QA states, recommendation reasons or asset IDs.

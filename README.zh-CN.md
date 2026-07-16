@@ -71,7 +71,7 @@ codex plugin add apsal-studio@apsal-open
 
 安装后重新启动 Codex，或打开一个新任务。也可以从[最新 Release](https://github.com/henyjone/apsal-open/releases/latest)下载固定版本插件 ZIP。
 
-APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文卡片。卡片标题、创作意图、核心取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
+APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文卡片。每张元素卡都直接填入“我的设计提案、为什么这样建议、可调整方向、建议取值、应当看到、必须保持、验收标准”，不再把关键建议留空或散落在卡片外。重要标题、提案、取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
 
 ## 30 秒开始使用
 
@@ -82,12 +82,12 @@ APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对
 插件会完成：
 
 1. 先确认“作品关于什么、总体是欢喜还是悲伤、情绪怎样变化”，形成 Content 与 Emotion。
-2. 再用纯文字卡片依次确认人物与世界、事件与序列、摄影与成像、执行与验证；Character、Environment、Composition、Shot、Style、Lighting、QA DNA 都会按场景推荐并说明理由。
+2. 再用完整提案卡依次确认人物与世界、事件与序列、摄影与成像、执行与验证；七类元素资源都会按场景推荐并说明理由。若未指定其他人物，默认提案是一位非常有气质、镜头表现稳定、适合古典、当代、编辑与礼服等多种妆造的东亚成年女主角，同时锁定身份，避免换妆造变成换脸。
 3. 单独确认服装、妆发、道具所有权、机位、光源与方向、色温、饱和度、曲线、颗粒、锐度、肤色规则和拒绝条件；也可以直接说“人物更成熟，但保留短发”或“让第 4 镜更悲伤但不要改变光线”。
 4. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 5. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、参考图和使用说明。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
-创作者不需要看见或手写结构化文件。协议与语义契约仍为 0.3；Studio/Engine 0.11 增加纯中文卡片呈现与重要文字高亮，同时保留完整中英文交互、“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法、Codex 原生交付和旧运行包接管。主题确认后一定生成同时带有完整中英文说明的提示词与技能使用包，再由 Codex 逐张生成。
+创作者不需要看见或手写结构化文件。协议与语义契约仍为 0.3；Studio/Engine 0.12 增加完整提案卡与默认气质型、多妆造适配女主角契约，同时保留纯中文卡片、重要文字高亮、完整中英文交互、“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法、Codex 原生交付和旧运行包接管。主题确认后一定生成同时带有完整中英文说明的提示词与技能使用包，再由 Codex 逐张生成。
 
 从安装、五层对话、DNA 与参考图，到逐张生成、安装主题 Skill 和排查问题，请直接按照 [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md) 操作。
 
@@ -188,7 +188,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [Codex 原生生图与 Prompt 交付 RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
 - [旧运行包自动接管 RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
 - [中英文交互 RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
-- [APSAL Studio 0.11.0 发布与安装说明](docs/releases/0.11.0.md)
+- [APSAL Studio 0.12.0 发布与安装说明](docs/releases/0.12.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

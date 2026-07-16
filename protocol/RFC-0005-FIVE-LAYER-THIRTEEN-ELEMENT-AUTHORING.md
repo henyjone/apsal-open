@@ -146,6 +146,12 @@ Both DNA and element choices use text cards. Element cards display the role, que
 
 Preview sidecars remain in the Registry for rights review, Extension Pack validation and exchange, but they are not displayed as decorative selection images.
 
+## Studio 0.12 proposal-complete cards
+
+Beginning with Studio 0.12, every element card must contain the actual design proposal, its rationale, adjustable directions, concrete values, expected effects, invariants and acceptance criteria. Useful recommendations cannot live only in surrounding chat, and a deliberately unset machine value must be explained rather than rendered as an empty area. The numbered-text fallback must carry the same content.
+
+New sessions use a poised, distinctive East Asian adult female protagonist as the default when the creator has not specified another subject. The default supports classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling variables remain separate from immutable identity: facial geometry, adult age, natural skin, hair color/hairline and body proportions stay locked. Within one set, the confirmed styling state remains continuous unless an observable event explicitly changes it. Explicit creator subject requirements override the default.
+
 ## Compatibility and versioning
 
 - APSAL Open Protocol remains 0.3.0.

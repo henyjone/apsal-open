@@ -83,7 +83,7 @@ codex plugin add apsal-studio@apsal-open
 
 Restart Codex or open a new task after installation. You can also download the pinned ZIP from the [latest release](https://github.com/henyjone/apsal-open/releases/latest).
 
-APSAL Studio is fully bilingual. It follows the language of the current Codex conversation: an English brief opens English cards and guidance; a Chinese brief opens creator-facing Chinese cards with no exposed English machine labels. Important titles, decisions, values, recommendation reasons and primary actions use an accessible celadon highlight hierarchy. There is no mandatory installation-time language screen. Only a genuinely ambiguous or mixed first message triggers the concise question “English or 中文?”. You can ask to switch at any time; the choice is stored in the local session and never changes the theme, DNA, or Prompt digests.
+APSAL Studio is fully bilingual. It follows the language of the current Codex conversation: an English brief opens English cards and guidance; a Chinese brief opens creator-facing Chinese cards with no exposed English machine labels. Every element card is fully populated with the design proposal, rationale, adjustable directions, values, expected result, invariants and acceptance criteria. Important titles, proposals, values, recommendation reasons and primary actions use an accessible celadon highlight hierarchy. There is no mandatory installation-time language screen. Only a genuinely ambiguous or mixed first message triggers the concise question “English or 中文?”. You can ask to switch at any time; the choice is stored in the local session and never changes the theme, DNA, or Prompt digests.
 
 ## 30-second start
 
@@ -94,12 +94,12 @@ Ask Codex:
 APSAL Studio will:
 
 1. Confirm what the work is about, whether its direction is joyful, sorrowful, serene, tense or mixed, and how that emotion evolves.
-2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as compact text cards. Character, Environment, Composition, Shot, Style, Lighting and QA DNA are recommended with concrete reasons.
+2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as complete proposal cards. Unless another subject is specified, APSAL proposes a poised East Asian adult female protagonist who supports classical, contemporary, editorial and ceremonial styling while keeping identity locked.
 3. Explicitly confirm wardrobe, props and ownership; camera; light source and direction; palette, temperature, saturation, curve, grain, sharpness, skin policy and rejection rules. Revise any one element in natural language.
 4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
 5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, reference and usage guide. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.11 adds strict Chinese-only card presentation and a clearer highlight hierarchy while keeping complete Chinese/English interaction, the five-layer, thirteen-role method, Codex-native delivery and legacy package takeover. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
+Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.12 adds proposal-complete cards and a poised, styling-versatile default protagonist while keeping strict Chinese presentation, accessible highlights, complete Chinese/English interaction, the five-layer, thirteen-role method, Codex-native delivery and legacy package takeover. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
 
 For the complete installation, five-layer conversation, DNA/reference, generation, package-installation and troubleshooting workflow, follow the [APSAL Studio complete usage guide](docs/USAGE_GUIDE.md) or the [中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md).
 
@@ -200,7 +200,7 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Codex-native generation and Prompt delivery RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
 - [Legacy run takeover RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
 - [Bilingual interaction RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
-- [APSAL Studio 0.11.0 release and installation notes](docs/releases/0.11.0.md)
+- [APSAL Studio 0.12.0 release and installation notes](docs/releases/0.12.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

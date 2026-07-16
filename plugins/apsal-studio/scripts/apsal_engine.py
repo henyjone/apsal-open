@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.11.0"
+ENGINE_VERSION = "0.12.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -183,6 +183,7 @@ ZH_UI_LABELS = {
         "primary_tone": "主情绪", "secondary_tones": "辅助情绪", "undertone": "潜在情绪", "valence": "情绪倾向",
         "arousal": "唤醒程度", "expression": "表达强度", "energy": "运动能量", "tension": "张力状态", "arc": "情绪弧线",
         "start": "开始", "turn": "转折", "end": "结束", "identity": "人物身份", "representation": "呈现媒介",
+        "presence": "人物气质", "styling_versatility": "妆造适配", "variable_styling_traits": "可变妆造项",
         "identity_locks": "身份锁定", "space": "空间", "time": "时间", "materials": "材质", "physical_rules": "物理规则",
         "continuity": "连续性", "wardrobe": "服装", "grooming": "妆发", "props": "道具", "ownership_policy": "道具归属",
         "inciting_action": "起始动作", "state_changes": "状态变化", "consequences": "后续结果", "strategy": "序列策略",
@@ -210,8 +211,16 @@ ZH_UI_TERMS = {
     "warning": "预兆", "escalation": "升级", "suspension": "悬停", "trace": "线索", "revelation": "显现", "unresolved": "未决",
     "preparation": "准备", "ritual": "仪式", "observation": "观察", "decision": "决定", "release": "释放",
     "one stable fictional adult identity": "一个稳定的虚构成年人物身份",
+    "one poised fictional East Asian adult female protagonist": "一位气质鲜明的虚构东亚成年女主角",
+    "one poised fictional East Asian adult male protagonist": "一位气质鲜明的虚构东亚成年男主角",
     "real adult human in live-action photography": "真人成年人的实拍摄影呈现",
-    "face geometry": "面部结构", "age band": "年龄区间", "skin characteristics": "皮肤特征", "hair": "发型", "body proportions": "身体比例",
+    "poised, distinctive, and camera-confident": "气质鲜明、从容，并具有稳定的镜头表现力",
+    "supports classical, contemporary, editorial, and ceremonial styling without identity substitution": "能够适配古典、当代、编辑与仪式感妆造，同时不发生身份替换",
+    "makeup": "妆容", "hairstyle": "发型", "wardrobe": "服装", "era styling": "时代造型",
+    "face geometry": "面部结构", "age band": "年龄区间", "skin characteristics": "皮肤特征", "hair": "发型",
+    "hair color and hairline": "发色与发际线", "body proportions": "身体比例",
+    "one coherent live-action photographic world": "一个连贯的真人摄影世界",
+    "the visible situation must reveal a change rather than a decorative pose": "画面必须揭示真实变化，而不是停留在装饰性摆姿",
     "one coherent physical location": "一个连续统一的真实空间", "one continuous time phase": "一个连续的时间阶段",
     "photographically plausible materials": "符合摄影真实感的材质", "consistent geometry": "一致的空间几何", "gravity": "重力",
     "reflection": "反射关系", "material response": "材质受光反应", "location": "地点", "weather": "天气", "object placement": "物体位置",
@@ -236,6 +245,7 @@ ZH_UI_TERMS = {
     "illustrated person": "插画人物", "identity drift": "身份漂移", "anatomy failure": "人体结构错误", "prop duplication": "道具重复",
     "contradictory light": "光线矛盾", "collage or text": "拼图或文字", "creator intent": "创作者意图", "rights provenance": "权利来源",
     "subject identity": "人物身份", "stable identity": "稳定身份", "adult age": "成年年龄", "natural anatomy": "自然人体结构",
+    "distinctive personal presence": "鲜明而稳定的人物气质", "facial presence and styling compatibility": "面部气质与妆造适配",
     "physical causality": "物理因果", "wardrobe continuity": "服装连续性", "material continuity": "材质连续性", "world physics": "世界物理规则",
     "event consequences": "事件后果", "shot order": "镜头顺序", "required action visibility": "关键动作可见", "skin tone": "肤色", "time continuity": "时间连续性",
     "live-action human medium": "真人实拍媒介", "world material response": "世界材质反应", "light motivation": "光线动机", "material distinctions": "材质区分",
@@ -246,7 +256,7 @@ ZH_UI_TERMS = {
 ZH_ROLE_COPY = {
     "content": ("把创作描述整理为一个具体、可被摄影表达的命题。", ["所有镜头都围绕同一创作命题。", "物体与行动共同服务于核心表达。"], ["创作者意图", "权利来源"], ["无需解释文字也能理解主题。"]),
     "emotion": ("把整体情绪转化为可观察的行为和九镜情绪弧线。", ["主情绪、潜在情绪和表达强度在画面中可见。", "情绪随镜头序列逐步推进。"], ["人物身份", "情绪通过视线、呼吸、动作和距离呈现"], ["不依赖情绪标签也能看出情绪。", "最后一镜完成预设情绪弧线。"]),
-    "subject": ("定义谁存在于画面中，以及哪些身份特征不能漂移。", ["全部镜头都能识别为同一个真实成年人物。"], ["稳定身份", "成年年龄", "自然人体结构"], ["全部输出中的人物身份保持连续。"]),
+    "subject": ("定义谁存在于画面中，以及哪些身份特征不能漂移。", ["全部镜头都能识别为同一位气质鲜明的真实成年主角。", "人物可以适配多种妆发与服装，但换造型不能变成换脸。"], ["稳定身份", "成年年龄", "自然人体结构", "人物的核心气质"], ["全部输出中的人物身份保持连续。", "妆造变化增强人物表达，不得遮盖或替换其身份特征。"]),
     "world": ("构建一个具有持续空间、材质和物理规则的世界。", ["建筑、入口、窗户、反射和物体位置保持物理一致。"], ["空间几何", "物理因果"], ["每个镜头都能被推断为属于同一世界。"]),
     "look": ("把服装、妆发和道具归属定义为世界状态，而不是装饰。", ["服装与妆发保持连续。", "每件道具都有稳定归属，只能通过事件改变状态。"], ["服装连续性", "道具归属", "材质连续性"], ["道具不能无故重复、漂浮或改变归属。"]),
     "event": ("先让可观察事件改变世界状态，再设计人物姿态。", ["动作在物理上清楚可见，并在后续镜头留下结果。"], ["人物身份", "世界物理规则", "道具归属"], ["每个动作都改变或揭示状态，而不是空洞摆姿。"]),
@@ -264,6 +274,19 @@ def _contains_latin(value: str) -> bool:
     return bool(re.search(r"[A-Za-z]", value))
 
 
+def _zh_creator_text(value: str) -> str:
+    """Keep a Chinese brief useful while removing English tokens from Chinese cards."""
+    text = str(value)
+    replacements = (
+        (r"\bAPSAL\b", "元素摄影协议"), (r"\bAI\b", "人工智能"), (r"\bDNA\b", "元素资源"),
+        (r"\bJSON\b|\bYAML\b", "结构化文件"), (r"\bSkill\b", "技能包"), (r"\bPrompt\b", "提示词"),
+        (r"\bCodex\b", "创作助手"), (r"\b4K\b", "超高清"),
+    )
+    for pattern, replacement in replacements: text = re.sub(pattern, replacement, text, flags=re.I)
+    if re.search(r"[\u3400-\u9fff]", text): text = re.sub(r"[A-Za-z][A-Za-z0-9_.+-]*", "相关创作概念", text)
+    return text
+
+
 def _zh_ui_value(value: Any) -> Any:
     if isinstance(value, bool): return "是" if value else "否"
     if isinstance(value, list): return [_zh_ui_value(item) for item in value]
@@ -274,19 +297,82 @@ def _zh_ui_value(value: Any) -> Any:
         return " → ".join(str(_zh_ui_value(item.strip())) for item in value.split("→"))
     if re.fullmatch(r"[0-9]+ distinct viewpoints", value): return value.split()[0] + " 个不同视点"
     if re.fullmatch(r"[0-9]+", value) or not _contains_latin(value): return value
+    if re.search(r"[\u3400-\u9fff]", value): return _zh_creator_text(value)
     return "已按当前创作方案设置"
 
 
-def _zh_element_presentation(role: str, decision: dict[str, Any]) -> dict[str, Any]:
+def _display_value(role: str, key: str, value: Any, locale: str) -> Any:
+    """Give intentionally empty proposal fields a useful creator-facing meaning."""
+    if value == []:
+        empty = {
+            ("emotion", "secondary_tones"): ("暂不叠加辅助情绪；创作描述出现第二种情绪时再加入", "No secondary tone unless the brief introduces one"),
+            ("look", "props"): ("先不添加装饰性道具；确认事件后只配置有叙事作用和明确归属的道具", "No decorative prop yet; add only story-motivated props with clear ownership after the event is confirmed"),
+        }.get((role, key), ("当前无需额外项目", "No additional item is needed now"))
+        return empty[0] if locale == "zh-CN" else empty[1]
+    return _zh_ui_value(value) if locale == "zh-CN" else value
+
+
+def _element_proposal_copy(role: str, decision: dict[str, Any], brief: str, locale: str) -> tuple[str, str, list[str]]:
+    """Create complete card copy from the actual proposed values, not placeholders."""
+    values = decision.get("values", {})
+    if locale == "zh-CN":
+        v = lambda key: str(_display_value(role, key, values.get(key), locale))
+        identity = values.get("identity")
+        protagonist_zh = "东亚成年男主角" if identity == "one poised fictional East Asian adult male protagonist" else "东亚成年女主角" if identity == "one poised fictional East Asian adult female protagonist" else "虚构成年主角"
+        subject_proposal_zh = f"建议默认采用一位气质鲜明、从容且镜头表现力稳定的{protagonist_zh}。人物应能自然适配古典、当代、编辑与仪式感等多种妆发和服装；每次换造型仍必须被识别为同一个人。" if values.get("styling_versatility") else "建议保留当前虚构成年人物身份基线及其既有身份锁；如需新增气质与多妆造适配能力，应建立新的主题或人物资源版本。"
+        subject_rationale_zh = "多妆造适配扩大人物资源的复用范围；锁定面部结构、成年年龄、肤质、发色发际线和身体比例，可以防止适配变成换脸。" if values.get("styling_versatility") else "旧会话保持原生成意图，避免插件升级后静默改变已经建立的人物设计。"
+        copy = {
+            "content": (f"建议把“{_zh_creator_text(brief)}”凝练为一套统一的摄影命题：九个镜头都围绕一次可见的变化展开，避免只有漂亮画面而没有关系。", "先锁定作品真正表达什么，人物、空间、物体和摄影语言才会朝同一方向工作。", ["强化人物内在选择", "强化空间关系", "强化物件线索"]),
+            "emotion": (f"建议以“{v('primary_tone')}”为主情绪，以“{v('undertone')}”为潜在线索；情绪从“{_zh_ui_value(values.get('arc', {}).get('start', ''))}”推进到“{_zh_ui_value(values.get('arc', {}).get('turn', ''))}”，最后落在“{_zh_ui_value(values.get('arc', {}).get('end', ''))}”。", "把情绪拆成强度、能量、张力和进程，可以让九张照片形成变化，而不是九次相同表情。", ["更克制含蓄", "更明朗外放", "加入第二种复合情绪"]),
+            "subject": (subject_proposal_zh, subject_rationale_zh, ["古典含蓄妆造", "当代编辑妆造", "礼服与仪式感妆造"] if values.get("styling_versatility") else ["保持现有身份", "建立兼容新版本", "补充明确身份参考"]),
+            "world": ("建议先建立一个空间几何、时间、材质和物体位置都能持续成立的真实世界，再让九个镜头从不同位置观看它。", "稳定的世界让镜头变化看起来像同一现实中的连续观看，而不是九张互不相关的背景图。", ["强化室内空间层次", "强化室内外关系", "强化时间与天气变化"]),
+            "look": ("建议为当前主题锁定一套与人物、事件和世界相符的妆发服装，并只保留有叙事作用、归属明确的道具。人物的多妆造能力用于未来主题或有因果依据的换装段落，不用于本组无理由漂移。", "把妆造和道具当作世界状态，能够同时保留人物复用能力与本组作品的连续性。", ["更简洁的妆造", "更强的时代特征", "增加一件推动事件的主道具"]),
+            "event": ("建议用一个可见动作启动故事，并让每个关键动作都在空间、人物或道具上留下后续镜头可以继承的结果。", "先有事件后有姿态，人物才是在世界中行动，而不是在不同背景前重复摆拍。", ["人物主动触发", "环境变化触发", "道具状态触发"]),
+            "sequence": (f"建议把{v('shot_count')}个镜头组织成“建立—靠近—触发—发展—内化—揭示—转折—释放—完成”的递进，每一镜承担不同职能。", "明确镜头职能和结果继承，可以减少重复景别、无意义动作与连续性漂移。", ["更舒缓的游观节奏", "更强的戏剧转折", "更开放的余韵结尾"]),
+            "camera": ("建议根据每一镜的叙事任务选择机位、景别、透视与留白；环境、全身、中景、近景和细节只在真正需要时出现。", "相机不是套用镜头清单，而是决定观众在何处、以多远距离理解正在发生的事。", ["更亲近人物", "更强调环境", "更突出动作细节"]),
+            "light": ("建议建立一个有物理来源的主光，并让方向、阴影、衰减、曝光和反射在整组中可追溯；反差随情绪推进，而不是随机改变。", "可信光线同时解释时间、空间深度、材质和情绪，是世界连续性的核心证据。", ["柔和自然光", "更具方向性的戏剧光", "具有时间递进的光线变化"]),
+            "style": ("建议采用克制的真人编辑摄影语言，让真实材质、人物状态和世界关系主导画面，风格效果保持在身份与物理规律之后。", "先保证人物和世界可信，再使用摄影修辞，能避免作品被滤镜、插画感或人工质感吞没。", ["更纪实自然", "更精致编辑", "更具电影叙事感"]),
+            "color_post": ("建议从肤色、服装、道具和空间材质中建立基础色，只设置一个克制强调色；保留高光暗部、真实肤色与自然细节。", "关系化调色比统一套滤镜更能维持人物身份、材质差异、时间变化和整组连续性。", ["降低饱和度", "强化冷暖关系", "增加轻微胶片质感"]),
+            "job": (f"建议冻结为{v('output_count')}个独立镜头任务，每个任务只生成一张{v('aspect_ratio')}成图，并保留唯一文件名和完整提示词。", "单镜单图便于失败重试、身份检查、版本追踪和后续独立使用。", ["现在逐张生成", "只保存完整提示词", "导出可安装技能包"]),
+            "quality_control": ("建议每张图都检查真人媒介、人物身份、气质与妆造适配、人体和手部、空间、道具、灯光、色彩、连续性及镜头职能；模型检查与人工检查分别记录。", "只有把拒绝条件写清楚，结构正确的提示词才不会被误当成视觉结果已经合格。", ["逐镜检查", "整组连续性检查", "人工最终验收"]),
+        }
+        return copy[role]
+    identity = values.get("identity")
+    protagonist_en = "East Asian adult male protagonist" if identity == "one poised fictional East Asian adult male protagonist" else "East Asian adult female protagonist" if identity == "one poised fictional East Asian adult female protagonist" else "fictional adult protagonist"
+    subject_proposal_en = f"Default to a poised, distinctive {protagonist_en} with stable camera presence. The protagonist should support classical, contemporary, editorial, and ceremonial makeup, hair, and wardrobe while remaining unmistakably the same person." if values.get("styling_versatility") else "Preserve the existing fictional adult identity and its current locks. Create a new theme or Character DNA version before adding a new presence and styling-versatility contract."
+    subject_rationale_en = "Styling versatility improves reuse; fixed facial geometry, adult age, skin, hair color and hairline, and proportions prevent styling from becoming identity substitution." if values.get("styling_versatility") else "A legacy session keeps its original generation intent instead of silently changing when the plugin is upgraded."
+    copy = {
+        "content": (f"Build one photographic proposition from “{brief}”: every shot should reveal one visible change rather than becoming an unrelated beautiful pose.", "A fixed proposition makes subject, world, objects, and photographic language work toward the same meaning.", ["Emphasize an inner decision", "Emphasize spatial relationships", "Emphasize an object clue"]),
+        "emotion": (f"Use {values.get('primary_tone')} as the primary tone and {values.get('undertone')} as the undertone, progressing from {values.get('arc', {}).get('start')} through {values.get('arc', {}).get('turn')} to {values.get('arc', {}).get('end')}.", "Separating intensity, energy, tension, and progression prevents nine repeated facial expressions.", ["More restrained", "More openly expressive", "Add a secondary emotional tone"]),
+        "subject": (subject_proposal_en, subject_rationale_en, ["Classical restrained styling", "Contemporary editorial styling", "Ceremonial formal styling"] if values.get("styling_versatility") else ["Keep the current identity", "Create a compatible new version", "Add an explicit identity reference"]),
+        "world": ("Establish one physically coherent world whose geometry, time, materials, and object positions persist across every viewpoint.", "A stable world makes nine viewpoints feel like continuous observation rather than unrelated backgrounds.", ["Richer interior depth", "Stronger indoor-outdoor relation", "More visible time or weather progression"]),
+        "look": ("Lock one theme-appropriate wardrobe, grooming, and prop state for this set. Use the protagonist's broader styling versatility across future themes or causally justified changes, never as unexplained drift.", "Treating styling and props as world state preserves both character reuse and sequence continuity.", ["Simpler styling", "Stronger period character", "One event-driving hero prop"]),
+        "event": ("Start with one visible action and make every major action leave a consequence inherited by later shots.", "Event before pose makes the subject act inside a world instead of repeating poses against changing backgrounds.", ["Subject-triggered event", "Environment-triggered event", "Prop-state event"]),
+        "sequence": (f"Organize {values.get('shot_count')} shots as establish, approach, trigger, develop, interiorize, reveal, turn, release, and resolve, with one distinct function per shot.", "Distinct functions and inherited consequences reduce repeated framing, empty action, and continuity drift.", ["Slower contemplative rhythm", "Stronger dramatic turn", "More open-ended resolution"]),
+        "camera": ("Choose position, framing, perspective, and negative space from each shot's narrative need; use environmental, full, medium, close, and detail coverage only when motivated.", "The camera defines where the viewer stands and how much of the event and world can be understood.", ["Closer to the subject", "More environmental context", "More action detail"]),
+        "light": ("Use one physically motivated key source whose direction, shadow, falloff, exposure, and reflections remain traceable; let contrast evolve with emotion, not randomly.", "Credible light is evidence for time, depth, material, emotion, and continuity.", ["Soft natural light", "More directional dramatic light", "Time-progressive light"]),
+        "style": ("Use restrained live-action editorial photography led by real materials, subject state, and world relations; keep stylistic effects subordinate to identity and physics.", "Securing human and world credibility first prevents filters or synthetic rendering from overwhelming the photograph.", ["More documentary", "More polished editorial", "More cinematic narrative"]),
+        "color_post": ("Derive base colors from skin, wardrobe, props, and world materials; use one restrained accent while retaining natural skin, highlight and shadow latitude, and photographic detail.", "Relational grading preserves identity, material differences, time, and set continuity better than a global filter.", ["Lower saturation", "Stronger warm-cool relation", "Subtle film texture"]),
+        "job": (f"Freeze {values.get('output_count')} independent {values.get('aspect_ratio')} Jobs, one image per Job, each with a unique filename and complete Prompt.", "Independent Jobs support retry, QA, lineage, and standalone use.", ["Generate one by one now", "Save complete Prompts only", "Export an installable Skill package"]),
+        "quality_control": ("Check live-action medium, identity, presence and styling fit, anatomy and hands, world, props, light, color, continuity, and shot function for every image; record model and human review separately.", "Explicit rejection rules prevent a structurally valid Prompt from being mistaken for a visually accepted result.", ["Per-shot review", "Set continuity review", "Final human acceptance"]),
+    }
+    return copy[role]
+
+
+def _zh_element_presentation(role: str, decision: dict[str, Any], brief: str) -> dict[str, Any]:
     intent, observable, preserve, qa = ZH_ROLE_COPY[role]
+    if role == "subject" and not decision.get("values", {}).get("styling_versatility"):
+        observable, preserve, qa = ["全部镜头都能识别为同一个真实成年人物。"], ["稳定身份", "成年年龄", "自然人体结构"], ["全部输出中的人物身份保持连续。"]
     values = {
-        ZH_UI_LABELS["value_keys"].get(str(key), "创作参数"): _zh_ui_value(value)
+        ZH_UI_LABELS["value_keys"].get(str(key), "创作参数"): _display_value(role, str(key), value, "zh-CN")
         for key, value in decision.get("values", {}).items()
     }
+    recommendation, rationale, options = _element_proposal_copy(role, decision, brief, "zh-CN")
     return {
         "role_label": load_semantic_registry()["roles"][role]["zh"],
         "status_label": ZH_UI_LABELS["status"].get(decision.get("status"), "待确认"),
         "source_label": ZH_UI_LABELS["source"].get(decision.get("source"), "根据当前方案设定"),
+        "display_recommendation": recommendation, "display_rationale": rationale, "display_options": options,
         "display_intent": intent, "display_values": values, "display_observable": observable,
         "display_must_preserve": preserve, "display_qa_expectations": qa,
     }
@@ -1150,6 +1236,8 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
     """Create a deterministic, editable proposal covering all thirteen protocol roles."""
     mood = _mood_profile(brief); output = theme["output"]; count = len(theme["shots"])
     arc = dict(mood["arc"])
+    explicit_male = bool(re.search(r"(?:男主角|男性|男士|男人|男模|\bmale\b|\bman\b)", brief, re.I))
+    protagonist = "one poised fictional East Asian adult male protagonist" if explicit_male else "one poised fictional East Asian adult female protagonist"
     return {
         "content": _decision("content", "direction", f"Turn the creator brief into one concrete photographic proposition: {brief}", {
             "theme_statement": brief, "subject_matter": "one coherent live-action photographic world",
@@ -1165,11 +1253,19 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             f"Expression is {mood['expression']}; energy is {mood['energy']}; tension is {mood['tension']}."],
             ["subject identity", "emotion must be shown through gaze, breath, gesture and distance"],
             ["The declared tone is observable without relying on a facial-expression label.", "The final frame completes the declared emotional arc."]),
-        "subject": _decision("subject", "worldbuilding", "Define who exists and which identity traits never drift.", {
-            "identity": "one stable fictional adult identity", "representation": "real adult human in live-action photography",
-            "identity_locks": ["face geometry", "age band", "skin characteristics", "hair", "body proportions"],
-        }, ["The same real adult subject remains identifiable across every Job."],
-            ["stable identity", "adult age", "natural anatomy"], ["Identity remains continuous in all outputs."]),
+        "subject": _decision("subject", "worldbuilding", "Define a poised protagonist whose identity stays stable while makeup, hair, wardrobe, and period styling can vary deliberately.", {
+            "identity": protagonist, "representation": "real adult human in live-action photography",
+            "presence": "poised, distinctive, and camera-confident",
+            "styling_versatility": "supports classical, contemporary, editorial, and ceremonial styling without identity substitution",
+            "variable_styling_traits": ["makeup", "hairstyle", "wardrobe", "era styling"],
+            "identity_locks": ["face geometry", "age band", "skin characteristics", "hair color and hairline", "body proportions"],
+        }, [
+            "The same poised real adult protagonist remains identifiable across every Job.",
+            "Makeup, hairstyle, wardrobe, and period styling may change deliberately without face substitution or identity drift.",
+        ], ["stable identity", "adult age", "natural anatomy", "distinctive personal presence"], [
+            "Identity remains continuous in all outputs.",
+            "Every styling choice complements the protagonist without obscuring or replacing identity-defining features.",
+        ]),
         "world": _decision("world", "worldbuilding", "Construct one coherent physical world with persistent spatial and material rules.", {
             "space": "one coherent physical location", "time": "one continuous time phase", "materials": ["photographically plausible materials"],
             "physical_rules": ["consistent geometry", "gravity", "reflection", "material response"],
@@ -1223,7 +1319,7 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             ["unique output filename", "no grid", "no text", "no watermark"], ["Each Job produces exactly one independently usable image."],
             source="system_policy", basis=["output_contract"]),
         "quality_control": _decision("quality_control", "delivery", "Define evidence that accepts or rejects each Job and the complete set.", {
-            "required_checks": ["identity", "live-action medium", "anatomy and hands", "world geometry", "prop ownership", "lighting", "color", "continuity", "shot intent", "rights"],
+            "required_checks": ["identity", "facial presence and styling compatibility", "live-action medium", "anatomy and hands", "world geometry", "prop ownership", "lighting", "color", "continuity", "shot intent", "rights"],
             "reject_if": ["illustrated person", "identity drift", "anatomy failure", "prop duplication", "contradictory light", "collage or text"],
             "human_visual_qa": "pending until evidence",
         }, ["Every Job carries model visual QA and separate pending human visual QA."],
@@ -1944,11 +2040,14 @@ def present_element_layer(session_id: str, layer: str, *, project_root: Path) ->
             "must_preserve": decision["must_preserve"], "qa_expectations": decision["qa_expectations"],
             "basis": decision["basis"], "dna_refs": decision.get("dna_refs", []),
         }
-        if locale == "zh-CN": card.update(_zh_element_presentation(role, decision))
+        if locale == "zh-CN": card.update(_zh_element_presentation(role, decision, session["brief"]))
         else:
+            recommendation, rationale, options = _element_proposal_copy(role, decision, session["brief"], "en")
             card.update({
                 "role_label": role, "status_label": decision["status"], "source_label": decision["source"],
-                "display_intent": decision["intent"], "display_values": decision["values"],
+                "display_recommendation": recommendation, "display_rationale": rationale, "display_options": options,
+                "display_intent": decision["intent"],
+                "display_values": {key: _display_value(role, key, value, "en") for key, value in decision["values"].items()},
                 "display_observable": decision["observable"], "display_must_preserve": decision["must_preserve"],
                 "display_qa_expectations": decision["qa_expectations"],
             })

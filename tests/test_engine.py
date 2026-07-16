@@ -239,7 +239,7 @@ class EngineTests(unittest.TestCase):
             chinese = engine.start_design_session(
                 "创建一套九张安静窗边真人摄影主题", project_root=project, home=home, theme_id="TEST-LANGUAGE-ZH",
             )
-            visible_fields = ("title", "question", "role_label", "status_label", "source_label", "display_intent", "display_values", "display_observable", "display_must_preserve", "display_qa_expectations")
+            visible_fields = ("title", "question", "role_label", "status_label", "source_label", "display_recommendation", "display_rationale", "display_options", "display_intent", "display_values", "display_observable", "display_must_preserve", "display_qa_expectations")
 
             def visible_strings(value):
                 if isinstance(value, str): yield value
@@ -254,6 +254,7 @@ class EngineTests(unittest.TestCase):
                 chinese_layer = engine.present_element_layer(chinese["session_id"], layer_name, project_root=project)
                 visible = [chinese_layer["title"], chinese_layer["layer_label"]]
                 for card in chinese_layer["cards"]: visible.extend(card[key] for key in visible_fields)
+                self.assertTrue(all(all(card[key] for key in visible_fields) for card in chinese_layer["cards"]))
                 self.assertFalse(
                     [item for item in visible_strings(visible) if re.search(r"[A-Za-z]", item)],
                     f"Chinese {layer_name} card leaked English creator-facing text",
@@ -269,6 +270,11 @@ class EngineTests(unittest.TestCase):
             mixed_summary_asset["change_summary"] = "中文 DNA 测试资源"
             mixed_card = engine.dna_card({"scope": "project", "asset": mixed_summary_asset}, "zh-CN")
             self.assertFalse([item for item in visible_strings([mixed_card[key] for key in ("title", "summary", "core_attributes")]) if re.search(r"[A-Za-z]", item)])
+
+            mixed_brief = engine.start_design_session("创建 AI 摄影的 APSAL 九张主题", project_root=project, home=home, theme_id="TEST-MIXED-BRIEF-ZH")
+            mixed_content = engine.present_element_layer(mixed_brief["session_id"], "direction", project_root=project)["cards"][0]
+            self.assertNotRegex(mixed_content["display_recommendation"], r"[A-Za-z]")
+            self.assertNotRegex(mixed_content["display_values"]["主题命题"], r"[A-Za-z]")
 
             ambiguous = engine.start_design_session("APSAL", project_root=project, home=home, theme_id="TEST-LANGUAGE-PENDING")
             self.assertEqual(ambiguous["language"]["status"], "pending")
@@ -287,6 +293,29 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(before_session["theme_digest"], switched["theme_digest"])
             self.assertEqual(before_session["theme_digest"], after_session["theme_digest"])
             self.assertEqual(before_compiled["compiled_digest"], after_compiled["compiled_digest"])
+
+    def test_default_protagonist_is_poised_versatile_and_card_proposals_are_complete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("创建九张东方极简窗边真人摄影主题", project_root=project, home=home, theme_id="TEST-PROTAGONIST")
+            _, theme = engine.load_design_session(session["session_id"], project)
+            subject = theme["element_decisions"]["subject"]
+            self.assertEqual(subject["values"]["identity"], "one poised fictional East Asian adult female protagonist")
+            self.assertIn("classical", subject["values"]["styling_versatility"])
+            self.assertIn("makeup", subject["values"]["variable_styling_traits"])
+            self.assertIn("hair color and hairline", subject["values"]["identity_locks"])
+            self.assertTrue(any("without face substitution" in item for item in subject["observable"]))
+            for layer_name in engine.CREATIVE_LAYERS:
+                layer = engine.present_element_layer(session["session_id"], layer_name, project_root=project)
+                for card in layer["cards"]:
+                    for field in ("display_recommendation", "display_rationale", "display_options", "display_values", "display_observable", "display_must_preserve", "display_qa_expectations"):
+                        self.assertTrue(card[field], f"{layer_name}.{card['role']}.{field} is empty")
+            subject_card = next(card for card in engine.present_element_layer(session["session_id"], "worldbuilding", project_root=project)["cards"] if card["role"] == "subject")
+            self.assertIn("气质鲜明", subject_card["display_recommendation"])
+            self.assertIn("多种妆发和服装", subject_card["display_recommendation"])
+
+            male = engine.propose_element_decisions("创建一位成年男性主角的肖像", engine.new_semantic_theme("TEST-MALE", "Male"))["subject"]
+            self.assertIn("male protagonist", male["values"]["identity"])
 
     def test_cannot_skip_layers_and_each_layer_recommends_its_required_dna_types(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -315,6 +344,8 @@ class EngineTests(unittest.TestCase):
             self.assertIn("LIGHT:", first)
             self.assertIn("COLOR POST:", first)
             self.assertIn("EMOTION:", first)
+            self.assertIn("poised real adult protagonist", first)
+            self.assertIn("without face substitution or identity drift", first)
             covered = {check["source"].removeprefix("element_decisions.") for check in qa["global_checks"] if check.get("source", "").startswith("element_decisions.")}
             self.assertEqual(covered, set(engine.PROTOCOL_TYPES))
 
@@ -614,7 +645,7 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.11.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.12.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 21)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("set_session_language", names)
@@ -632,6 +663,7 @@ class EngineTests(unittest.TestCase):
             elements = responses[3]["result"]["structuredContent"]["cards"]
             self.assertEqual([card["role"] for card in elements], ["content", "emotion"])
             self.assertTrue(all("values" in card and "observable" in card and "qa_expectations" in card for card in elements))
+            self.assertTrue(all(card["display_recommendation"] and card["display_rationale"] and card["display_options"] and card["display_qa_expectations"] for card in elements))
             self.assertNotIn("preview", json.dumps(elements))
             imported = responses[4]["result"]["structuredContent"]
             self.assertTrue(imported["ready_for_codex"])

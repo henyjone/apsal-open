@@ -25,7 +25,7 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 Install the pinned stable release:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.11.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.12.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -35,14 +35,14 @@ Restart Codex or open a new task, then verify:
 codex plugin list
 ```
 
-You should see `apsal-studio@apsal-open`, enabled at version `0.11.0`.
+You should see `apsal-studio@apsal-open`, enabled at version `0.12.0`.
 
 To replace an older pinned installation:
 
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.11.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.12.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -72,7 +72,7 @@ Unspecified decisions can remain open; Studio proposes them in the appropriate l
 
 ### How interface language works
 
-APSAL Studio follows the current Codex conversation rather than showing a mandatory first-run language screen. An English brief creates an English session; a Chinese brief creates a Chinese session. Chinese cards use creator-facing Chinese throughout: machine role names, field keys, statuses, Registry scopes, asset IDs and semantic tags remain hidden in the local artifact layer. Card titles, intent, important values, recommendation reasons, selected state and the primary confirmation action use a high-contrast celadon highlight hierarchy.
+APSAL Studio follows the current Codex conversation rather than showing a mandatory first-run language screen. An English brief creates an English session; a Chinese brief creates a Chinese session. Chinese cards use creator-facing Chinese throughout: machine role names, field keys, statuses, Registry scopes, asset IDs and semantic tags remain hidden in the local artifact layer. Card titles, proposals, important values, recommendation reasons, selected state and the primary confirmation action use a high-contrast celadon highlight hierarchy.
 
 If the first usable message is genuinely ambiguous—such as only “APSAL”—Studio asks once:
 
@@ -90,7 +90,11 @@ Answer normally; Studio stores the choice in the local design session. To switch
 | Image | Camera, Light, Style, Color/Post | framing, viewpoint, optics, composition, source/direction/quality of light, palette and post-processing |
 | Delivery | Job, Quality Control | one image per Job, output request, rejection rules, model QA and human QA |
 
-Every text card includes intent, values, provenance, observable effects, locks and QA expectations. Confirm a layer, or revise one target in natural language:
+Every text card includes the complete recommendation, rationale, adjustable directions, intent, values, provenance, observable effects, locks and QA expectations. A deliberately unset machine value is shown as an explanation of when it should be added, not as a blank card region.
+
+Unless the brief explicitly requests another subject, Studio proposes a poised, distinctive East Asian adult female protagonist with stable camera presence and compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling versatility never means identity drift: facial geometry, adult age, natural skin, hair color/hairline and body proportions remain locked. One set retains one confirmed look unless an observable event motivates a change. An explicit adult male brief overrides the female default.
+
+Confirm a layer, or revise one target in natural language:
 
 > Make the subject 32–38 while preserving the short hair and restrained temperament.
 
@@ -241,9 +245,10 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Symptom | Action |
 |---|---|
 | Studio does not trigger | Restart Codex/open a new task and explicitly say “Use APSAL Studio” |
-| Codex explains `run.json` instead of using the package | Confirm version 0.11.0 and say “Open this APSAL package and generate the first image” |
-| English input still shows Chinese cards | Open a new task after upgrading to 0.11.0, or say “use English”; the session should report language `en` |
-| Chinese cards contain English machine fields | Confirm version 0.11.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
+| Codex explains `run.json` instead of using the package | Confirm version 0.12.0 and say “Open this APSAL package and generate the first image” |
+| English input still shows Chinese cards | Open a new task after upgrading to 0.12.0, or say “use English”; the session should report language `en` |
+| Chinese cards contain English machine fields | Confirm version 0.12.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
+| Element cards show only headings or blank proposal areas | Confirm version 0.12.0 and start a new task; each card should show its proposal, rationale, options, values, expected effects, locks and acceptance criteria |
 | Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |
 | A programming interface or code image appears | Reject the current image as visual-QA failure and retry that Job; it is never a valid photographic output |
 | The human looks illustrated, doll-like or 3D | Fail live-action medium QA and retry only that Job with the Rendering Contract preserved |

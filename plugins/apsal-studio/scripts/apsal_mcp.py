@@ -360,11 +360,27 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     elif name == "present_element_layer":
         lines = [(f"创作层：{value['title']}" if value.get("language") == "zh-CN" else f"APSAL layer: {value['title']}")]
         for card in value["cards"]:
-            labels = ("取值", "可观察结果") if value.get("language") == "zh-CN" else ("Values", "Observable")
+            labels = ("提案", "理由", "取值", "应当看到", "必须保持", "验收标准") if value.get("language") == "zh-CN" else ("Proposal", "Rationale", "Values", "Expected", "Must preserve", "Acceptance criteria")
             if value.get("language") == "zh-CN":
-                lines.append(f"- {card['title']}【{card['source_label']}；{card['status_label']}】：{card['display_intent']} {labels[0]}：{json.dumps(card['display_values'], ensure_ascii=False)} {labels[1]}：{'；'.join(card['display_observable'])}")
+                lines.append(
+                    f"- {card['title']}【{card['source_label']}；{card['status_label']}】"
+                    f"\n  {labels[0]}：{card['display_recommendation']}"
+                    f"\n  {labels[1]}：{card['display_rationale']}"
+                    f"\n  {labels[2]}：{json.dumps(card['display_values'], ensure_ascii=False)}"
+                    f"\n  {labels[3]}：{'；'.join(card['display_observable'])}"
+                    f"\n  {labels[4]}：{'；'.join(card['display_must_preserve'])}"
+                    f"\n  {labels[5]}：{'；'.join(card['display_qa_expectations'])}"
+                )
             else:
-                lines.append(f"- {card['title']} [{card['source']}]: {card['intent']} {labels[0]}: {json.dumps(card['values'], ensure_ascii=False)} {labels[1]}: {'; '.join(card['observable'])}")
+                lines.append(
+                    f"- {card['title']} [{card['source']}]"
+                    f"\n  {labels[0]}: {card['display_recommendation']}"
+                    f"\n  {labels[1]}: {card['display_rationale']}"
+                    f"\n  {labels[2]}: {json.dumps(card['display_values'], ensure_ascii=False)}"
+                    f"\n  {labels[3]}: {'; '.join(card['display_observable'])}"
+                    f"\n  {labels[4]}: {'; '.join(card['display_must_preserve'])}"
+                    f"\n  {labels[5]}: {'; '.join(card['display_qa_expectations'])}"
+                )
         text = "\n".join(lines)
     else:
         text = json.dumps(value, ensure_ascii=False, indent=2)
@@ -379,7 +395,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.11.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.12.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

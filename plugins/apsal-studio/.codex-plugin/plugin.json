@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.11.0",
-  "description": "Build live-action AI photography through polished Chinese-only or English-only creator cards, package every Prompt, and generate each shot directly with Codex—no image API key required.",
+  "version": "0.12.0",
+  "description": "Build live-action AI photography through fully populated Chinese or English proposal cards, package every Prompt, and generate each shot directly with Codex—no image API key required.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -14,8 +14,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "Polished Chinese and English photography cards",
-    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five highlighted text-card layers covering all thirteen protocol roles. Chinese cards use creator-facing Chinese throughout while stable machine identifiers remain hidden underneath. Studio can also take over legacy APSAL runs, export bilingual Prompt/Skill packages and hand independent shots to Codex built-in image generation without an image API key.",
+    "shortDescription": "Complete photography proposals in every card",
+    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five highlighted text-card layers covering all thirteen protocol roles. Every card is filled with a recommendation, rationale, adjustable directions, values, observable results, locks and acceptance criteria. The default female protagonist is poised and versatile across makeup and wardrobe while identity remains locked. Studio can also take over legacy APSAL runs, export bilingual Prompt/Skill packages and hand independent shots to Codex built-in image generation without an image API key.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],

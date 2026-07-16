@@ -20,7 +20,10 @@
     h2 { margin:5px 0 2px; color:var(--accent-strong); font-size:17px; font-weight:700; }
     .question { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
     .source { display:inline-block; margin-top:10px; padding:4px 8px; border:1px solid #4d6a5e; border-radius:999px; background:var(--accent-surface); color:var(--accent-strong); font-size:11px; font-weight:650; }
-    .intent { margin-top:13px; padding:10px 12px; border-left:2px solid var(--accent); background:var(--accent-surface); color:#e5eee9; font-weight:520; overflow-wrap:anywhere; }
+    .proposal { margin-top:13px; padding:12px 13px; border-left:3px solid var(--accent-strong); background:var(--accent-surface); color:var(--accent-strong); font-weight:680; overflow-wrap:anywhere; }
+    .intent,.rationale { color:#e5eee9; font-weight:520; overflow-wrap:anywhere; }
+    .options { display:flex; flex-wrap:wrap; gap:6px; }
+    .option { padding:5px 9px; border:1px solid #405a4f; border-radius:999px; background:#202b26; color:var(--accent-strong); font-size:11px; font-weight:650; }
     section { margin-top:13px; padding-top:11px; border-top:1px solid var(--soft); }
     .label { margin-bottom:7px; color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.08em; }
     dl { display:grid; grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr); gap:6px 10px; margin:0; }
@@ -50,11 +53,13 @@
   const zh = output.language === "zh-CN";
   document.documentElement.lang = zh ? "zh-CN" : "en";
   const labels = zh ? {
-    subtitle:"逐层确认创作含义、可观察结果与不可改变项。", elements:"个元素", values:"确认取值",
-    observable:"可观察结果", preserve:"必须保持", revise:"用自然语言修改此元素", confirm:"确认本层全部元素", none:"无"
+    subtitle:"每张卡片都已填入设计提案、理由、取值、结果与验收标准。", elements:"个元素", proposal:"我的设计提案",
+    rationale:"为什么这样建议", options:"可调整方向", purpose:"设计目的", values:"建议取值",
+    observable:"应当看到", preserve:"必须保持", qa:"验收标准", revise:"用自然语言修改此元素", confirm:"确认本层全部元素", none:"无"
   } : {
-    subtitle:"Confirm creative meaning, observable results, and invariants layer by layer.", elements:"elements", values:"Confirmed values",
-    observable:"Observable result", preserve:"Must preserve", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer", none:"None"
+    subtitle:"Every card contains the full proposal, rationale, values, expected result, and acceptance criteria.", elements:"elements", proposal:"My design proposal",
+    rationale:"Why this is recommended", options:"Adjustable directions", purpose:"Design purpose", values:"Proposed values",
+    observable:"Expected result", preserve:"Must preserve", qa:"Acceptance criteria", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer", none:"None"
   };
   const safe = value => {
     if (value == null) return "";
@@ -74,12 +79,16 @@
     add(article,"h2","",safe(card.title));
     add(article,"div","question",card.question);
     add(article,"span","source",`${safe(card.source_label)} · ${safe(card.status_label)}`);
-    add(article,"div","intent",card.display_intent);
+    const proposal=document.createElement("section"); add(proposal,"div","label",labels.proposal); add(proposal,"div","proposal",card.display_recommendation); article.appendChild(proposal);
+    const rationale=document.createElement("section"); add(rationale,"div","label",labels.rationale); add(rationale,"div","rationale",card.display_rationale); article.appendChild(rationale);
+    const options=document.createElement("section"); add(options,"div","label",labels.options); const optionHost=document.createElement("div"); optionHost.className="options"; (card.display_options||[]).forEach(value=>add(optionHost,"span","option",value)); options.appendChild(optionHost); article.appendChild(options);
+    const purpose=document.createElement("section"); add(purpose,"div","label",labels.purpose); add(purpose,"div","intent",card.display_intent); article.appendChild(purpose);
     const values=document.createElement("section"); add(values,"div","label",labels.values);
     const dl=document.createElement("dl"); Object.entries(card.display_values || {}).forEach(([key,value])=>{add(dl,"dt","",key);add(dl,"dd","",safe(value));}); values.appendChild(dl); article.appendChild(values);
     const observable=document.createElement("section"); add(observable,"div","label",labels.observable);
     const ul=document.createElement("ul"); (card.display_observable||[]).forEach(value=>add(ul,"li","",value)); observable.appendChild(ul); article.appendChild(observable);
     const preserve=document.createElement("section"); add(preserve,"div","label",labels.preserve); add(preserve,"div","question",(card.display_must_preserve||[]).join(" · ")); article.appendChild(preserve);
+    const qa=document.createElement("section"); add(qa,"div","label",labels.qa); const qaList=document.createElement("ul"); (card.display_qa_expectations||[]).forEach(value=>add(qaList,"li","",value)); qa.appendChild(qaList); article.appendChild(qa);
     const actions=document.createElement("div"); actions.className="actions";
     const revise=add(actions,"button","",labels.revise); revise.type="button";
     revise.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `请修改“${card.title}”元素，先询问我希望改变什么，并说明会影响哪些后续元素。` : `Revise the ${card.role} element. First ask what I want to change, then explain which downstream elements will be affected.`}));
