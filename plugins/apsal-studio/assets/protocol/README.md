@@ -8,4 +8,6 @@ Studio 0.6 adds a Registry exchange layer without changing Protocol 0.3. Discove
 
 Studio 0.7 adds a five-layer authoring interaction without changing Protocol 0.3 or Semantic Contract 0.3. It exposes all thirteen roles as creator-confirmed text cards, while the existing seven Registry DNA categories remain the reusable asset layer.
 
+Studio 0.8 removes direct image-provider execution from the Codex plugin. Finalization creates a complete Codex Prompt/Skill ZIP with one positive, negative and full Prompt per Job, bundled permitted references, checksums and a usage guide. Codex then generates one image per turn through its built-in image-generation capability. Requested delivery dimensions are not treated as guaranteed returned dimensions.
+
 Protocol 0.3 preserves 0.2 JSON and adds Semantic Contract authoring. Creators edit safe `.apsal.yaml`; the engine normalizes `.apsal.json`, explains field intent, and compiles separate `design`, `image`, and `qa` targets. Run `apsal.py check-sync <directory>` before publishing YAML/JSON pairs.

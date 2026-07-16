@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import base64
 import datetime as dt
 import importlib.util
 import io
@@ -33,7 +32,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.7.0"
+ENGINE_VERSION = "0.8.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -80,6 +79,11 @@ LIVE_ACTION_FORBID = (
 NATIVE_4K_OUTPUT = {
     "aspect_ratio": "9:16", "size": "2160x3840", "quality": "high",
     "format": "png", "provider_native": True,
+}
+CODEX_IMAGEGEN_OUTPUT = {
+    "aspect_ratio": "9:16", "requested_size": "2160x3840", "size": "not_guaranteed",
+    "quality": "high_requested", "format": "png_requested", "provider_native": False,
+    "generation_surface": "codex_imagegen",
 }
 DISCOVERY_FACETS = {
     "subject.age", "subject.presentation", "subject.temperament", "subject.identity_mode",
@@ -727,6 +731,31 @@ def live_action_rendering_contract() -> dict[str, Any]:
     }
 
 
+def codex_imagegen_output_contract(shot_count: int) -> dict[str, Any]:
+    """Return the honest output request for Codex-managed image generation.
+
+    Aspect ratio and quality are creative requests. The built-in Codex image
+    tool owns its concrete format and pixel dimensions, so APSAL never turns a
+    requested 4K size into a provider-native guarantee.
+    """
+    return {
+        "count": shot_count, **CODEX_IMAGEGEN_OUTPUT, "independent_images": True,
+        "forbid": ["collage", "grid", "contact sheet", "text", "logo", "watermark"],
+    }
+
+
+def codex_delivery_contract(output: dict[str, Any], shot_count: int) -> dict[str, Any]:
+    """Translate any canonical output request into an honest Codex handoff."""
+    contract = codex_imagegen_output_contract(shot_count)
+    contract["aspect_ratio"] = output.get("aspect_ratio", contract["aspect_ratio"])
+    requested_size = output.get("requested_size")
+    if not requested_size and re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", str(output.get("size", ""))):
+        requested_size = output["size"]
+    contract["requested_size"] = requested_size or "not_reported"
+    contract["canonical_output_request"] = output
+    return contract
+
+
 def new_theme(
     theme_id: str, name: str, shot_count: int = 9, *, native_4k: bool = True,
     live_action: bool = True,
@@ -1324,6 +1353,9 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
         expected_output = NATIVE_4K_OUTPUT
         for key, expected in expected_output.items():
             if output.get(key) != expected: errors.append(f"theme: native 4K output {key} must be {expected}")
+    if output.get("generation_surface") == "codex_imagegen":
+        for key, expected in CODEX_IMAGEGEN_OUTPUT.items():
+            if output.get(key) != expected: errors.append(f"theme: Codex image output {key} must be {expected}")
     required = ("shot_id", "title", "narrative_purpose", "framing", "action", "hands", "gaze", "composition", "continuity", "output_filename")
     ids, filenames = set(), set()
     for shot in shots:
@@ -1614,7 +1646,9 @@ def start_design_session(
     if not brief: raise ValidationError("creative brief cannot be empty")
     project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
     theme_id = theme_id or _new_theme_id()
-    theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=True, live_action=True)
+    theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=False, live_action=True)
+    theme["output"] = codex_imagegen_output_contract(shot_count)
+    for shot in theme["shots"]: shot["output_filename"] = f"{theme_id.lower()}_{int(shot['shot_id'].split('_')[-1]):02d}.png"
     theme["element_decisions"] = propose_element_decisions(brief, theme)
     theme["interaction_model"] = "five_layer_thirteen_element"
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
@@ -2083,10 +2117,33 @@ def finalize_design_session(
             "visual_qa_status": "pending",
         }
         write_canonical_json(manifest, root / "artifact_manifest.json")
+    reference_paths = {
+        item["reference_id"]: _vault_reference_path(item["vault_uri"], home)
+        for item in session.get("private_references", []) if item.get("vault_uri")
+    }
+    prompt_package_path, prompt_package_sha = pack_theme(
+        theme, root / "exports", (root / "theme.apsal.yaml").read_bytes(), assets=assets,
+        reference_paths=reference_paths, distribution=theme.get("distribution", "auto"),
+    )
+    artifact_manifest_path = root / "artifact_manifest.json"
+    artifact_manifest = load_json(artifact_manifest_path)
+    artifact_manifest["engine_version"] = ENGINE_VERSION
+    artifact_manifest["prompt_package"] = {
+        "path": str(prompt_package_path.relative_to(root)), "sha256": prompt_package_sha,
+        "generation_surface": "codex_imagegen", "api_key_required": False,
+        "returned_dimensions_guaranteed": False,
+    }
+    artifact_manifest["files"] = {
+        str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(path for path in root.rglob("*") if path.is_file() and path != artifact_manifest_path)
+    }
+    write_canonical_json(artifact_manifest, artifact_manifest_path)
     session["state"] = "ready"; session["theme_artifact"] = {
         "path": str(root), "theme_id": theme["id"], "version": theme["version"], "digest": digest(theme),
         "reference_count": len(session.get("private_references", [])), "distribution": theme.get("distribution", "public"),
         "rendering_medium": theme.get("rendering_contract", {}).get("medium", "not_declared"), "output": theme["output"],
+        "prompt_package": {"path": str(prompt_package_path), "sha256": prompt_package_sha,
+                           "generation_surface": "codex_imagegen", "api_key_required": False},
     }
     _write_session(session, theme, project_root)
     return session
@@ -2120,13 +2177,16 @@ def _generation_run_status(run: dict[str, Any]) -> str:
 
 def start_generation_run(
     session_id: str, *, project_root: Path, confirmed: bool = False, mode: str = "generate",
-    adapter: str = "openai-image-api", model: str = "gpt-image-2", parameters: dict[str, Any] | None = None,
+    adapter: str = "codex-imagegen", model: str = "not_reported", parameters: dict[str, Any] | None = None,
     resume_run_id: str | None = None, home: Path | None = None,
 ) -> dict[str, Any]:
-    """Create or resume a nine-Job run without calling a remote image provider."""
+    """Prepare or resume a Codex-managed run without invoking an image API."""
     if mode not in {"generate", "prompts", "skill"}: raise ValidationError("run mode must be generate, prompts, or skill")
     if mode == "generate" and confirmed is not True:
         raise ValidationError("explicit confirmation is required before generating images")
+    if adapter != "codex-imagegen": raise ValidationError("APSAL Studio uses Codex built-in image generation; direct image API adapters are disabled")
+    if model not in {"", "not_reported", "codex-managed"}: raise ValidationError("Codex manages the image model; do not set a provider model")
+    if parameters: raise ValidationError("Codex manages image parameters; provider API parameters are not accepted")
     project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
     if session["state"] not in {"ready", "partial", "completed"} or not session.get("theme_artifact"):
         raise ValidationError("finalize the design session before starting a run")
@@ -2145,27 +2205,14 @@ def start_generation_run(
     reference_manifest = load_json(reference_manifest_path) if reference_manifest_path.is_file() else {
         "schema_version": "0.5.0", "references": [], "reference_count": 0, "distribution": "public",
     }
-    output_contract = theme.get("output", {})
-    effective_parameters = {
-        "size": output_contract.get("size", "not_reported"), "quality": output_contract.get("quality", "not_reported"),
-        "output_format": output_contract.get("format", "not_reported"), "n": 1,
-    }
-    if parameters is not None:
-        unsupported = set(parameters) - set(effective_parameters)
-        if unsupported: raise ValidationError(f"unsupported image parameters: {sorted(unsupported)}")
-        effective_parameters.update(parameters)
-    if effective_parameters.get("n") != 1: raise ValidationError("APSAL generation requires n=1 for every independent Job")
-    if output_contract.get("provider_native") is True:
-        expected_parameters = {"size": output_contract["size"], "quality": output_contract["quality"], "output_format": output_contract["format"]}
-        for key, value in expected_parameters.items():
-            if effective_parameters.get(key) != value: raise ValidationError(f"provider-native parameter {key} must be {value}")
+    output_contract = codex_delivery_contract(theme.get("output", {}), len(compiled["shots"]))
     run_id = f"RUN-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8].upper()}"
     root = _run_dir(project_root, run_id)
     for relative in ("prompts", "outputs", "qa"): _mkdir_private(root / relative)
     jobs = []
     for shot in compiled["shots"]:
         shot_id = _safe_part(shot["shot_id"], "shot id")
-        (root / "prompts" / f"{shot_id}.prompt.txt").write_text(shot["positive_prompt"] + "\n", encoding="utf-8")
+        (root / "prompts" / f"{shot_id}.prompt.txt").write_text(shot["positive_prompt"] + " Negative constraints: " + shot["negative_prompt"] + "\n", encoding="utf-8")
         (root / "prompts" / f"{shot_id}.negative.txt").write_text(shot["negative_prompt"] + "\n", encoding="utf-8")
         jobs.append({
             "shot_id": shot_id, "status": "pending" if mode == "generate" else "saved",
@@ -2174,32 +2221,85 @@ def start_generation_run(
             "human_visual_qa": "pending",
         })
     run = {
-        "schema_version": "0.5.0", "run_id": run_id, "session_id": session_id, "mode": mode,
+        "schema_version": "0.8.0", "run_id": run_id, "session_id": session_id, "mode": mode,
         "status": "generating" if mode == "generate" else "completed", "theme": session["theme_artifact"],
-        "dna": theme["dna"], "engine_version": ENGINE_VERSION, "adapter": adapter,
-        "model": model or "not_reported", "parameters": effective_parameters, "output_contract": output_contract,
+        "dna": theme["dna"], "engine_version": ENGINE_VERSION, "adapter": "codex-imagegen",
+        "model": "not_reported", "parameters": "not_reported", "output_contract": output_contract,
+        "generation_surface": "codex_imagegen", "direct_api_calls": False, "api_key_required": False,
+        "returned_dimensions_guaranteed": False,
         "rendering_contract": theme.get("rendering_contract", {"status": "not_declared_legacy"}),
         "reference_manifest": {key: value for key, value in reference_manifest.items() if key != "references"} | {
             "references": [{key: value for key, value in item.items() if key != "vault_uri"} for item in reference_manifest.get("references", [])]
         },
         "jobs": jobs, "resume_count": 0, "created_at": _utc_now(), "updated_at": _utc_now(),
-        "lineage_note": "Prompts and reference IDs are the exact local payload prepared for one independent request and image per Job; n is always 1.",
+        "lineage_note": "Prompts and reference IDs are frozen locally before Codex generates one independent image per Job. Concrete model, format and dimensions remain not_reported unless Codex returns them.",
     }
-    if mode == "skill":
-        assets = registry_assets(project_root, home)
-        reference_paths = {item["reference_id"]: _vault_reference_path(item["vault_uri"], home) for item in reference_manifest.get("references", [])}
-        path, sha = pack_theme(theme, root, (theme_root / "theme.apsal.yaml").read_bytes(), assets=assets, reference_paths=reference_paths)
-        run["skill"] = {"path": str(path), "sha256": sha}
+    package = session["theme_artifact"].get("prompt_package")
+    if package: run["prompt_package"] = package
+    if mode == "skill" and package: run["skill"] = package
     _write_run(run, project_root)
     session["state"] = "generating" if mode == "generate" else "completed"; _write_session(session, theme, project_root)
     return run
+
+
+def get_next_codex_job(
+    run_id: str, *, project_root: Path, home: Path | None = None,
+) -> dict[str, Any]:
+    """Return the next exact Codex image-generation call; never call a provider."""
+    project_root = project_root.expanduser().resolve(); home = (home or apsal_home()).resolve()
+    run = load_generation_run(run_id, project_root)
+    if run.get("mode") != "generate": raise ValidationError("only generate-mode runs have a next Codex Job")
+    if run.get("generation_surface") != "codex_imagegen" or run.get("direct_api_calls") is not False:
+        raise ValidationError("this is not a Codex-native generation run")
+    pending_visual = next((job for job in run["jobs"] if job.get("status") == "succeeded" and job.get("model_visual_qa") == "pending"), None)
+    if pending_visual and run.get("rendering_contract", {}).get("medium") == "live_action_photography":
+        raise ValidationError(f"record Codex visual QA for {pending_visual['shot_id']} before continuing")
+    job = next((item for item in run["jobs"] if item.get("status") in {"pending", "failed"}), None)
+    if not job:
+        return {"run_id": run_id, "status": run.get("status"), "next_job": None, "message": "No pending Jobs remain."}
+    session, _ = load_design_session(run["session_id"], project_root)
+    theme_root = Path(session["theme_artifact"]["path"]); compiled = load_json(theme_root / "compiled" / "image.json")
+    shot = next(item for item in compiled["shots"] if item["shot_id"] == job["shot_id"])
+    local_manifest_path = theme_root / "references" / "reference_manifest.json"
+    local_manifest = load_json(local_manifest_path) if local_manifest_path.is_file() else {"references": []}
+    reference_records = {item["reference_id"]: item for item in local_manifest.get("references", [])}
+    reference_paths = [
+        _vault_reference_path(reference_records[reference_id]["vault_uri"], home)
+        for reference_id in job.get("reference_ids", []) if reference_id in reference_records and reference_records[reference_id].get("vault_uri")
+    ]
+    job_index = run["jobs"].index(job); previous = run["jobs"][job_index - 1] if job_index > 0 else None
+    previous_path = Path(previous.get("output", {}).get("path", "")) if previous and isinstance(previous.get("output"), dict) else None
+    local_identity_anchor = bool(previous_path and previous_path.is_file())
+    recent_identity_anchor = bool(previous and previous.get("status") == "succeeded" and not local_identity_anchor and not reference_paths)
+    anchor_instruction = ""
+    if local_identity_anchor or recent_identity_anchor:
+        anchor_instruction = (
+            " Use the immediately previous accepted APSAL image only to preserve the fictional adult identity and facial continuity; "
+            "do not inherit its pose, camera, background, action, wardrobe, lighting, or composition."
+        )
+    if local_identity_anchor and previous_path is not None: reference_paths.append(previous_path)
+    prompt = shot["positive_prompt"] + anchor_instruction + " Negative constraints: " + shot["negative_prompt"]
+    tool_arguments: dict[str, Any] = {"prompt": prompt}
+    if reference_paths: tool_arguments["referenced_image_paths"] = [str(path) for path in reference_paths]
+    elif recent_identity_anchor: tool_arguments["num_last_images_to_include"] = 1
+    return {
+        "run_id": run_id, "shot_id": job["shot_id"], "job_position": job_index + 1,
+        "job_count": len(run["jobs"]), "prompt": prompt, "prompt_digest": hashlib.sha256(prompt.encode()).hexdigest(),
+        "negative_prompt": shot["negative_prompt"], "reference_ids": job.get("reference_ids", []),
+        "reference_paths": [str(path) for path in reference_paths],
+        "identity_anchor": "local_previous_output" if local_identity_anchor else "recent_previous_image" if recent_identity_anchor else "none",
+        "codex_tool": "built_in_image_generation", "codex_tool_arguments": tool_arguments,
+        "direct_api_calls": False, "api_key_required": False,
+        "requested_output": run.get("output_contract", {}), "returned_dimensions_guaranteed": False,
+        "after_generation": "Emit the generated image and stop. On the creator's next 'continue', record only metadata actually available, perform Codex visual QA, then request the next Job.",
+    }
 
 
 def record_generation_result(
     run_id: str, shot_id: str, status: str, *, project_root: Path, output_path: Path | None = None,
     artifact_uri: str | None = None, provider_metadata: dict[str, Any] | None = None, error: str | None = None,
 ) -> dict[str, Any]:
-    """Record one provider result, preserving successful Jobs across retries."""
+    """Record one Codex-managed result, preserving successful Jobs across retries."""
     if status not in {"succeeded", "failed"}: raise ValidationError("generation status must be succeeded or failed")
     project_root = project_root.expanduser().resolve(); run = load_generation_run(run_id, project_root)
     job = next((item for item in run["jobs"] if item["shot_id"] == shot_id), None)
@@ -2208,6 +2308,7 @@ def record_generation_result(
     attempt = {
         "attempt": len(job["attempts"]) + 1, "status": status, "recorded_at": _utc_now(),
         "provider_metadata": provider_metadata if provider_metadata is not None else "not_reported",
+        "generation_surface": run.get("generation_surface", "legacy_provider"),
     }
     if status == "failed":
         message = (error or "provider_error_not_reported").strip()
@@ -2215,19 +2316,29 @@ def record_generation_result(
     else:
         if output_path is None and not artifact_uri:
             raise ValidationError("successful generation requires an output path or artifact URI")
-        if run.get("output_contract", {}).get("provider_native") is True and output_path is None:
+        if run.get("returned_dimensions_guaranteed") is True and run.get("output_contract", {}).get("provider_native") is True and output_path is None:
             raise ValidationError("provider-native output requires a local file for format and dimension validation")
         output: dict[str, Any] = {"artifact_uri": artifact_uri or "not_reported", "sha256": "not_reported"}
         if output_path is not None:
             source = output_path.expanduser().resolve()
             if not source.is_file(): raise ValidationError(f"generated output not found: {source}")
             data = source.read_bytes()
-            dimensions = _validate_output_image(data, run.get("output_contract", {}))
+            actual_format = _image_format(data)
+            validation_contract = dict(run.get("output_contract", {}))
+            if run.get("generation_surface") == "codex_imagegen":
+                # A local Codex result gives us concrete bytes to inspect even though
+                # the requested delivery size is not a provider-native guarantee.
+                dimensions = _image_dimensions(data)
+            else:
+                dimensions = _validate_output_image(data, validation_contract)
             suffix = source.suffix.lower() if re.fullmatch(r"\.[a-z0-9]{1,8}", source.suffix.lower()) else ".bin"
             target = _run_dir(project_root, run_id) / "outputs" / f"{shot_id}{suffix}"
             if target.exists(): raise ValidationError(f"output already exists: {target.name}")
             shutil.copyfile(source, target)
-            output.update({"path": str(target), "sha256": hashlib.sha256(data).hexdigest(), "size": target.stat().st_size})
+            output.update({
+                "path": str(target), "sha256": hashlib.sha256(data).hexdigest(),
+                "size": target.stat().st_size, "format": actual_format,
+            })
             if dimensions: output.update({"width": dimensions[0], "height": dimensions[1]})
         attempt["output"] = output; job["output"] = output; job["error"] = None
         job["model_visual_qa"] = "pending"; job["human_visual_qa"] = "pending"
@@ -2250,6 +2361,28 @@ def _image_dimensions(data: bytes) -> tuple[int, int]:
     if len(data) >= 24 and data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
         return struct.unpack(">II", data[16:24])
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP": return _webp_dimensions(data)
+    if data[:2] == b"\xff\xd8":
+        offset = 2
+        start_of_frame = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+        while offset + 4 <= len(data):
+            if data[offset] != 0xFF: offset += 1; continue
+            marker = data[offset + 1]; offset += 2
+            if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7: continue
+            if offset + 2 > len(data): break
+            length = int.from_bytes(data[offset:offset + 2], "big")
+            if length < 2 or offset + length > len(data): break
+            if marker in start_of_frame and length >= 7:
+                height = int.from_bytes(data[offset + 3:offset + 5], "big")
+                width = int.from_bytes(data[offset + 5:offset + 7], "big")
+                return width, height
+            offset += length
+    raise ValidationError("generated output has an unsupported or invalid image header")
+
+
+def _image_format(data: bytes) -> str:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"): return "png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP": return "webp"
+    if data[:2] == b"\xff\xd8": return "jpeg"
     raise ValidationError("generated output has an unsupported or invalid image header")
 
 
@@ -2268,41 +2401,6 @@ def _validate_output_image(data: bytes, output_contract: dict[str, Any]) -> tupl
         if (width, height) != expected:
             raise ValidationError(f"provider output dimensions {width}x{height}, expected {size}")
     return width, height
-
-
-def _multipart_image_request(fields: dict[str, str], images: list[Path]) -> tuple[bytes, str]:
-    boundary = "apsal-" + uuid.uuid4().hex; body = bytearray()
-    for name, value in fields.items():
-        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n".encode())
-    for path in images:
-        suffix = path.suffix.lower(); mime = "image/png" if suffix == ".png" else "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/webp"
-        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"image[]\"; filename=\"{path.name}\"\r\nContent-Type: {mime}\r\n\r\n".encode())
-        body.extend(path.read_bytes()); body.extend(b"\r\n")
-    body.extend(f"--{boundary}--\r\n".encode())
-    return bytes(body), f"multipart/form-data; boundary={boundary}"
-
-
-def _openai_image_api_request(request: dict[str, Any], references: list[Path], api_key: str) -> dict[str, Any]:
-    if not api_key: raise ValidationError("OPENAI_API_KEY is required for openai-image-api generation")
-    endpoint = "https://api.openai.com/v1/images/edits" if references else "https://api.openai.com/v1/images/generations"
-    fields = {key: str(request[key]) for key in ("model", "prompt", "size", "quality", "output_format", "n")}
-    if references: payload, content_type = _multipart_image_request(fields, references)
-    else: payload, content_type = json.dumps(fields).encode(), "application/json"
-    http_request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
-        "Authorization": f"Bearer {api_key}", "Content-Type": content_type,
-    })
-    try:
-        with urllib.request.urlopen(http_request, timeout=600) as response:
-            value = json.loads(response.read()); request_id = response.headers.get("x-request-id", "not_reported")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:1000]
-        raise ValidationError(f"OpenAI Image API HTTP {exc.code}: {detail}") from exc
-    try: image_data = base64.b64decode(value["data"][0]["b64_json"], validate=True)
-    except Exception as exc: raise ValidationError("OpenAI Image API response did not contain valid image data") from exc
-    return {"image_bytes": image_data, "provider_metadata": {
-        "request_id": request_id, "endpoint": "edits" if references else "generations",
-        "usage": value.get("usage", "not_reported"),
-    }}
 
 
 def record_model_visual_qa(
@@ -2335,82 +2433,8 @@ def execute_generation_run(
     run_id: str, *, project_root: Path, home: Path | None = None, max_retries: int = 2,
     max_jobs: int | None = None, adapter_callable: Any | None = None, visual_qa_callable: Any | None = None,
 ) -> dict[str, Any]:
-    """Execute distinct Jobs sequentially. No request ever uses n > 1."""
-    if not 0 <= max_retries <= 5: raise ValidationError("max_retries must be between 0 and 5")
-    if max_jobs is not None and not 1 <= max_jobs <= 24: raise ValidationError("max_jobs must be between 1 and 24")
-    project_root = project_root.expanduser().resolve(); home = (home or apsal_home()).resolve()
-    run = load_generation_run(run_id, project_root)
-    if run.get("mode") != "generate": raise ValidationError("only generate-mode runs can be executed")
-    if run.get("adapter") != "openai-image-api" and adapter_callable is None:
-        raise ValidationError("native 4K execution requires the openai-image-api adapter")
-    if run.get("output_contract", {}).get("provider_native") is True:
-        for key, value in NATIVE_4K_OUTPUT.items():
-            if run["output_contract"].get(key) != value: raise ValidationError(f"run output contract mismatch: {key}")
-    pending_visual = next((job for job in run["jobs"] if job.get("status") == "succeeded" and job.get("model_visual_qa") == "pending"), None)
-    if pending_visual and run.get("rendering_contract", {}).get("medium") == "live_action_photography" and visual_qa_callable is None:
-        raise ValidationError(f"record model visual QA for {pending_visual['shot_id']} before continuing")
-    session, theme = load_design_session(run["session_id"], project_root)
-    theme_root = Path(session["theme_artifact"]["path"]); compiled = load_json(theme_root / "compiled" / "image.json")
-    compiled_by_id = {shot["shot_id"]: shot for shot in compiled["shots"]}
-    local_manifest = load_json(theme_root / "references" / "reference_manifest.json") if (theme_root / "references" / "reference_manifest.json").is_file() else {"references": []}
-    reference_records = {item["reference_id"]: item for item in local_manifest.get("references", [])}
-    executed = 0; api_key = os.environ.get("OPENAI_API_KEY", "")
-    run_parameters = run.get("parameters") if isinstance(run.get("parameters"), dict) else {}
-    for job in run["jobs"]:
-        if job["status"] not in {"pending", "failed"}: continue
-        if max_jobs is not None and executed >= max_jobs: break
-        shot = compiled_by_id[job["shot_id"]]
-        reference_paths = [_vault_reference_path(reference_records[ref_id]["vault_uri"], home) for ref_id in job.get("reference_ids", [])]
-        identity_anchor = _run_dir(project_root, run_id) / "outputs" / "SHOT_01.png"
-        anchor_used = job["shot_id"] != "SHOT_01" and identity_anchor.is_file()
-        if anchor_used: reference_paths.append(identity_anchor)
-        runtime_reference_ids = [*job.get("reference_ids", [])]
-        if anchor_used: runtime_reference_ids.append("RUNTIME_IDENTITY_ANCHOR_SHOT_01")
-        anchor_instruction = (
-            " Use the SHOT_01 image only to preserve the fictional adult identity and facial continuity; do not inherit its pose, camera, background, wardrobe, action, or composition."
-            if anchor_used else ""
-        )
-        prompt = shot["positive_prompt"] + anchor_instruction + " Negative constraints: " + shot["negative_prompt"]
-        (_run_dir(project_root, run_id) / "prompts" / f"{job['shot_id']}.prompt.txt").write_text(prompt + "\n", encoding="utf-8")
-        request = {
-            "model": run.get("model") or "gpt-image-2", "prompt": prompt,
-            "size": run_parameters.get("size", run["output_contract"].get("size", "auto")),
-            "quality": run_parameters.get("quality", run["output_contract"].get("quality", "high")),
-            "output_format": run_parameters.get("output_format", run["output_contract"].get("format", "png")), "n": 1,
-            "shot_id": job["shot_id"], "reference_ids": job.get("reference_ids", []),
-            "runtime_reference_ids": runtime_reference_ids, "identity_anchor_used": anchor_used,
-        }
-        request_record = {key: value for key, value in request.items() if key != "prompt"}
-        request_record["prompt_digest"] = hashlib.sha256(prompt.encode()).hexdigest()
-        for attempt_index in range(max_retries + 1):
-            try:
-                response = adapter_callable(request, reference_paths) if adapter_callable else _openai_image_api_request(request, reference_paths, api_key)
-                data = response["image_bytes"]
-                dimensions = _validate_output_image(data, run.get("output_contract", {}))
-                if dimensions is None: raise ValidationError("generation run has no concrete image output contract")
-                width, height = dimensions
-                with tempfile.TemporaryDirectory() as temporary:
-                    candidate = Path(temporary) / f"{job['shot_id']}.png"; candidate.write_bytes(data)
-                    visual = visual_qa_callable(candidate, run["rendering_contract"], job["shot_id"]) if visual_qa_callable else {"status": "pending", "findings": []}
-                    if visual is False or isinstance(visual, dict) and visual.get("status") in {"failed", "fail"}:
-                        raise ValidationError("model visual QA rejected live-action human medium")
-                    provider = response.get("provider_metadata", "not_reported")
-                    if isinstance(provider, dict): provider.update({"request": request_record, "actual_width": width, "actual_height": height, "references": runtime_reference_ids, "identity_anchor_used": anchor_used})
-                    run = record_generation_result(run_id, job["shot_id"], "succeeded", project_root=project_root, output_path=candidate, provider_metadata=provider)
-                if visual_qa_callable:
-                    findings = visual.get("findings", []) if isinstance(visual, dict) else []
-                    run = record_model_visual_qa(run_id, job["shot_id"], "passed", project_root=project_root, findings=findings)
-                break
-            except Exception as exc:
-                run = record_generation_result(run_id, job["shot_id"], "failed", project_root=project_root, error=str(exc), provider_metadata={"request": request_record})
-                job = next(item for item in run["jobs"] if item["shot_id"] == request["shot_id"])
-                if attempt_index == max_retries: break
-        executed += 1
-        latest_job = next(item for item in run["jobs"] if item["shot_id"] == request["shot_id"])
-        if latest_job["status"] != "succeeded": break
-        if run.get("rendering_contract", {}).get("medium") == "live_action_photography" and visual_qa_callable is None:
-            break
-    return load_generation_run(run_id, project_root)
+    """Compatibility guard: Studio no longer performs provider/API execution."""
+    raise ValidationError("direct provider execution was removed in APSAL Studio 0.8; call get_next_codex_job and let Codex use its built-in image generation")
 
 
 def explain_theme_path(theme: dict[str, Any], dotted_path: str) -> dict[str, Any]:
@@ -2754,55 +2778,98 @@ def pack_theme(
     qa = compile_theme(theme, "qa", assets) if theme.get("schema_version") == "1.1.0" else None
     reference_manifest, reference_files = build_reference_manifest(theme, reference_paths, distribution=distribution)
     slug = f"{theme['id'].lower()}-{theme['version'].replace('.', '-')}"
-    manifest = {"schema_version": "0.5.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
-                "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],
-                "reference_manifest_digest": reference_manifest["reference_manifest_digest"],
-                "credentials_included": False, "private_media_included": reference_manifest["private_media_included"],
-                "distribution": reference_manifest["distribution"],
-                "redistribution_allowed": reference_manifest["redistribution_allowed"],
-                "output_contract": theme.get("output"), "rendering_contract_required": bool(theme.get("rendering_contract"))}
-    if theme.get("semantic_contract_version"):
-        manifest["semantic_contract_version"] = theme["semantic_contract_version"]
+    canonical_output = theme.get("output", {})
+    output = codex_delivery_contract(canonical_output, len(theme["shots"]))
     medium_instruction = (
         "The adult subject must remain a real human in live-action photography. Handmade, crayon, painted, or illustrated styling may affect only the set and props. "
         "Reject any illustrated, anime, painted, doll-like, wax, clay, mannequin, or 3D-rendered person."
         if theme.get("rendering_contract") else
         "This legacy theme does not declare a live-action rendering contract; do not claim that it guarantees a real-human photographic result."
     )
-    output = theme.get("output", {})
+    requested_size = output.get("requested_size") or output.get("size", "not_reported")
     execution_instruction = (
-        f"After one explicit confirmation, generate {output.get('count', len(theme['shots']))} Jobs sequentially with `scripts/generate_set.py --confirm`, one request and one independent {output['size']} {str(output['format']).upper()} per Job."
-        if output.get("provider_native") is True else
-        f"Generate {output.get('count', len(theme['shots']))} Jobs sequentially, one request and one independent image per Job. This legacy theme does not guarantee native 4K output dimensions."
+        f"Use Codex's built-in image-generation capability directly for {output.get('count', len(theme['shots']))} sequential Jobs. "
+        "Do not call an image API, do not ask for an API key, and do not run an HTTP generation script. "
+        f"Request {output.get('aspect_ratio', 'the declared aspect ratio')} and high quality; {requested_size} is a creative delivery request, not a guaranteed returned pixel size."
     )
     skill = f'''---
 name: {slug}
-description: Generate the fixed APSAL Open photography set “{theme['name']}” from its bundled, validated theme and compiled shot plan.
+description: Generate the fixed APSAL Open photography set “{theme['name']}” in Codex from its bundled Prompts, references, rendering contract and QA plan. Use when the creator asks to use this theme, generate or continue its shots, inspect its Prompt package, or reproduce the set without configuring an image API.
 ---
 
 # {theme['name']}
 
-Read `references/theme.json`, `references/design_context.json`, `references/compiled.json`, `references/qa_checklist.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Pass every reference listed for a Job to the image model; never substitute its text summary for the actual image. Respect each reference's allowed and forbidden uses.
+Read `PROMPT_GUIDE.md`, `references/theme.json`, `references/compiled.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Also read `references/design_context.json` and `references/qa_checklist.json` when present. For a specific Job, use `prompts/SHOT_XX.full.txt` as the exact provider-neutral Prompt and pass every listed reference image from `assets/references/`; never replace the actual image with its text summary. Respect each reference's allowed and forbidden uses.
 
 {medium_instruction}
 
-{execution_instruction} The first `--confirm` is persisted for this run. For live-action themes the executor stops after each candidate: inspect it, record `--model-qa-shot SHOT_ID --model-qa-status pass|fail`, then invoke the executor again without asking the creator to reconfirm. Never use one `n=9` request, collage, grid, contact sheet, text, logo, or watermark. Use SHOT_01 only as a runtime identity anchor for later Jobs; never inherit its pose, camera, background, wardrobe, or composition. Record model visual QA separately from human visual QA. Resume failed Jobs without replacing successful outputs.
+{execution_instruction}
+
+Generate exactly one independent image per Codex image-generation call. After emitting an image, stop; when the creator says “继续” or “下一张”, continue with the next uncompleted Job. If all required references have local paths, pass those paths. Otherwise use the smallest recent-image count that includes the immediately previous accepted shot and use it only for identity continuity; never combine mutually exclusive reference mechanisms. Do not inherit the anchor's pose, camera, background, action, wardrobe, or composition.
+
+Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspect every returned image for live-action medium, identity, skin, eyes, hands, anatomy, optics, physical light, materials, prop ownership, continuity and shot intent. Keep Codex visual review separate from human visual QA. Record actual dimensions or format only when Codex reports them; otherwise use `not_reported` and never claim native 4K.
 '''
     prefix = f"{slug}/"
+    prompt_files: dict[str, bytes] = {}
+    for shot in compiled["shots"]:
+        shot_id = shot["shot_id"]
+        prompt_files[f"prompts/{shot_id}.prompt.txt"] = (shot["positive_prompt"] + "\n").encode()
+        prompt_files[f"prompts/{shot_id}.negative.txt"] = (shot["negative_prompt"] + "\n").encode()
+        prompt_files[f"prompts/{shot_id}.full.txt"] = (shot["positive_prompt"] + "\n\nNegative constraints:\n" + shot["negative_prompt"] + "\n").encode()
+    prompt_checksums = {name: hashlib.sha256(data).hexdigest() for name, data in prompt_files.items()}
+    manifest = {
+        "schema_version": "0.8.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
+        "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],
+        "reference_manifest_digest": reference_manifest["reference_manifest_digest"],
+        "credentials_included": False, "api_key_required": False, "direct_api_calls": False,
+        "generation_surface": "codex_imagegen", "private_media_included": reference_manifest["private_media_included"],
+        "distribution": reference_manifest["distribution"], "redistribution_allowed": reference_manifest["redistribution_allowed"],
+        "output_request": output, "returned_dimensions_guaranteed": False,
+        "rendering_contract_required": bool(theme.get("rendering_contract")), "prompt_files": prompt_checksums,
+    }
+    if theme.get("semantic_contract_version"): manifest["semantic_contract_version"] = theme["semantic_contract_version"]
+    guide = f'''# {theme['name']} — Codex Prompt 使用包
+
+这个 ZIP 同时是可安装的 Codex Skill 和可独立阅读的 Prompt 包。它不会调用图像 API，也不需要 `OPENAI_API_KEY`。
+
+## 在 Codex 中使用
+
+1. 解压后把 `{slug}` 目录放进 Codex Skills 目录，或在 Codex 中直接提供这个目录。
+2. 新建任务并说：“使用 `${slug}` 生成第一张图。”
+3. Codex 读取 `prompts/SHOT_01.full.txt`，附加本镜在 `references/reference_manifest.json` 中声明的真实参考图，并直接调用 Codex 内置图像生成。
+4. 每次只生成一张。看完后说“继续下一张”，Codex 会按 SHOT_02 到最后一镜依次执行。
+5. 若只想复制 Prompt，直接打开任一 `prompts/SHOT_XX.full.txt`；`.prompt.txt` 与 `.negative.txt` 分别保存正向与负向部分。
+
+## 重要说明
+
+- 请求画幅：{output.get('aspect_ratio', 'not_reported')}；请求尺寸：{requested_size}。
+- Codex 管理实际图像模型、格式和像素尺寸；除非返回元数据明确报告，否则它们记为 `not_reported`。本包不承诺原生 4K。
+- 一次调用只生成一个 Job，不生成九宫格、拼图、联系表、文字、标志或水印。
+- `assets/references/` 中的图片必须按用途、禁止用途与权利清单实际传入；文字分析不能替代图片。
+- 后续镜头若使用上一张图保持人物身份，只继承身份，不继承姿势、机位、背景、动作、服装或构图。
+
+## English quick use
+
+Install or open the `{slug}` folder in Codex, ask it to use `${slug}` for SHOT_01, and then say “continue” for each next Job. Codex must call its built-in image-generation capability directly, one image at a time. No image API key is required. The requested aspect ratio and delivery size are creative targets, not guaranteed returned pixel dimensions.
+
+Run `python3 scripts/validate_prompt_pack.py --list` to verify checksums and list every Job without making a network request.
+'''
     files = {
         prefix + "SKILL.md": skill.encode(),
+        prefix + "PROMPT_GUIDE.md": guide.encode(),
         prefix + "references/theme.json": (json.dumps(theme, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/compiled.json": (json.dumps(compiled, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/manifest.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/reference_manifest.json": (json.dumps(reference_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/rendering_contract.json": (json.dumps(theme.get("rendering_contract", {"status": "not_declared_legacy"}), ensure_ascii=False, indent=2) + "\n").encode(),
-        prefix + "scripts/generate_set.py": (plugin_root() / "assets" / "templates" / "generate_set.py").read_bytes(),
+        prefix + "scripts/validate_prompt_pack.py": (plugin_root() / "assets" / "templates" / "validate_prompt_pack.py").read_bytes(),
         prefix + "LICENSE-CONTENT.md": (
             "Theme specification content is licensed CC BY 4.0. Attribution: APSAL Open contributors.\n"
             "Bundled reference images retain the independent rights recorded in references/reference_manifest.json.\n"
             f"Distribution: {reference_manifest['distribution']}; redistribution allowed: {str(reference_manifest['redistribution_allowed']).lower()}.\n"
         ).encode(),
     }
+    for name, data in prompt_files.items(): files[prefix + name] = data
     for name, data in reference_files.items(): files[prefix + "assets/references/" + name] = data
     if design is not None and qa is not None:
         files[prefix + "references/design_context.json"] = (json.dumps(design, ensure_ascii=False, indent=2) + "\n").encode()
@@ -2812,7 +2879,7 @@ Read `references/theme.json`, `references/design_context.json`, `references/comp
     content = _zip_bytes(files); sha = hashlib.sha256(content).hexdigest()
     output_dir.mkdir(parents=True, exist_ok=True)
     suffix = "-private" if reference_manifest["distribution"] == "private_only" else ""
-    path = output_dir / f"{slug}{suffix}.zip"; path.write_bytes(content)
+    path = output_dir / f"{slug}-codex-prompt-skill{suffix}.zip"; path.write_bytes(content)
     checksum_path = path.with_suffix(".zip.sha256"); checksum_path.write_text(f"{sha}  {path.name}\n", encoding="utf-8")
     if reference_manifest["distribution"] == "private_only":
         for private_path in (path, checksum_path):

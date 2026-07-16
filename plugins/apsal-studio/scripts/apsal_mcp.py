@@ -8,7 +8,7 @@ from typing import Any, Callable
 
 from apsal_engine import (
     ValidationError, commit_element_layer, commit_session_stage, dna_card, finalize_design_session,
-    execute_generation_run, load_design_session, project_root_from, record_generation_result,
+    get_next_codex_job, load_design_session, project_root_from, record_generation_result,
     record_model_visual_qa, search_registry, start_design_session, start_generation_run,
     present_element_layer, recommend_dna, recommend_layer_dna, suggest_discovery_metadata, confirm_discovery_metadata,
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
@@ -105,14 +105,14 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "start_generation_run", "description": "Create or resume one-Job-one-image work; generate mode requires explicit user confirmation.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, "confirmed": {"type": "boolean"}, "mode": {"enum": ["generate", "prompts", "skill"]}, "adapter": {"type": "string"}, "model": {"type": "string"}, "parameters": {"type": "object"}, "resume_run_id": {"type": "string"}}, ["session_id", "mode"]),
+        "name": "start_generation_run", "description": "Prepare or resume one-Job-one-image work for Codex built-in image generation; no image API or API key is used.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, "confirmed": {"type": "boolean"}, "mode": {"enum": ["generate", "prompts", "skill"]}, "resume_run_id": {"type": "string"}}, ["session_id", "mode"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "execute_generation_run", "description": "Execute native 4K GPT Image 2 Jobs sequentially; one call defaults to one Job so Codex can visually review it before continuing.",
-        "inputSchema": _schema({"run_id": {"type": "string"}, "project_root": {"type": "string"}, "max_jobs": {"type": "integer", "minimum": 1, "maximum": 24}, "max_retries": {"type": "integer", "minimum": 0, "maximum": 5}}, ["run_id"]),
-        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True},
+        "name": "get_next_codex_job", "description": "Return the next exact Prompt and reference arguments for Codex built-in image generation without making a provider or HTTP call.",
+        "inputSchema": _schema({"run_id": {"type": "string"}, "project_root": {"type": "string"}}, ["run_id"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "record_model_visual_qa", "description": "Record Codex visual review separately from pending human QA; failed medium checks archive the candidate and reopen the Job for retry.",
@@ -231,12 +231,12 @@ def _tool_finalize(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_run(arguments: dict[str, Any]) -> dict[str, Any]:
-    run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], adapter=arguments.get("adapter", "openai-image-api"), model=arguments.get("model", "gpt-image-2"), parameters=arguments.get("parameters"), resume_run_id=arguments.get("resume_run_id"))
+    run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], resume_run_id=arguments.get("resume_run_id"))
     return run
 
 
-def _tool_execute(arguments: dict[str, Any]) -> dict[str, Any]:
-    return execute_generation_run(arguments["run_id"], project_root=_root(arguments), max_jobs=arguments.get("max_jobs", 1), max_retries=arguments.get("max_retries", 2))
+def _tool_next_codex_job(arguments: dict[str, Any]) -> dict[str, Any]:
+    return get_next_codex_job(arguments["run_id"], project_root=_root(arguments))
 
 
 def _tool_model_qa(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -255,7 +255,7 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "resolve_dna_memory": _tool_memory, "record_dna_feedback": _tool_feedback,
     "export_dna_pack": _tool_export, "install_dna_pack": _tool_install,
     "finalize_theme": _tool_finalize, "start_generation_run": _tool_run,
-    "execute_generation_run": _tool_execute, "record_model_visual_qa": _tool_model_qa,
+    "get_next_codex_job": _tool_next_codex_job, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
 }
 
@@ -290,7 +290,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.7.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.8.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

@@ -78,9 +78,9 @@ codex plugin add apsal-studio@apsal-open
 2. 再用纯文字卡片依次确认人物与世界、事件与序列、摄影与成像、执行与验证；Character、Environment、Composition、Shot、Style、Lighting、QA DNA 都会按场景推荐并说明理由。
 3. 单独确认服装、妆发、道具所有权、机位、光源与方向、色温、饱和度、曲线、颗粒、锐度、肤色规则和拒绝条件；也可以直接说“人物更成熟，但保留短发”或“让第 4 镜更悲伤但不要改变光线”。
 4. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
-5. 展示十三元素与九镜头总览，等你确认后逐张生成九张 9:16 图片，或只保存 Prompt、导出可复现 Skill。
+5. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、参考图和使用说明。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
-创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.7 只是把原有十三元素完整地呈现在“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层对话中，并保留场景推荐、个人记忆、DNA Extension Pack、真实参考图绑定与真人摄影执行。图片生成前只需明确确认一次；始终一 Job 一张图，单镜失败不会重做已经成功的镜头。
+创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.8 保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法，并重做最终交付：APSAL 不再调用图像 API。主题确认后一定生成可复现的 Codex Prompt/Skill ZIP；你只需确认一次，由 Codex 自己逐张生成。每个 Codex 回合只生成一个 Job，看完说“继续”即可进入下一张。
 
 ### DNA 保存在哪里
 
@@ -100,11 +100,11 @@ codex plugin add apsal-studio@apsal-open
 .apsal/runs/<run-id>/                 实际 Prompt、九张输出、失败重试与逐镜 QA
 ```
 
-### 真人、真参考图、原生 4K
+### 真人、真参考图、Codex 内直接生成
 
-Studio 新主题默认要求真实成年人的实拍摄影呈现，并输出九张独立的 9:16、2160×3840、高质量 PNG。布景和道具可以保留手绘、蜡笔、绘画或戏剧化语言，但人物不能变成插画、动漫、玩偶、人体模型、蜡像或 3D 角色。
+Studio 新主题默认要求真实成年人的实拍摄影呈现，并请求九张独立的 9:16 高质量图片。布景和道具可以保留手绘、蜡笔、绘画或戏剧化语言，但人物不能变成插画、动漫、玩偶、人体模型、蜡像或 3D 角色。
 
-原生 4K 执行是可选能力：设置 `OPENAI_API_KEY`，选择 `openai-image-api` 与 `gpt-image-2`，APSAL 会顺序发出九次 `n: 1` 请求。有参考图的 Job 使用 Image Edits，没有参考图的使用 Generations；返回文件必须严格为 2160×3840。Codex ImageGen 不会被静默冒充为“保证原生 4K”的后备方案。GPT Image 2 支持该尺寸，但 2K 以上输出仍属于实验范围，详见 [OpenAI 官方说明](https://developers.openai.com/api/docs/guides/image-generation)。
+APSAL Studio 是 Codex 专用插件，因此不会配置供应商接口、读取图像 API Key，也不会发送 HTTP 生图请求。它为每一镜冻结一份完整 Prompt，把允许使用的真实参考图交给 Codex 内置图像生成。2160×3840 仍会作为创作交付目标写入提示词包，但不冒充 Codex 必然返回的像素尺寸；只有 Codex 实际提供的格式和尺寸才会进入运行记录，否则统一标记为 `not_reported`。
 
 模型视觉检查会检查媒介、皮肤、眼睛、手部、人体结构、光学景深、光线和材质；人工视觉 QA 仍单独保持 pending。Schema 或 Prompt 通过，不能证明成片已经是真人摄影。
 
@@ -142,7 +142,7 @@ python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.a
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
-原生 4K 本地流程还提供 `session finalize`、`run --confirm`、`run-execute` 与 `run-model-qa`；可用 `python3 plugins/apsal-studio/scripts/apsal.py --help` 查看。验证与打包本身仍可完全离线运行。
+本地流程使用 `session finalize` 生成主题及 Codex Prompt/Skill ZIP，使用 `run --confirm` 建立可续跑任务，使用 `run-next` 查看下一份冻结的 Codex Job，使用 `run-model-qa` 保存视觉检查。CLI 不连接供应商生成图片，真正生图发生在 Codex 内。验证与打包仍可完全离线运行。
 
 ## 你可以怎样参与
 
@@ -164,7 +164,8 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [参考图绑定、真人摄影与原生 4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
 - [DNA 推荐、记忆与交换 RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
 - [五层创作与十三元素 RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
-- [APSAL Studio 0.7.0 发布与安装说明](docs/releases/0.7.0.md)
+- [Codex 原生生图与 Prompt 交付 RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
+- [APSAL Studio 0.8.0 发布与安装说明](docs/releases/0.8.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

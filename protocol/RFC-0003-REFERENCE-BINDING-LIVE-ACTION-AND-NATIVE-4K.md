@@ -5,6 +5,8 @@
 - Author: HenyJone, APSAL founder
 - Scope: reference media, rendering medium, Skill export, provider execution, and visual-QA lineage
 
+> Runtime note (Studio 0.8): reference binding and the live-action contract remain current. The direct-provider/native-4K executor described here is historical and is superseded for the Codex plugin by [RFC-0006](RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md). Studio 0.8 hands Jobs to Codex built-in image generation and does not claim returned 4K dimensions.
+
 ## Abstract
 
 A textual analysis of a reference is not the reference. A Prompt that merely says “photograph” is not a reliable live-action medium contract. An aspect ratio is not a pixel-size guarantee. APSAL Studio 0.5 makes these distinctions executable while leaving Protocol 0.3 canonical assets and old Skills readable.

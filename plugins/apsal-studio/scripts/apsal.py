@@ -8,7 +8,7 @@ from pathlib import Path
 from apsal_engine import (
     COMPILE_TARGETS, ValidationError, YamlError, check_sync, compile_theme,
     commit_element_layer, commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
-    execute_generation_run, init_workspace, load_catalog, load_design_session, load_document,
+    get_next_codex_job, init_workspace, load_catalog, load_design_session, load_document,
     load_generation_run, load_layered_registry, new_semantic_theme, new_theme,
     pack_theme, present_element_layer, project_root_from, promote_registry_asset, recommend_dna, recommend_layer_dna, registry_assets,
     record_dna_feedback, record_model_visual_qa, resolve_dna_memory_offer, search_registry,
@@ -68,8 +68,8 @@ def main() -> int:
     layer_apply = session_sub.add_parser("layer-apply"); layer_apply.add_argument("session_id"); layer_apply.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery")); layer_apply.add_argument("--selection", type=Path, required=True)
     memory = session_sub.add_parser("memory"); memory.add_argument("session_id"); memory.add_argument("offer_id"); memory.add_argument("--action", required=True, choices=("save_personal", "project_only", "not_now"))
     finalize = session_sub.add_parser("finalize"); finalize.add_argument("session_id")
-    run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--adapter", default="openai-image-api"); run.add_argument("--model", default="gpt-image-2"); run.add_argument("--resume")
-    execute = sub.add_parser("run-execute"); execute.add_argument("run_id"); execute.add_argument("--project", type=Path, default=Path.cwd()); execute.add_argument("--home", type=Path); execute.add_argument("--max-jobs", type=int, default=1); execute.add_argument("--max-retries", type=int, default=2)
+    run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--resume")
+    next_job = sub.add_parser("run-next"); next_job.add_argument("run_id"); next_job.add_argument("--project", type=Path, default=Path.cwd()); next_job.add_argument("--home", type=Path)
     model_qa = sub.add_parser("run-model-qa"); model_qa.add_argument("run_id"); model_qa.add_argument("shot_id"); model_qa.add_argument("--status", choices=("passed", "failed"), required=True); model_qa.add_argument("--finding", action="append", default=[]); model_qa.add_argument("--project", type=Path, default=Path.cwd())
     run_show = sub.add_parser("run-show"); run_show.add_argument("run_id"); run_show.add_argument("--project", type=Path, default=Path.cwd())
     args = parser.parse_args()
@@ -163,10 +163,10 @@ def main() -> int:
             print(json.dumps(value, ensure_ascii=False, indent=2))
         elif args.command == "run":
             project = _root(args.project)
-            value = start_generation_run(args.session, project_root=project, home=args.home, confirmed=args.confirm, mode=args.mode, adapter=args.adapter, model=args.model, resume_run_id=args.resume)
+            value = start_generation_run(args.session, project_root=project, home=args.home, confirmed=args.confirm, mode=args.mode, resume_run_id=args.resume)
             print(json.dumps(value, ensure_ascii=False, indent=2))
-        elif args.command == "run-execute":
-            print(json.dumps(execute_generation_run(args.run_id, project_root=_root(args.project), home=args.home, max_jobs=args.max_jobs, max_retries=args.max_retries), ensure_ascii=False, indent=2))
+        elif args.command == "run-next":
+            print(json.dumps(get_next_codex_job(args.run_id, project_root=_root(args.project), home=args.home), ensure_ascii=False, indent=2))
         elif args.command == "run-model-qa":
             print(json.dumps(record_model_visual_qa(args.run_id, args.shot_id, args.status, project_root=_root(args.project), findings=args.finding), ensure_ascii=False, indent=2))
         elif args.command == "run-show":

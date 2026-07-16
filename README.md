@@ -89,9 +89,9 @@ APSAL Studio will:
 2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as compact text cards. Character, Environment, Composition, Shot, Style, Lighting and QA DNA are recommended with concrete reasons.
 3. Explicitly confirm wardrobe, props and ownership; camera; light source and direction; palette, temperature, saturation, curve, grain, sharpness, skin policy and rejection rules. Revise any one element in natural language.
 4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
-5. Show all thirteen decisions and the nine-shot overview, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
+5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, reference and usage guide. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.7 simply makes the existing thirteen roles complete and visible through Direction → Worldbuilding → Narrative → Image → Delivery, while retaining scene-aware recommendation, explicit personal memory, DNA Extension Packs, reference binding and live-action execution. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
+Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.8 keeps the complete five-layer, thirteen-role authoring method and changes delivery: APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image. One failed image does not force successful images to run again.
 
 ### Where your DNA lives
 
@@ -111,11 +111,11 @@ Behind the interface, a finalized theme and each real run retain complete lineag
 .apsal/runs/<run-id>/                 exact submitted Prompts, nine outputs, retries and per-shot QA
 ```
 
-### Real people, real references, native 4K
+### Real people, real references, Codex-native generation
 
-New Studio themes default to live-action adult-human photography and nine independent 9:16, 2160×3840 high-quality PNG Jobs. Handmade, crayon, painted, or theatrical language may describe sets and props; it must not turn the person into an illustration, doll, mannequin, wax figure, or 3D character.
+New Studio themes default to live-action adult-human photography and nine independent 9:16 high-quality image requests. Handmade, crayon, painted, or theatrical language may describe sets and props; it must not turn the person into an illustration, doll, mannequin, wax figure, or 3D character.
 
-Provider-native 4K execution is optional: set `OPENAI_API_KEY`, select `openai-image-api` with `gpt-image-2`, and APSAL sends nine sequential `n: 1` requests. Jobs with references use Image Edits; other Jobs use Generations. Every returned file must be exactly 2160×3840. Codex ImageGen is not presented as a guaranteed native-4K fallback. GPT Image 2 supports this size, but output above 2K is experimental; see the [official OpenAI guide](https://developers.openai.com/api/docs/guides/image-generation).
+APSAL Studio is a Codex plugin, so it does not configure provider endpoints, read an image API key, or send HTTP generation requests. It freezes one exact full Prompt per shot and passes the permitted reference images to Codex's built-in image generation. The 2160×3840 delivery size remains a creative request in the package, not a guaranteed returned pixel size; the run records actual format and dimensions only when Codex exposes them.
 
 Model visual QA checks the generated medium, skin, eyes, hands, anatomy, optics, light, and material response. Human visual QA remains a separate pending decision; passing schemas or Prompts never proves photographic quality.
 
@@ -153,7 +153,7 @@ python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.a
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
-Native-4K execution is also available through `session finalize`, `run --confirm`, `run-execute`, and `run-model-qa`; use `python3 plugins/apsal-studio/scripts/apsal.py --help` for the local workflow. Packaging and validation remain fully offline.
+Use `session finalize` to create the theme plus its Codex Prompt/Skill ZIP, `run --confirm` to prepare a resumable run, `run-next` to inspect the next frozen Codex Job, and `run-model-qa` to preserve visual review. The CLI never generates through a provider; image creation happens in Codex. Packaging and validation remain fully offline.
 
 ## Choose your path
 
@@ -175,7 +175,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Reference binding, live-action and native-4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
 - [DNA recommendation, memory and exchange RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
 - [Five-layer, thirteen-element authoring RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
-- [APSAL Studio 0.7.0 release and installation notes](docs/releases/0.7.0.md)
+- [Codex-native generation and Prompt delivery RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
+- [APSAL Studio 0.8.0 release and installation notes](docs/releases/0.8.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

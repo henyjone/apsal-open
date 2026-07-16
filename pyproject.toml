@@ -1,7 +1,7 @@
 [project]
 name = "apsal-open"
-version = "0.7.0"
-description = "Five-layer, thirteen-element APSAL authoring, local DNA Registry, semantic compiler, run lineage, and Codex plugin"
+version = "0.8.0"
+description = "Five-layer APSAL authoring, local DNA Registry, documented Prompt/Skill delivery, and Codex-native image generation"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 

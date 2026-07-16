@@ -1,4 +1,4 @@
-# APSAL Studio 0.7 interaction contract
+# APSAL Studio 0.8 interaction and delivery contract
 
 ## What creators see
 
@@ -89,11 +89,14 @@ Private references go to `~/.apsal/vault/sha256/`. Retain only their Vault URI, 
 
 After the nine-shot overview, offer:
 
-1. Generate nine images — show the live-action contract, reference count, private/public status, 9:16, 2160×3840, nine provider requests, and possible cost; then require one explicit confirmation.
-2. Save prompts only — no image provider call.
-3. Export Skill — reproducible ZIP plus SHA-256. Private references force `private_only` packaging; public export fails unless redistribution rights are explicit.
+Finalization always creates and displays a reproducible Codex Prompt/Skill ZIP plus SHA-256. It contains `PROMPT_GUIDE.md`, three Prompt files per Job, reference media allowed for local use, rights metadata, QA and checksums. Private references force `private_only`; public export fails unless redistribution rights are explicit.
 
-Native 4K execution uses `gpt-image-2` through the optional OpenAI Image API adapter. Run nine independent `n: 1` Jobs sequentially, not one `n: 9` call. References are attached through Image Edits; jobs without references use Generations. `SHOT_01` becomes an identity-only runtime anchor after it passes model visual QA. Every output must parse as exactly 2160×3840 or the Job fails. For partial runs, show successful, failed, and pending Jobs separately and resume only failed or pending Jobs.
+After the package is ready, offer exactly:
+
+1. Use Codex now — require one explicit confirmation, prepare the run and generate SHOT_01 with Codex's built-in image generation.
+2. Deliver the Prompt/Skill package only — make no image-generation call.
+
+Do not call an image API or request `OPENAI_API_KEY`. Generate one Job per Codex turn. After the image tool emits one image, stop; “继续” begins the next Job in the same resumable run. Bound local references are passed as real paths. When there are no bound paths, the immediately previous accepted image may serve as a recent identity-only anchor. Never combine mutually exclusive reference mechanisms. Requested 9:16, high quality and 2160×3840 are creative delivery targets; actual model, format and dimensions are `not_reported` unless Codex explicitly returns them.
 
 Keep model visual QA and human visual QA separate. Prompt validation never proves that the result is a real human photograph.
 

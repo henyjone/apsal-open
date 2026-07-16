@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.7.0",
+  "engine_version": "0.8.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
@@ -92,5 +92,5 @@
       "prompt_digest": "318ef14796bda054b4a98ebc2f8416d5a8d46593109157c202b06df2678c13a7"
     }
   ],
-  "compiled_digest": "d3339f2226a1aa5806725d44ec10d8354dcdb67696ffc83e89de04fa5589af5a"
+  "compiled_digest": "437742a3398019f1ca529c9d230e1d45b9ba0f0baa3706380eb920581b885365"
 }

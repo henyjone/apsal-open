@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 - 2026-07-16
+
+- Removed direct image-provider/API execution from APSAL Studio and its exported Skills; the plugin no longer reads an image API key or exposes an HTTP generation executor.
+- Added `get_next_codex_job`, which hands one frozen Prompt plus the permitted local or recent-image references to Codex built-in image generation without making a provider call.
+- Changed the creator flow to one image per Codex turn: after an image is emitted, the Skill stops; “continue” resumes the next unfinished Job while preserving successful results.
+- Made Prompt delivery automatic at finalization. Every theme now exports a deterministic Codex Prompt/Skill ZIP containing nine positive Prompts, nine negative Prompts, nine combined Prompts, references, rights, checksums, QA context and `PROMPT_GUIDE.md`.
+- Replaced the networked generation script in exported Skills with an offline `validate_prompt_pack.py` verifier and Job lister.
+- Kept the live-action adult-human Rendering Contract and reference binding, while treating 9:16, high quality and 2160×3840 as requested creative delivery targets rather than guaranteed returned dimensions.
+- Preserved Protocol and Semantic Contract 0.3, the five-layer/thirteen-role interaction, Registry formats and legacy 0.4–0.7 assets and runs.
+
 ## 0.7.0 - 2026-07-16
 
 - Replaced the incomplete four-group confirmation for new sessions with five creator layers: Direction, Worldbuilding, Narrative, Image and Delivery.

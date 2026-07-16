@@ -1,14 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/henyjone/apsal-open/schemas/run.schema.json",
-  "title": "APSAL Studio Generation Run 0.5",
+  "title": "APSAL Studio Codex Generation Run 0.8",
   "type": "object",
   "required": ["schema_version", "run_id", "session_id", "mode", "status", "theme", "dna", "engine_version", "adapter", "model", "parameters", "jobs", "resume_count", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"enum": ["0.4.0", "0.5.0"]},
+    "schema_version": {"enum": ["0.4.0", "0.5.0", "0.8.0"]},
     "run_id": {"type": "string", "pattern": "^RUN-[A-Za-z0-9-]+$"},
     "mode": {"enum": ["generate", "prompts", "skill"]},
     "status": {"enum": ["generating", "completed", "partial"]},
+    "generation_surface": {"enum": ["codex_imagegen"]},
+    "direct_api_calls": {"const": false},
+    "api_key_required": {"const": false},
+    "returned_dimensions_guaranteed": {"const": false},
     "model": {"type": "string"},
     "parameters": {"oneOf": [{"type": "object"}, {"const": "not_reported"}]},
     "jobs": {
@@ -27,5 +31,9 @@
       }
     }
   },
+  "allOf": [{
+    "if": {"properties": {"schema_version": {"const": "0.8.0"}}},
+    "then": {"required": ["generation_surface", "direct_api_calls", "api_key_required", "returned_dimensions_guaranteed"]}
+  }],
   "additionalProperties": true
 }

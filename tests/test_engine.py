@@ -10,7 +10,6 @@ import unittest
 import zipfile
 from copy import deepcopy
 from pathlib import Path
-from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("apsal_engine", ROOT / "plugins/apsal-studio/scripts/apsal_engine.py")
@@ -106,10 +105,14 @@ class EngineTests(unittest.TestCase):
             second, sha2 = engine.pack_theme(theme, Path(tmp) / "b")
             self.assertEqual(sha1, sha2)
             with zipfile.ZipFile(first) as z:
-                self.assertEqual(len(z.namelist()), 8)
-                self.assertTrue(any(name.endswith("scripts/generate_set.py") for name in z.namelist()))
+                self.assertEqual(len([name for name in z.namelist() if name.endswith(".full.txt")]), 9)
+                self.assertTrue(any(name.endswith("scripts/validate_prompt_pack.py") for name in z.namelist()))
+                self.assertFalse(any(name.endswith("scripts/generate_set.py") for name in z.namelist()))
+                self.assertTrue(any(name.endswith("PROMPT_GUIDE.md") for name in z.namelist()))
                 skill = next(name for name in z.namelist() if name.endswith("SKILL.md"))
-                self.assertIn("does not guarantee native 4K", z.read(skill).decode())
+                skill_text = z.read(skill).decode()
+                self.assertIn("built-in image-generation", skill_text)
+                self.assertIn("Do not call an image API", skill_text)
 
     def test_semantic_skill_includes_yaml_design_and_qa(self):
         theme = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
@@ -465,8 +468,16 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(len(list((root / "prompts").glob("*.negative.txt"))), 9)
             manifest = json.loads((root / "artifact_manifest.json").read_text())
             self.assertEqual(len(manifest["prompt_digests"]), 9)
+            package = Path(ready["theme_artifact"]["prompt_package"]["path"])
+            self.assertTrue(package.is_file())
+            self.assertEqual(hashlib.sha256(package.read_bytes()).hexdigest(), ready["theme_artifact"]["prompt_package"]["sha256"])
+            with zipfile.ZipFile(package) as archive:
+                names = archive.namelist()
+                self.assertTrue(any(name.endswith("PROMPT_GUIDE.md") for name in names))
+                self.assertEqual(len([name for name in names if name.endswith(".full.txt")]), 9)
             again = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
             self.assertEqual(again["theme_artifact"]["digest"], ready["theme_artifact"]["digest"])
+            self.assertEqual(again["theme_artifact"]["prompt_package"]["sha256"], ready["theme_artifact"]["prompt_package"]["sha256"])
 
     def test_generation_requires_confirmation_and_preserves_success_on_resume(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -475,18 +486,23 @@ class EngineTests(unittest.TestCase):
             session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
             with self.assertRaisesRegex(engine.ValidationError, "explicit confirmation"):
                 engine.start_generation_run(session["session_id"], project_root=project, home=home)
-            with self.assertRaisesRegex(engine.ValidationError, "n=1"):
+            with self.assertRaisesRegex(engine.ValidationError, "Codex manages image parameters"):
                 engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True, parameters={"n": 9})
             self.assertEqual(list((project / ".apsal/runs").iterdir()), [])
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
             self.assertEqual(len(run["jobs"]), 9)
+            self.assertFalse(run["direct_api_calls"])
+            self.assertFalse(run["api_key_required"])
+            self.assertFalse(run["returned_dimensions_guaranteed"])
+            self.assertFalse(run["output_contract"]["provider_native"])
+            self.assertEqual(run["output_contract"]["size"], "not_guaranteed")
             self.assertEqual(len(list((project / ".apsal/runs" / run["run_id"] / "prompts").glob("*.txt"))), 18)
             output = Path(tmp) / "shot.png"; output.write_bytes(self._fake_png())
             run = engine.record_generation_result(run["run_id"], "SHOT_01", "succeeded", project_root=project, output_path=output)
             self.assertEqual(run["status"], "generating")
             self.assertEqual(run["jobs"][0]["output"]["width"], 2160)
-            with self.assertRaisesRegex(engine.ValidationError, "local file"):
-                engine.record_generation_result(run["run_id"], "SHOT_03", "succeeded", project_root=project, artifact_uri="test://unverifiable")
+            run = engine.record_generation_result(run["run_id"], "SHOT_03", "succeeded", project_root=project, artifact_uri="not_reported")
+            self.assertEqual(run["jobs"][2]["output"]["sha256"], "not_reported")
             engine.record_generation_result(run["run_id"], "SHOT_02", "failed", project_root=project, error="adapter test failure")
             with self.assertRaisesRegex(engine.ValidationError, "immutable"):
                 engine.record_generation_result(run["run_id"], "SHOT_01", "succeeded", project_root=project, artifact_uri="test://duplicate")
@@ -526,8 +542,11 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.7.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.8.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 18)
+            names = {item["name"] for item in responses[1]["result"]["tools"]}
+            self.assertIn("get_next_codex_job", names)
+            self.assertNotIn("execute_generation_run", names)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
             self.assertNotIn("preview", cards[0])
@@ -632,127 +651,74 @@ class EngineTests(unittest.TestCase):
         payload = b"\x00" * 4 + (width - 1).to_bytes(3, "little") + (height - 1).to_bytes(3, "little")
         return b"RIFF" + (22).to_bytes(4, "little") + b"WEBP" + b"VP8X" + (10).to_bytes(4, "little") + payload
 
-    def test_executor_makes_nine_distinct_n1_requests_retries_and_uses_identity_anchor(self):
+    def test_codex_run_prepares_one_job_at_a_time_and_uses_recent_identity_anchor(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
-            session = self._start_and_confirm(project, home, theme_id="TEST-EXECUTE")
-            session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
-            run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True, adapter="openai-image-api", model="gpt-image-2")
-            calls = []; failed_once = set()
-            def adapter(request, references):
-                calls.append({"request": deepcopy(request), "reference_count": len(references)})
-                if request["shot_id"] == "SHOT_04" and request["shot_id"] not in failed_once:
-                    failed_once.add(request["shot_id"]); raise RuntimeError("simulated transient failure")
-                return {"image_bytes": self._fake_png(), "provider_metadata": {"simulated": True}}
-            def visual(path, contract, shot_id):
-                self.assertEqual(engine._image_dimensions(path.read_bytes()), (2160, 3840))
-                self.assertEqual(contract["medium"], "live_action_photography")
-                return {"status": "passed", "findings": ["simulated live-action pass"]}
-            completed = engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter, visual_qa_callable=visual)
-            self.assertEqual(completed["status"], "completed")
-            self.assertEqual(len(calls), 10)
-            self.assertEqual({call["request"]["n"] for call in calls}, {1})
-            self.assertEqual(len({hashlib.sha256(call["request"]["prompt"].encode()).hexdigest() for call in calls}), 9)
-            self.assertFalse(calls[0]["request"]["identity_anchor_used"])
-            self.assertTrue(all(call["request"]["identity_anchor_used"] for call in calls[1:]))
-            self.assertNotIn("RUNTIME_IDENTITY_ANCHOR_SHOT_01", calls[0]["request"]["runtime_reference_ids"])
-            self.assertTrue(all("RUNTIME_IDENTITY_ANCHOR_SHOT_01" in call["request"]["runtime_reference_ids"] for call in calls[1:]))
-            self.assertTrue(all(job["model_visual_qa"] == "passed" for job in completed["jobs"]))
-            self.assertTrue(all(job["human_visual_qa"] == "pending" for job in completed["jobs"]))
-            self.assertEqual(len(list((project / ".apsal/runs" / run["run_id"] / "outputs").glob("*.png"))), 9)
-            effective_prompt = (project / ".apsal/runs" / run["run_id"] / "prompts" / "SHOT_02.prompt.txt").read_text(encoding="utf-8")
-            self.assertIn("Use the SHOT_01 image only to preserve", effective_prompt)
-            self.assertIn("Negative constraints:", effective_prompt)
-            with self.assertRaisesRegex(engine.ValidationError, "no failed Jobs"):
-                engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True, resume_run_id=run["run_id"])
-
-    def test_openai_adapter_sends_n1_and_uses_edits_when_references_exist(self):
-        captured = []
-        class Response:
-            headers = {"x-request-id": "request-test"}
-            def __enter__(self): return self
-            def __exit__(self, *_): return False
-            def read(self):
-                import base64
-                return json.dumps({"data": [{"b64_json": base64.b64encode(self_data).decode()}]}).encode()
-        self_data = self._fake_png()
-        def urlopen(request, timeout):
-            captured.append(request)
-            return Response()
-        request = {"model": "gpt-image-2", "prompt": "test", "size": "2160x3840", "quality": "high", "output_format": "png", "n": 1}
-        with mock.patch.object(engine.urllib.request, "urlopen", side_effect=urlopen):
-            generated = engine._openai_image_api_request(request, [], "TEST_SECRET")
-            edited = engine._openai_image_api_request(request, [ROOT / "plugins/apsal-studio/assets/previews/character.webp"], "TEST_SECRET")
-        generation_body = json.loads(captured[0].data)
-        edit_body = captured[1].data
-        self.assertEqual(generation_body["n"], "1")
-        self.assertTrue(captured[0].full_url.endswith("/images/generations"))
-        self.assertTrue(captured[1].full_url.endswith("/images/edits"))
-        self.assertIn(b'name="n"\r\n\r\n1', edit_body)
-        self.assertEqual(edit_body.count(b'name="image[]"'), 1)
-        self.assertNotIn("TEST_SECRET", json.dumps([generated, edited], default=str))
-
-    def test_executor_requires_model_visual_qa_before_next_live_action_job(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
-            session = self._start_and_confirm(project, home, theme_id="TEST-QA-GATE")
+            session = self._start_and_confirm(project, home, theme_id="TEST-CODEX-RUN")
             session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
-            adapter = lambda request, references: {"image_bytes": self._fake_png(), "provider_metadata": {"simulated": True}}
-            first = engine.execute_generation_run(run["run_id"], project_root=project, home=home, max_jobs=9, adapter_callable=adapter)
-            self.assertEqual(sum(job["status"] == "succeeded" for job in first["jobs"]), 1)
-            with self.assertRaisesRegex(engine.ValidationError, "model visual QA"):
-                engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter)
+            first = engine.get_next_codex_job(run["run_id"], project_root=project, home=home)
+            self.assertEqual(first["shot_id"], "SHOT_01")
+            self.assertEqual(first["codex_tool"], "built_in_image_generation")
+            self.assertEqual(set(first["codex_tool_arguments"]), {"prompt"})
+            self.assertFalse(first["direct_api_calls"])
+            run = engine.record_generation_result(run["run_id"], "SHOT_01", "succeeded", project_root=project, artifact_uri="not_reported", provider_metadata={"surface": "codex_imagegen"})
+            with self.assertRaisesRegex(engine.ValidationError, "Codex visual QA"):
+                engine.get_next_codex_job(run["run_id"], project_root=project, home=home)
             engine.record_model_visual_qa(run["run_id"], "SHOT_01", "passed", project_root=project, findings=["real adult human"])
-            second = engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter)
-            self.assertEqual(sum(job["status"] == "succeeded" for job in second["jobs"]), 2)
+            second = engine.get_next_codex_job(run["run_id"], project_root=project, home=home)
+            self.assertEqual(second["shot_id"], "SHOT_02")
+            self.assertEqual(second["identity_anchor"], "recent_previous_image")
+            self.assertEqual(second["codex_tool_arguments"]["num_last_images_to_include"], 1)
+            self.assertIn("do not inherit its pose", second["prompt"])
 
-    def test_executor_rejects_non_native_dimensions_after_three_attempts(self):
+    def test_direct_image_api_execution_is_disabled(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
-            session = self._start_and_confirm(project, home, theme_id="TEST-DIMENSIONS")
+            session = self._start_and_confirm(project, home, theme_id="TEST-NO-API")
             session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
+            with self.assertRaisesRegex(engine.ValidationError, "direct image API adapters are disabled"):
+                engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True, adapter="openai-image-api")
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
-            calls = []
-            def adapter(request, references):
-                calls.append(deepcopy(request))
-                return {"image_bytes": self._fake_png(1024, 1792), "provider_metadata": {"simulated": True}}
-            partial = engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter)
-            first = partial["jobs"][0]
-            self.assertEqual(partial["status"], "partial")
-            self.assertEqual(first["status"], "failed")
-            self.assertEqual(len(first["attempts"]), 3)
-            self.assertEqual(len(calls), 3)
-            self.assertIn("expected 2160x3840", first["error"])
-            self.assertFalse((project / ".apsal/runs" / run["run_id"] / "outputs" / "SHOT_01.png").exists())
+            with self.assertRaisesRegex(engine.ValidationError, "direct provider execution was removed"):
+                engine.execute_generation_run(run["run_id"], project_root=project)
+            source = (ROOT / "plugins/apsal-studio/scripts/apsal_engine.py").read_text(encoding="utf-8")
+            self.assertNotIn("/v1/images/generations", source)
+            self.assertNotIn('os.environ.get("OPENAI_API_KEY")', source)
 
-    def test_executor_rejects_wrong_format_even_at_exact_dimensions(self):
+    def test_codex_result_accepts_reported_non_4k_without_false_guarantee(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
-            session = self._start_and_confirm(project, home, theme_id="TEST-FORMAT")
+            session = self._start_and_confirm(project, home, theme_id="TEST-CODEX-SIZE")
             session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
+            self.assertEqual(session["theme_artifact"]["output"]["size"], "not_guaranteed")
+            self.assertEqual(session["theme_artifact"]["output"]["requested_size"], "2160x3840")
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
-            adapter = lambda request, references: {"image_bytes": self._fake_webp(), "provider_metadata": {"simulated": True}}
-            partial = engine.execute_generation_run(run["run_id"], project_root=project, home=home, max_retries=0, adapter_callable=adapter)
-            self.assertEqual(partial["jobs"][0]["status"], "failed")
-            self.assertIn("not PNG", partial["jobs"][0]["error"])
+            output = Path(tmp) / "codex-output.png"; output.write_bytes(self._fake_png(1024, 1792))
+            run = engine.record_generation_result(run["run_id"], "SHOT_01", "succeeded", project_root=project, output_path=output)
+            self.assertEqual(run["jobs"][0]["output"]["width"], 1024)
+            self.assertFalse(run["returned_dimensions_guaranteed"])
 
-    def test_success_after_model_qa_rejection_resets_model_qa_to_pending(self):
+    def test_codex_job_uses_local_references_without_mixing_recent_image_mode(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
-            session = self._start_and_confirm(project, home, theme_id="TEST-QA-RETRY")
+            session = engine.start_design_session("安静窗边真人摄影", project_root=project, home=home, theme_id="TEST-CODEX-REF")
+            assets = engine.load_catalog()["assets"]
+            session = engine.commit_element_layer(session["session_id"], "direction", [], project_root=project, home=home)
+            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES["worldbuilding"]]
+            source = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            session = engine.commit_element_layer(session["session_id"], "worldbuilding", refs, project_root=project, home=home, reference_path=source)
+            for layer in ("narrative", "image", "delivery"):
+                refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES[layer]]
+                session = engine.commit_element_layer(session["session_id"], layer, refs, project_root=project, home=home)
             session = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
-            adapter = lambda request, references: {"image_bytes": self._fake_png(), "provider_metadata": {"simulated": True}}
-            first = engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter)
-            self.assertEqual(first["jobs"][0]["model_visual_qa"], "pending")
-            rejected = engine.record_model_visual_qa(run["run_id"], "SHOT_01", "failed", project_root=project, findings=["illustrated person"])
-            self.assertEqual(rejected["jobs"][0]["model_visual_qa"], "failed")
-            retried = engine.execute_generation_run(run["run_id"], project_root=project, home=home, adapter_callable=adapter)
-            self.assertEqual(retried["jobs"][0]["status"], "succeeded")
-            self.assertEqual(retried["jobs"][0]["model_visual_qa"], "pending")
+            job = engine.get_next_codex_job(run["run_id"], project_root=project, home=home)
+            self.assertIn("referenced_image_paths", job["codex_tool_arguments"])
+            self.assertNotIn("num_last_images_to_include", job["codex_tool_arguments"])
+            self.assertTrue(all(Path(path).is_file() for path in job["reference_paths"]))
 
-    def test_private_skill_executor_dry_run_contains_nine_distinct_n1_requests(self):
+    def test_prompt_skill_package_validates_and_contains_documented_prompts(self):
         theme = engine.new_semantic_theme("TEST-SKILL-RUN", "Skill run", native_4k=True, live_action=True)
         source = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
         theme["distribution"] = "private_only"
@@ -769,18 +735,20 @@ class EngineTests(unittest.TestCase):
             archive, _ = engine.pack_theme(theme, root / "packed", reference_paths={"TEST_STYLE_REF_001": source})
             with zipfile.ZipFile(archive) as package: package.extractall(root / "unpacked")
             skill_root = next((root / "unpacked").iterdir())
-            run_dir = root / "run"
-            result = subprocess.run([sys.executable, "scripts/generate_set.py", "--dry-run", "--run-dir", str(run_dir)], cwd=skill_root, text=True, capture_output=True)
+            result = subprocess.run([sys.executable, "scripts/validate_prompt_pack.py", "--list"], cwd=skill_root, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            requests = json.loads((run_dir / "requests.dry-run.json").read_text(encoding="utf-8"))
-            run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(requests), 9)
-            self.assertEqual({item["n"] for item in requests}, {1})
-            self.assertEqual(len({item["prompt_digest"] for item in requests}), 9)
-            self.assertTrue(all(item["reference_ids"] == ["TEST_STYLE_REF_001"] for item in requests))
-            self.assertEqual(len(list((run_dir / "prompts").glob("*.prompt.txt"))), 9)
-            self.assertEqual(run["adapter"], "openai-image-api")
-            self.assertEqual(run["parameters"]["n"], 1)
-            self.assertEqual(run["theme_digest"], engine.digest(theme))
+            listing = json.loads(result.stdout)
+            self.assertEqual(len(listing["jobs"]), 9)
+            self.assertTrue(all(item["reference_ids"] == ["TEST_STYLE_REF_001"] for item in listing["jobs"]))
+            self.assertEqual(len(list((skill_root / "prompts").glob("*.prompt.txt"))), 9)
+            self.assertEqual(len(list((skill_root / "prompts").glob("*.negative.txt"))), 9)
+            self.assertEqual(len(list((skill_root / "prompts").glob("*.full.txt"))), 9)
+            manifest = json.loads((skill_root / "references/manifest.json").read_text(encoding="utf-8"))
+            self.assertFalse(manifest["direct_api_calls"])
+            self.assertFalse(manifest["api_key_required"])
+            self.assertFalse(manifest["returned_dimensions_guaranteed"])
+            guide = (skill_root / "PROMPT_GUIDE.md").read_text(encoding="utf-8")
+            self.assertIn("继续下一张", guide)
+            self.assertIn("不需要 `OPENAI_API_KEY`", guide)
 
 if __name__ == "__main__": unittest.main()
