@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/preview.schema.json",
+  "title": "APSAL DNA Preview Sidecar 0.1",
+  "type": "object",
+  "required": ["schema_version", "ref", "image", "sha256", "kind", "rights", "qa_status", "visual_qa_status", "disclaimer"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "ref": {"type": "object", "required": ["namespace", "id", "type", "version", "content_digest"]},
+    "image": {"type": "string", "pattern": "^[A-Za-z0-9._-]+\\.webp$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "kind": {"enum": ["semantic_card", "photographic_preview"]},
+    "rights": {"type": "object", "required": ["license", "status", "attribution"]},
+    "qa_status": {"type": "string", "minLength": 1},
+    "visual_qa_status": {"type": "string", "minLength": 1},
+    "disclaimer": {"const": "Design preview; not generated-image quality evidence."}
+  },
+  "additionalProperties": true
+}

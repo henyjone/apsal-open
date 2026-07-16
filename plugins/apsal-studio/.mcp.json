@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "apsal-studio": {
+      "command": "python3",
+      "args": ["./scripts/apsal_mcp.py"],
+      "cwd": "."
+    }
+  }
+}

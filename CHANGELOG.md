@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-07-16
+
+- Added a natural-language-first four-stage creator flow with Character, World, Scene, and Photo DNA cards; JSON and YAML remain background artifacts.
+- Added project, personal, and official local Registry layers with exact version/digest resolution, immutable formal versions, explicit promotion, and `APSAL_HOME` support.
+- Added seven original 768×576 WebP semantic preview cards with rights, attribution, SHA-256, QA sidecars, and no effect on DNA generation-intent digests.
+- Added resumable design sessions, upstream invalidation, hidden YAML/canonical JSON finalization, three compile targets, and 18 locally saved Prompt files for nine-shot themes.
+- Added explicit-confirmation generation runs with one Job per image, exact effective Prompt lineage, partial status, failed-Job resume, and successful-output protection.
+- Added a dependency-free local stdio MCP server with seven tools, an MCP Apps DNA card resource, and numbered-text fallback for CLI/IDE clients.
+- Added private content-addressed reference Vault storage and a public local-first privacy policy.
+- Kept Protocol and Semantic Contract at 0.3.0; the Quiet Window pilot and official DNA catalog remain byte-for-byte unchanged.
+
 ## 0.3.0 - 2026-07-15
 
 - Added Semantic Contract 0.3 with bilingual purpose, effects, locks, controlled tags, priorities, and evidence-oriented QA expectations.

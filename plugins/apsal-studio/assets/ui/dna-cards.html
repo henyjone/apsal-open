@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root { color-scheme: dark; --ink:#111513; --ivory:#eeeade; --celadon:#8aafa1; --line:#34433d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--ink); color:var(--ivory); font:14px/1.45 ui-sans-serif,system-ui,-apple-system,sans-serif; }
+    main { padding:18px; }
+    header { display:flex; align-items:end; justify-content:space-between; gap:16px; margin-bottom:14px; }
+    h1 { margin:0; font-size:19px; font-weight:560; letter-spacing:.04em; }
+    header p { margin:3px 0 0; color:#a8b4ae; }
+    .stage { color:var(--celadon); font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+    #cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    article { border:1px solid var(--line); background:#151a18; transition:.18s ease; overflow:hidden; }
+    article:hover, article.selected { border-color:var(--celadon); transform:translateY(-2px); }
+    img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; border-bottom:1px solid var(--line); }
+    section { padding:12px; }
+    h2 { margin:0 0 4px; font-size:14px; font-weight:600; }
+    .meta { color:#9eaaa4; font-size:12px; }
+    .summary { min-height:42px; margin:9px 0; color:#d4d7d2; }
+    button { width:100%; border:1px solid var(--celadon); background:transparent; color:var(--ivory); padding:9px 11px; cursor:pointer; }
+    button:hover { background:var(--celadon); color:var(--ink); }
+    .empty { padding:24px; border:1px solid var(--line); color:#a8b4ae; }
+  </style>
+</head>
+<body>
+<main>
+  <header><div><h1>APSAL DNA Registry</h1><p>选择世界构建元素；JSON 与 YAML 留在后台。</p></div><div class="stage" id="stage"></div></header>
+  <div id="cards"></div>
+</main>
+<script>
+  const output = window.openai?.toolOutput || {};
+  const cards = output.cards || [];
+  const stage = output.stage || "DNA";
+  document.querySelector("#stage").textContent = stage;
+  const host = document.querySelector("#cards");
+  if (!cards.length) host.innerHTML = '<div class="empty">没有找到匹配的 DNA。请换一种自然语言描述。</div>';
+  for (const card of cards) {
+    const item = document.createElement("article");
+    item.innerHTML = `<img alt="${card.title} preview"><section><h2></h2><div class="meta"></div><div class="summary"></div><div class="meta attr"></div><button type="button">选择此 DNA</button></section>`;
+    item.querySelector("img").src = card.preview;
+    item.querySelector("h2").textContent = card.title;
+    item.querySelector(".meta").textContent = `${card.scope} · ${card.type} · v${card.version} · ${card.rights.license} · ${card.qa_status}`;
+    item.querySelector(".summary").textContent = `${card.summary} ${card.core_attributes.join(" · ")}`;
+    item.querySelector(".attr").textContent = `Attribution: ${card.rights.attribution}`;
+    item.querySelector("button").addEventListener("click", () => {
+      item.classList.add("selected");
+      const ref = card.ref;
+      const prompt = `我选择 ${ref.namespace}/${ref.id}@${ref.version}（${ref.type}，摘要 ${ref.content_digest}）用于 ${stage} 阶段，请继续。`;
+      if (window.openai?.sendFollowUpMessage) window.openai.sendFollowUpMessage({prompt});
+    });
+    host.appendChild(item);
+  }
+</script>
+</body>
+</html>

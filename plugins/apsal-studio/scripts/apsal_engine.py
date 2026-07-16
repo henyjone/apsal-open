@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+import base64
+import datetime as dt
 import importlib.util
 import io
 import json
+import os
 import re
+import shutil
+import struct
 import sys
+import uuid
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -23,14 +29,28 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.3.0"
+ENGINE_VERSION = "0.4.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
 PROTOCOL_TYPES = ("subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job")
 CREATIVE_FIELDS = ("framing", "action", "hands", "gaze", "composition")
 COMPILE_TARGETS = ("design", "image", "qa")
+INTERACTION_STAGES = ("character", "world", "scene", "photo")
+STAGE_TYPES = {
+    "character": ("character",),
+    "world": ("environment",),
+    "scene": ("composition", "shot"),
+    "photo": ("style", "lighting"),
+}
+SESSION_STATES = (
+    "character_pending", "world_pending", "scene_pending", "photo_pending",
+    "review_pending", "ready", "generating", "completed", "partial",
+)
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SAFE_ID = re.compile(r"^[A-Z][A-Z0-9-]*$")
+SAFE_ASSET_ID = re.compile(r"^[A-Z][A-Z0-9_]*$")
+SAFE_NAMESPACE = re.compile(r"^[a-z][a-z0-9-]*$")
+SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 class ValidationError(ValueError):
@@ -87,9 +107,346 @@ def load_catalog() -> dict[str, Any]:
     return load_json(plugin_root() / "assets" / "dna" / "catalog.json")
 
 
+def _utc_now() -> str:
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def apsal_home() -> Path:
+    """Return the user-owned APSAL data root without creating it."""
+    configured = os.environ.get("APSAL_HOME")
+    return Path(configured).expanduser().resolve() if configured else (Path.home() / ".apsal").resolve()
+
+
+def _safe_part(value: str, label: str) -> str:
+    if not SAFE_COMPONENT.fullmatch(value) or value in {".", ".."}:
+        raise ValidationError(f"{label}: unsafe path component")
+    return value
+
+
+def _inside(root: Path, candidate: Path) -> Path:
+    root = root.expanduser().resolve()
+    candidate = candidate.expanduser().resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValidationError(f"path escapes APSAL root: {candidate}") from exc
+    return candidate
+
+
+def _write_private_json(value: dict[str, Any], path: Path) -> None:
+    write_canonical_json(value, path)
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+
+
+def _mkdir_private(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    try:
+        path.chmod(0o700)
+    except OSError:
+        pass
+
+
+def project_root_from(start: Path | None = None) -> Path:
+    """Discover an initialized APSAL project, otherwise use the supplied directory."""
+    current = (start or Path.cwd()).expanduser().resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in (current, *current.parents):
+        if (candidate / ".apsal" / "project.json").is_file():
+            return candidate
+    return current
+
+
+def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, str]:
+    """Initialize local-first APSAL storage. Existing files are never overwritten."""
+    project_root = project_root.expanduser().resolve()
+    home = (home or apsal_home()).expanduser().resolve()
+    _mkdir_private(home)
+    for relative in ("registry", "vault/sha256", "cache"):
+        _mkdir_private(_inside(home, home / relative))
+    workspace = project_root / ".apsal"
+    for relative in ("drafts", "registry", "themes", "runs", "cache"):
+        _mkdir_private(_inside(workspace, workspace / relative))
+    project_file = workspace / "project.json"
+    if not project_file.exists():
+        _write_private_json({
+            "schema_version": "0.4.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
+            "created_at": _utc_now(), "storage": "local_first",
+        }, project_file)
+    ignore = workspace / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text("drafts/\nruns/\ncache/\nvault/\n", encoding="utf-8")
+    return {"project_root": str(project_root), "workspace": str(workspace), "apsal_home": str(home)}
+
+
+def _asset_key(asset: dict[str, Any]) -> tuple[str, str, str, str]:
+    return tuple(str(asset.get(key, "")) for key in ("namespace", "id", "type", "version"))  # type: ignore[return-value]
+
+
+def _ref_label(key: tuple[str, str, str, str]) -> str:
+    namespace, asset_id, asset_type, version = key
+    return f"{namespace}/{asset_id}@{version} ({asset_type})"
+
+
+def _official_preview_index() -> dict[tuple[str, str, str, str], dict[str, Any]]:
+    path = plugin_root() / "assets" / "previews" / "catalog.json"
+    if not path.is_file():
+        return {}
+    value = load_json(path)
+    result: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for item in value.get("previews", []):
+        ref = item.get("ref", {})
+        result[tuple(str(ref.get(key, "")) for key in ("namespace", "id", "type", "version"))] = item
+    return result
+
+
+def _webp_dimensions(data: bytes) -> tuple[int, int]:
+    if len(data) < 30 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        raise ValidationError("preview image must be WebP")
+    chunk = data[12:16]
+    if chunk == b"VP8X":
+        return 1 + int.from_bytes(data[24:27], "little"), 1 + int.from_bytes(data[27:30], "little")
+    if chunk == b"VP8 ":
+        marker = data.find(b"\x9d\x01\x2a", 20)
+        if marker < 0 or marker + 7 > len(data):
+            raise ValidationError("invalid VP8 preview")
+        return struct.unpack_from("<H", data, marker + 3)[0] & 0x3FFF, struct.unpack_from("<H", data, marker + 5)[0] & 0x3FFF
+    if chunk == b"VP8L" and len(data) >= 25 and data[20] == 0x2F:
+        bits = int.from_bytes(data[21:25], "little")
+        return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+    raise ValidationError("unsupported WebP preview encoding")
+
+
+def validate_preview_file(image: Path, metadata: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not image.is_file():
+        return [f"preview: missing image {image}"]
+    data = image.read_bytes()
+    try:
+        width, height = _webp_dimensions(data)
+    except ValidationError as exc:
+        return [f"preview {image.name}: {exc}"]
+    if (width, height) != (768, 576):
+        errors.append(f"preview {image.name}: expected 768x576, got {width}x{height}")
+    if len(data) > 300_000:
+        errors.append(f"preview {image.name}: exceeds 300 KB")
+    actual = hashlib.sha256(data).hexdigest()
+    if metadata.get("sha256") != actual:
+        errors.append(f"preview {image.name}: SHA-256 mismatch")
+    for key in ("license", "status", "attribution"):
+        if not metadata.get("rights", {}).get(key):
+            errors.append(f"preview {image.name}: missing rights.{key}")
+    if not metadata.get("qa_status") or not metadata.get("visual_qa_status"):
+        errors.append(f"preview {image.name}: QA status is required")
+    if metadata.get("disclaimer") != "Design preview; not generated-image quality evidence.":
+        errors.append(f"preview {image.name}: design-preview disclaimer is required")
+    return errors
+
+
+def validate_official_previews() -> list[str]:
+    errors: list[str] = []
+    assets = load_catalog().get("assets", [])
+    previews = _official_preview_index()
+    for asset in assets:
+        key = _asset_key(asset)
+        item = previews.get(key)
+        if not item:
+            errors.append(f"preview catalog: missing {_ref_label(key)}"); continue
+        if item.get("ref", {}).get("content_digest") != digest(asset):
+            errors.append(f"preview catalog: DNA digest mismatch for {_ref_label(key)}")
+        image = plugin_root() / "assets" / "previews" / str(item.get("image", ""))
+        errors.extend(validate_preview_file(image, item))
+    extra = set(previews) - {_asset_key(asset) for asset in assets}
+    if extra:
+        errors.append(f"preview catalog: unknown references {[ _ref_label(key) for key in sorted(extra) ]}")
+    return errors
+
+
+def _registry_asset_dirs(project_root: Path, home: Path) -> list[tuple[str, Path]]:
+    return [("project", project_root / ".apsal" / "registry"), ("personal", home / "registry")]
+
+
+def _iter_registry_assets(root: Path) -> list[Path]:
+    if not root.is_dir():
+        return []
+    return sorted(path for path in root.rglob("asset.apsal.json") if path.is_file())
+
+
+def validate_registry_asset(asset: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    required = (
+        "schema_version", "namespace", "id", "type", "version", "status", "parent_version",
+        "changed_fields", "change_summary", "prompt_fragment", "negative_fragment", "rights", "qa_status",
+    )
+    for key in required:
+        if key not in asset: errors.append(f"DNA asset: missing {key}")
+    if not SAFE_NAMESPACE.fullmatch(str(asset.get("namespace", ""))): errors.append("DNA asset: invalid namespace")
+    if not SAFE_ASSET_ID.fullmatch(str(asset.get("id", ""))): errors.append("DNA asset: invalid id")
+    if asset.get("type") not in CATEGORIES: errors.append("DNA asset: unsupported type")
+    if not SEMVER.fullmatch(str(asset.get("version", ""))): errors.append("DNA asset: invalid version")
+    if not isinstance(asset.get("changed_fields"), list) or not asset.get("changed_fields"):
+        errors.append("DNA asset: changed_fields cannot be empty")
+    rights = asset.get("rights", {})
+    for key in ("license", "status", "attribution"):
+        if not rights.get(key): errors.append(f"DNA asset: missing rights.{key}")
+    return errors
+
+
+def _registry_asset_path(root: Path, asset: dict[str, Any]) -> Path:
+    namespace, asset_id, asset_type, version = _asset_key(asset)
+    for value, label in ((namespace, "namespace"), (asset_id, "id"), (asset_type, "type"), (version, "version")):
+        _safe_part(value, label)
+    return _inside(root, root / namespace / asset_type / asset_id / version / "asset.apsal.json")
+
+
+def _fallback_preview(asset_type: str) -> tuple[Path, dict[str, Any]]:
+    asset = next((item for item in load_catalog()["assets"] if item["type"] == asset_type), None)
+    if not asset:
+        raise ValidationError(f"no official preview fallback for {asset_type}")
+    item = _official_preview_index().get(_asset_key(asset))
+    if not item:
+        raise ValidationError(f"no official preview metadata for {asset_type}")
+    return plugin_root() / "assets" / "previews" / item["image"], item
+
+
+def save_registry_asset(
+    asset: dict[str, Any], *, scope: str, project_root: Path, home: Path | None = None,
+    preview_path: Path | None = None, preview_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Save an immutable DNA asset and a presentation-only preview sidecar."""
+    errors = validate_registry_asset(asset)
+    if errors: raise ValidationError("\n".join(errors))
+    if scope not in {"project", "personal"}: raise ValidationError("registry scope must be project or personal")
+    home = (home or apsal_home()).resolve(); project_root = project_root.resolve()
+    init_workspace(project_root, home)
+    root = project_root / ".apsal" / "registry" if scope == "project" else home / "registry"
+    target = _registry_asset_path(root, asset)
+    if target.exists():
+        current = load_json(target)
+        if digest(current) != digest(asset):
+            raise ValidationError(f"immutable DNA conflict for {_ref_label(_asset_key(asset))}")
+        return {"scope": scope, "path": str(target), "ref": asset_ref(current)}
+    _mkdir_private(target.parent)
+    _write_private_json(asset, target)
+    source, fallback = (preview_path, preview_metadata) if preview_path else _fallback_preview(asset["type"])
+    if source is None: raise ValidationError("preview source is required")
+    source = source.resolve()
+    metadata = dict(fallback or {})
+    if preview_metadata:
+        metadata.update(preview_metadata)
+    image_data = source.read_bytes()
+    preview_target = target.parent / "preview.webp"
+    preview_target.write_bytes(image_data)
+    metadata.update({
+        "schema_version": "0.1.0", "image": "preview.webp", "sha256": hashlib.sha256(image_data).hexdigest(),
+        "ref": asset_ref(asset), "kind": metadata.get("kind", "semantic_card"),
+        "qa_status": metadata.get("qa_status", "static_validated"),
+        "visual_qa_status": metadata.get("visual_qa_status", "not_applicable_semantic_card"),
+        "disclaimer": "Design preview; not generated-image quality evidence.",
+    })
+    preview_errors = validate_preview_file(preview_target, metadata)
+    if preview_errors:
+        target.unlink(missing_ok=True); preview_target.unlink(missing_ok=True)
+        raise ValidationError("\n".join(preview_errors))
+    _write_private_json(metadata, target.parent / "preview.json")
+    return {"scope": scope, "path": str(target), "ref": asset_ref(asset)}
+
+
+def load_layered_registry(project_root: Path, home: Path | None = None) -> list[dict[str, Any]]:
+    """Load project, personal and official assets with immutable collision checks."""
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve()
+    records: list[dict[str, Any]] = []
+    previews = _official_preview_index()
+    for scope, root in _registry_asset_dirs(project_root, home):
+        for path in _iter_registry_assets(root):
+            asset = load_json(path)
+            errors = validate_registry_asset(asset)
+            if errors: raise ValidationError(f"{path}: {'; '.join(errors)}")
+            preview_path = path.parent / "preview.webp"; preview_meta_path = path.parent / "preview.json"
+            if not preview_meta_path.is_file(): raise ValidationError(f"{path}: missing preview.json")
+            metadata = load_json(preview_meta_path)
+            preview_errors = validate_preview_file(preview_path, metadata)
+            if preview_errors: raise ValidationError("\n".join(preview_errors))
+            records.append({"scope": scope, "asset": asset, "asset_path": path, "preview_path": preview_path, "preview": metadata})
+    for asset in load_catalog().get("assets", []):
+        item = previews.get(_asset_key(asset))
+        if not item: raise ValidationError(f"official DNA missing preview: {_ref_label(_asset_key(asset))}")
+        preview_path = plugin_root() / "assets" / "previews" / item["image"]
+        preview_errors = validate_preview_file(preview_path, item)
+        if preview_errors: raise ValidationError("\n".join(preview_errors))
+        records.append({
+            "scope": "official", "asset": asset, "asset_path": plugin_root() / "assets" / "dna" / "catalog.json",
+            "preview_path": preview_path, "preview": item,
+        })
+    chosen: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for record in records:
+        key = _asset_key(record["asset"])
+        if key in chosen:
+            if digest(chosen[key]["asset"]) != digest(record["asset"]):
+                raise ValidationError(f"registry digest conflict for {_ref_label(key)}")
+            continue
+        chosen[key] = record
+    return list(chosen.values())
+
+
+def registry_assets(project_root: Path, home: Path | None = None) -> list[dict[str, Any]]:
+    return [record["asset"] for record in load_layered_registry(project_root, home)]
+
+
+def search_registry(project_root: Path, query: str = "", stage: str | None = None, home: Path | None = None, limit: int = 12) -> list[dict[str, Any]]:
+    if stage is not None and stage not in INTERACTION_STAGES:
+        raise ValidationError(f"unknown interaction stage: {stage}")
+    terms = [term.casefold() for term in query.split() if term]
+    allowed = set(STAGE_TYPES[stage]) if stage else set(CATEGORIES)
+    scored: list[tuple[int, int, dict[str, Any]]] = []
+    scope_rank = {"project": 0, "personal": 1, "official": 2}
+    for record in load_layered_registry(project_root, home):
+        asset = record["asset"]
+        if asset["type"] not in allowed: continue
+        haystack = " ".join(str(asset.get(key, "")) for key in ("id", "type", "change_summary", "prompt_fragment")).casefold()
+        if terms and not all(term in haystack for term in terms): continue
+        score = sum(haystack.count(term) for term in terms)
+        scored.append((-score, scope_rank[record["scope"]], record))
+    scored.sort(key=lambda item: (item[0], item[1], item[2]["asset"]["type"], item[2]["asset"]["id"]))
+    return [record for _, _, record in scored[:max(1, min(limit, 50))]]
+
+
+def dna_card(record: dict[str, Any]) -> dict[str, Any]:
+    asset = record["asset"]; preview_path: Path = record["preview_path"]
+    data = base64.b64encode(preview_path.read_bytes()).decode("ascii")
+    return {
+        "ref": asset_ref(asset), "scope": record["scope"], "title": asset["id"], "type": asset["type"],
+        "summary": asset["change_summary"], "version": asset["version"], "locks": asset.get("locks", []),
+        "core_attributes": asset.get("locks") or [asset["prompt_fragment"]],
+        "rights": asset["rights"], "qa_status": asset["qa_status"],
+        "preview": f"data:image/webp;base64,{data}", "preview_metadata": record["preview"],
+    }
+
+
+def promote_registry_asset(ref: dict[str, str], *, project_root: Path, home: Path | None = None) -> dict[str, Any]:
+    home = (home or apsal_home()).resolve()
+    key = tuple(ref.get(name, "") for name in ("namespace", "id", "type", "version"))
+    matches = [record for record in load_layered_registry(project_root, home) if _asset_key(record["asset"]) == key]
+    if not matches: raise ValidationError(f"unresolved DNA reference {_ref_label(key)}")
+    record = matches[0]
+    if record["scope"] == "official": raise ValidationError("official DNA is already globally available and cannot be promoted")
+    return save_registry_asset(
+        record["asset"], scope="personal", project_root=project_root, home=home,
+        preview_path=record["preview_path"], preview_metadata=record["preview"],
+    )
+
+
 def catalog_index() -> dict[tuple[str, str, str, str], dict[str, Any]]:
     assets = load_catalog().get("assets", [])
     return {(a["namespace"], a["id"], a["type"], a["version"]): a for a in assets}
+
+
+def _asset_index(assets: list[dict[str, Any]] | None = None) -> dict[tuple[str, str, str, str], dict[str, Any]]:
+    values = assets if assets is not None else load_catalog().get("assets", [])
+    return {_asset_key(asset): asset for asset in values}
 
 
 def asset_ref(asset: dict[str, Any]) -> dict[str, str]:
@@ -347,8 +704,8 @@ def validate_semantic_theme(theme: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_theme(theme: dict[str, Any]) -> list[str]:
-    errors = validate_catalog()
+def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = None) -> list[str]:
+    errors = validate_catalog() if assets is None else []
     for key in ("schema_version", "id", "version", "name", "parent_version", "changed_fields", "change_summary", "dna", "output", "shots", "rights", "qa_status"):
         if key not in theme:
             errors.append(f"theme: missing {key}")
@@ -358,7 +715,7 @@ def validate_theme(theme: dict[str, Any]) -> list[str]:
     refs = theme.get("dna", [])
     if not isinstance(refs, list):
         errors.append("theme: dna must be an array"); refs = []
-    index = catalog_index()
+    index = _asset_index(assets)
     ref_types: set[str] = set()
     for ref in refs:
         if not isinstance(ref, dict): errors.append("theme: invalid DNA reference"); continue
@@ -547,18 +904,354 @@ def _compile_qa(theme: dict[str, Any]) -> dict[str, Any]:
     return {"target": "qa", "global_checks": global_checks, "shots": shots}
 
 
-def compile_theme(theme: dict[str, Any], target: str = "image") -> dict[str, Any]:
+def compile_theme(
+    theme: dict[str, Any], target: str = "image", assets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     if target not in COMPILE_TARGETS:
         raise ValidationError(f"compile target must be one of {', '.join(COMPILE_TARGETS)}")
-    errors = validate_theme(theme)
+    errors = validate_theme(theme, assets)
     if errors: raise ValidationError("\n".join(errors))
-    index = catalog_index()
-    assets = [index[tuple(ref[k] for k in ("namespace", "id", "type", "version"))] for ref in theme["dna"]]
-    payload = _compile_image(theme, assets) if target == "image" else _compile_design(theme, assets) if target == "design" else _compile_qa(theme)
+    index = _asset_index(assets)
+    selected = [index[tuple(ref[k] for k in ("namespace", "id", "type", "version"))] for ref in theme["dna"]]
+    payload = _compile_image(theme, selected) if target == "image" else _compile_design(theme, selected) if target == "design" else _compile_qa(theme)
     result = {"engine_version": ENGINE_VERSION, "theme_id": theme["id"], "theme_version": theme["version"],
               "theme_digest": digest(theme), **payload}
     result["compiled_digest"] = digest(result)
     return result
+
+
+def _session_dir(project_root: Path, session_id: str) -> Path:
+    session_id = _safe_part(session_id, "session id")
+    return _inside(project_root / ".apsal" / "drafts", project_root / ".apsal" / "drafts" / session_id)
+
+
+def _session_paths(project_root: Path, session_id: str) -> tuple[Path, Path, Path]:
+    root = _session_dir(project_root, session_id)
+    return root, root / "session.json", root / "theme.apsal.yaml"
+
+
+def _write_session(session: dict[str, Any], theme: dict[str, Any], project_root: Path) -> None:
+    root, session_path, theme_path = _session_paths(project_root, session["session_id"])
+    _mkdir_private(root)
+    session["updated_at"] = _utc_now()
+    session["theme_digest"] = digest(theme)
+    theme_path.write_text(dump_yaml(theme), encoding="utf-8")
+    _write_private_json(session, session_path)
+
+
+def load_design_session(session_id: str, project_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    project_root = project_root.expanduser().resolve()
+    _, session_path, theme_path = _session_paths(project_root, session_id)
+    if not session_path.is_file() or not theme_path.is_file():
+        raise ValidationError(f"unknown design session: {session_id}")
+    session = load_json(session_path)
+    theme = load_document(theme_path)
+    if session.get("theme_digest") != digest(theme):
+        raise ValidationError(f"design session draft digest mismatch: {session_id}")
+    return session, theme
+
+
+def _new_theme_id() -> str:
+    return f"APSAL-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+
+def start_design_session(
+    brief: str, *, project_root: Path, theme_id: str | None = None, name: str | None = None,
+    shot_count: int = 9, home: Path | None = None,
+) -> dict[str, Any]:
+    """Start a resumable four-stage natural-language design session."""
+    brief = brief.strip()
+    if not brief: raise ValidationError("creative brief cannot be empty")
+    project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
+    theme_id = theme_id or _new_theme_id()
+    theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count)
+    session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
+    session = {
+        "schema_version": "0.4.0", "session_id": session_id, "brief": brief,
+        "project_root": str(project_root), "state": "character_pending", "shot_count": shot_count,
+        "stages": {stage: {"status": "pending", "selection": [], "confirmed_at": None} for stage in INTERACTION_STAGES},
+        "private_references": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
+        "theme_artifact": None,
+    }
+    _write_session(session, theme, project_root)
+    return session
+
+
+def _resolve_refs(
+    refs: list[dict[str, str]], stage: str, project_root: Path, home: Path | None,
+) -> list[dict[str, Any]]:
+    records = load_layered_registry(project_root, home)
+    by_key = {_asset_key(record["asset"]): record for record in records}
+    selected: list[dict[str, Any]] = []
+    for ref in refs:
+        key = tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version"))
+        record = by_key.get(key)
+        if not record: raise ValidationError(f"unresolved DNA reference {_ref_label(key)}")
+        if ref.get("content_digest") and ref["content_digest"] != digest(record["asset"]):
+            raise ValidationError(f"DNA digest mismatch for {_ref_label(key)}")
+        selected.append(record)
+    required = set(STAGE_TYPES[stage]); actual = [record["asset"]["type"] for record in selected]
+    if set(actual) != required or len(actual) != len(required):
+        raise ValidationError(f"{stage} stage requires exactly one of {sorted(required)}")
+    return selected
+
+
+def store_private_reference(path: Path, *, home: Path | None = None) -> dict[str, Any]:
+    """Copy a user reference into the private content-addressed vault."""
+    source = path.expanduser().resolve()
+    if not source.is_file(): raise ValidationError(f"reference image not found: {source}")
+    data = source.read_bytes(); sha = hashlib.sha256(data).hexdigest()
+    home = (home or apsal_home()).resolve(); root = home / "vault" / "sha256" / sha[:2] / sha
+    _mkdir_private(root)
+    suffix = source.suffix.lower() if re.fullmatch(r"\.[a-z0-9]{1,8}", source.suffix.lower()) else ".bin"
+    target = root / f"reference{suffix}"
+    if not target.exists(): target.write_bytes(data)
+    metadata = {
+        "schema_version": "0.4.0", "sha256": sha, "size": len(data), "source_filename": source.name,
+        "rights_status": "private_user_provided_not_redistributable", "visibility": "private",
+        "created_at": _utc_now(),
+    }
+    metadata_path = root / "reference.json"
+    if not metadata_path.exists(): _write_private_json(metadata, metadata_path)
+    return {"vault_uri": f"vault:sha256:{sha}", "sha256": sha, "rights_status": metadata["rights_status"]}
+
+
+def _validate_shot_replacement(shots: list[dict[str, Any]], expected_count: int) -> None:
+    if len(shots) != expected_count: raise ValidationError(f"scene stage requires {expected_count} shots")
+    ids = [shot.get("shot_id") for shot in shots]; filenames = [shot.get("output_filename") for shot in shots]
+    if len(set(ids)) != len(ids) or len(set(filenames)) != len(filenames):
+        raise ValidationError("scene shots require unique IDs and output filenames")
+
+
+def commit_session_stage(
+    session_id: str, stage: str, refs: list[dict[str, str]], *, project_root: Path,
+    home: Path | None = None, shots: list[dict[str, Any]] | None = None,
+    reference_path: Path | None = None, draft_assets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Confirm or revise one interaction stage and invalidate every affected downstream stage."""
+    if stage not in INTERACTION_STAGES: raise ValidationError(f"unknown interaction stage: {stage}")
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session["state"] in {"ready", "generating", "completed", "partial"}:
+        raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
+    proposed_assets = draft_assets or []
+    for asset in proposed_assets:
+        if asset.get("type") not in STAGE_TYPES[stage]:
+            raise ValidationError(f"draft DNA type {asset.get('type')} does not belong to {stage}")
+        errors = validate_registry_asset(asset)
+        if errors: raise ValidationError("\n".join(errors))
+        target = _registry_asset_path(project_root / ".apsal" / "registry", asset)
+        if target.exists() and digest(load_json(target)) != digest(asset):
+            raise ValidationError(f"immutable DNA conflict for {_ref_label(_asset_key(asset))}")
+    created_assets = []
+    for asset in proposed_assets:
+        created_assets.append(save_registry_asset(asset, scope="project", project_root=project_root, home=home))
+    if not refs and proposed_assets:
+        refs = [asset_ref(asset) for asset in proposed_assets]
+    records = _resolve_refs(refs, stage, project_root, home)
+    stage_index = INTERACTION_STAGES.index(stage)
+    for later in INTERACTION_STAGES[:stage_index]:
+        if session["stages"][later]["status"] != "confirmed":
+            raise ValidationError(f"confirm {later} before {stage}")
+    selected_types = set(STAGE_TYPES[stage])
+    next_selection = [asset_ref(record["asset"]) for record in records]
+    shots_changed = shots is not None and digest(shots) != digest(theme["shots"])
+    reference_changed = False
+    theme["dna"] = [ref for ref in theme["dna"] if ref["type"] not in selected_types]
+    theme["dna"].extend(next_selection)
+    theme["dna"].sort(key=lambda ref: CATEGORIES.index(ref["type"]))
+    if shots is not None:
+        if stage != "scene": raise ValidationError("shot changes are only allowed in the scene stage")
+        _validate_shot_replacement(shots, session["shot_count"])
+        theme["shots"] = shots
+    if reference_path is not None:
+        if stage != "character": raise ValidationError("private references belong to the character stage")
+        stored = store_private_reference(reference_path, home=home)
+        if stored not in session["private_references"]:
+            session["private_references"].append(stored); reference_changed = True
+    changed = session["stages"][stage].get("selection") != next_selection or shots_changed or reference_changed
+    session["stages"][stage] = {
+        "status": "confirmed", "selection": next_selection,
+        "confirmed_at": _utc_now(), "created_project_assets": created_assets,
+    }
+    if changed:
+        for later in INTERACTION_STAGES[stage_index + 1:]:
+            previous = session["stages"][later]["status"]
+            if previous == "confirmed":
+                session["invalidations"].append({"source": stage, "invalidated": later, "at": _utc_now()})
+            session["stages"][later] = {"status": "pending", "selection": [], "confirmed_at": None}
+        session["theme_artifact"] = None
+    pending = next((item for item in INTERACTION_STAGES if session["stages"][item]["status"] != "confirmed"), None)
+    session["state"] = f"{pending}_pending" if pending else "review_pending"
+    _write_session(session, theme, project_root)
+    return session
+
+
+def _theme_dir(project_root: Path, theme: dict[str, Any]) -> Path:
+    theme_id = _safe_part(theme["id"], "theme id"); version = _safe_part(theme["version"], "theme version")
+    root = project_root / ".apsal" / "themes"
+    return _inside(root, root / theme_id / version)
+
+
+def _write_theme_prompts(compiled: dict[str, Any], root: Path) -> dict[str, str]:
+    prompts = root / "prompts"; _mkdir_private(prompts)
+    result: dict[str, str] = {}
+    for shot in compiled["shots"]:
+        shot_id = _safe_part(shot["shot_id"], "shot id")
+        positive = prompts / f"{shot_id}.prompt.txt"; negative = prompts / f"{shot_id}.negative.txt"
+        positive.write_text(shot["positive_prompt"] + "\n", encoding="utf-8")
+        negative.write_text(shot["negative_prompt"] + "\n", encoding="utf-8")
+        result[shot_id] = shot["prompt_digest"]
+    return result
+
+
+def finalize_design_session(
+    session_id: str, *, project_root: Path, home: Path | None = None,
+) -> dict[str, Any]:
+    """Freeze a confirmed draft as YAML source, canonical JSON and three compiled targets."""
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if any(session["stages"][stage]["status"] != "confirmed" for stage in INTERACTION_STAGES):
+        raise ValidationError("all four DNA stages must be confirmed before finalization")
+    assets = registry_assets(project_root, home)
+    errors = validate_theme(theme, assets)
+    if errors: raise ValidationError("\n".join(errors))
+    root = _theme_dir(project_root, theme)
+    canonical_path = root / "theme.apsal.json"
+    if canonical_path.exists():
+        current = load_json(canonical_path)
+        if digest(current) != digest(theme):
+            raise ValidationError(f"immutable theme conflict for {theme['id']}@{theme['version']}")
+    else:
+        _mkdir_private(root / "compiled")
+        (root / "theme.apsal.yaml").write_text(dump_yaml(theme), encoding="utf-8")
+        write_canonical_json(theme, canonical_path)
+        compiled = {target: compile_theme(theme, target, assets) for target in COMPILE_TARGETS}
+        for target, value in compiled.items(): write_canonical_json(value, root / "compiled" / f"{target}.json")
+        prompt_digests = _write_theme_prompts(compiled["image"], root)
+        files = sorted(path for path in root.rglob("*") if path.is_file())
+        manifest = {
+            "schema_version": "0.4.0", "theme_id": theme["id"], "theme_version": theme["version"],
+            "theme_digest": digest(theme), "engine_version": ENGINE_VERSION, "prompt_digests": prompt_digests,
+            "files": {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files},
+            "visual_qa_status": "pending",
+        }
+        write_canonical_json(manifest, root / "artifact_manifest.json")
+    session["state"] = "ready"; session["theme_artifact"] = {
+        "path": str(root), "theme_id": theme["id"], "version": theme["version"], "digest": digest(theme),
+    }
+    _write_session(session, theme, project_root)
+    return session
+
+
+def _run_dir(project_root: Path, run_id: str) -> Path:
+    run_id = _safe_part(run_id, "run id"); root = project_root / ".apsal" / "runs"
+    return _inside(root, root / run_id)
+
+
+def load_generation_run(run_id: str, project_root: Path) -> dict[str, Any]:
+    path = _run_dir(project_root.expanduser().resolve(), run_id) / "run.json"
+    if not path.is_file(): raise ValidationError(f"unknown generation run: {run_id}")
+    return load_json(path)
+
+
+def _write_run(run: dict[str, Any], project_root: Path) -> None:
+    run["updated_at"] = _utc_now()
+    _write_private_json(run, _run_dir(project_root, run["run_id"]) / "run.json")
+
+
+def start_generation_run(
+    session_id: str, *, project_root: Path, confirmed: bool = False, mode: str = "generate",
+    adapter: str = "codex-imagegen", model: str = "not_reported", parameters: dict[str, Any] | None = None,
+    resume_run_id: str | None = None, home: Path | None = None,
+) -> dict[str, Any]:
+    """Create or resume a nine-Job run without calling a remote image provider."""
+    if mode not in {"generate", "prompts", "skill"}: raise ValidationError("run mode must be generate, prompts, or skill")
+    if mode == "generate" and confirmed is not True:
+        raise ValidationError("explicit confirmation is required before generating images")
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session["state"] not in {"ready", "partial", "completed"} or not session.get("theme_artifact"):
+        raise ValidationError("finalize the design session before starting a run")
+    if resume_run_id:
+        run = load_generation_run(resume_run_id, project_root)
+        if run["session_id"] != session_id: raise ValidationError("run does not belong to this session")
+        run["resume_count"] += 1
+        for job in run["jobs"]:
+            if job["status"] == "failed": job["status"] = "pending"; job["error"] = None
+        run["status"] = "generating"
+        _write_run(run, project_root); session["state"] = "generating"; _write_session(session, theme, project_root)
+        return run
+    theme_root = Path(session["theme_artifact"]["path"]); compiled = load_json(theme_root / "compiled" / "image.json")
+    run_id = f"RUN-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8].upper()}"
+    root = _run_dir(project_root, run_id)
+    for relative in ("prompts", "outputs", "qa"): _mkdir_private(root / relative)
+    jobs = []
+    for shot in compiled["shots"]:
+        shot_id = _safe_part(shot["shot_id"], "shot id")
+        (root / "prompts" / f"{shot_id}.prompt.txt").write_text(shot["positive_prompt"] + "\n", encoding="utf-8")
+        (root / "prompts" / f"{shot_id}.negative.txt").write_text(shot["negative_prompt"] + "\n", encoding="utf-8")
+        jobs.append({
+            "shot_id": shot_id, "status": "pending" if mode == "generate" else "saved",
+            "prompt_digest": shot["prompt_digest"], "attempts": [], "output": None, "error": None,
+        })
+    run = {
+        "schema_version": "0.4.0", "run_id": run_id, "session_id": session_id, "mode": mode,
+        "status": "generating" if mode == "generate" else "completed", "theme": session["theme_artifact"],
+        "dna": theme["dna"], "engine_version": ENGINE_VERSION, "adapter": adapter,
+        "model": model or "not_reported", "parameters": parameters if parameters is not None else "not_reported",
+        "jobs": jobs, "resume_count": 0, "created_at": _utc_now(), "updated_at": _utc_now(),
+        "lineage_note": "Prompts are the exact local payload prepared for one independent image per Job.",
+    }
+    if mode == "skill":
+        assets = registry_assets(project_root, home)
+        path, sha = pack_theme(theme, root, (theme_root / "theme.apsal.yaml").read_bytes(), assets=assets)
+        run["skill"] = {"path": str(path), "sha256": sha}
+    _write_run(run, project_root)
+    session["state"] = "generating" if mode == "generate" else "completed"; _write_session(session, theme, project_root)
+    return run
+
+
+def record_generation_result(
+    run_id: str, shot_id: str, status: str, *, project_root: Path, output_path: Path | None = None,
+    artifact_uri: str | None = None, provider_metadata: dict[str, Any] | None = None, error: str | None = None,
+) -> dict[str, Any]:
+    """Record one provider result, preserving successful Jobs across retries."""
+    if status not in {"succeeded", "failed"}: raise ValidationError("generation status must be succeeded or failed")
+    project_root = project_root.expanduser().resolve(); run = load_generation_run(run_id, project_root)
+    job = next((item for item in run["jobs"] if item["shot_id"] == shot_id), None)
+    if not job: raise ValidationError(f"unknown shot in run: {shot_id}")
+    if job["status"] == "succeeded": raise ValidationError(f"successful output is immutable: {shot_id}")
+    attempt = {
+        "attempt": len(job["attempts"]) + 1, "status": status, "recorded_at": _utc_now(),
+        "provider_metadata": provider_metadata if provider_metadata is not None else "not_reported",
+    }
+    if status == "failed":
+        message = (error or "provider_error_not_reported").strip()
+        attempt["error"] = message; job["error"] = message
+    else:
+        if output_path is None and not artifact_uri:
+            raise ValidationError("successful generation requires an output path or artifact URI")
+        output: dict[str, Any] = {"artifact_uri": artifact_uri or "not_reported", "sha256": "not_reported"}
+        if output_path is not None:
+            source = output_path.expanduser().resolve()
+            if not source.is_file(): raise ValidationError(f"generated output not found: {source}")
+            suffix = source.suffix.lower() if re.fullmatch(r"\.[a-z0-9]{1,8}", source.suffix.lower()) else ".bin"
+            target = _run_dir(project_root, run_id) / "outputs" / f"{shot_id}{suffix}"
+            if target.exists(): raise ValidationError(f"output already exists: {target.name}")
+            shutil.copyfile(source, target)
+            output.update({"path": str(target), "sha256": hashlib.sha256(target.read_bytes()).hexdigest(), "size": target.stat().st_size})
+        attempt["output"] = output; job["output"] = output; job["error"] = None
+    job["attempts"].append(attempt); job["status"] = status
+    qa = {
+        "schema_version": "0.4.0", "run_id": run_id, "shot_id": shot_id,
+        "static_record_status": "recorded", "visual_qa_status": "pending" if status == "succeeded" else "not_available",
+        "human_conclusion": "not_reported",
+    }
+    _write_private_json(qa, _run_dir(project_root, run_id) / "qa" / f"{shot_id}.json")
+    statuses = {item["status"] for item in run["jobs"]}
+    run["status"] = "completed" if statuses == {"succeeded"} else "partial" if statuses & {"failed", "succeeded"} else "generating"
+    _write_run(run, project_root)
+    session, theme = load_design_session(run["session_id"], project_root)
+    session["state"] = run["status"]; _write_session(session, theme, project_root)
+    return run
 
 
 def explain_theme_path(theme: dict[str, Any], dotted_path: str) -> dict[str, Any]:
@@ -618,10 +1311,13 @@ def _zip_bytes(files: dict[str, bytes]) -> bytes:
     return stream.getvalue()
 
 
-def pack_theme(theme: dict[str, Any], output_dir: Path, source_yaml: bytes | None = None) -> tuple[Path, str]:
-    compiled = compile_theme(theme, "image")
-    design = compile_theme(theme, "design") if theme.get("schema_version") == "1.1.0" else None
-    qa = compile_theme(theme, "qa") if theme.get("schema_version") == "1.1.0" else None
+def pack_theme(
+    theme: dict[str, Any], output_dir: Path, source_yaml: bytes | None = None,
+    *, assets: list[dict[str, Any]] | None = None,
+) -> tuple[Path, str]:
+    compiled = compile_theme(theme, "image", assets)
+    design = compile_theme(theme, "design", assets) if theme.get("schema_version") == "1.1.0" else None
+    qa = compile_theme(theme, "qa", assets) if theme.get("schema_version") == "1.1.0" else None
     slug = f"{theme['id'].lower()}-{theme['version'].replace('.', '-')}"
     manifest = {"schema_version": "1.0.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
                 "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],

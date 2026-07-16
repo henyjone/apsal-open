@@ -1,0 +1,153 @@
+{
+  "schema_version": "0.1.0",
+  "preview_catalog_version": "0.1.0",
+  "previews": [
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_CHAR_ADULT_001",
+        "type": "character",
+        "version": "1.0.0",
+        "content_digest": "d017eacdcd9fb94b6b2a05b6847f0e71017f77013e2050f62e3d87b0782bafd2"
+      },
+      "image": "character.webp",
+      "sha256": "79820f54640bb5d947eb17c72a36554ab46329ff9009d86ca240dcca107a15af",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_STYLE_EDITORIAL_001",
+        "type": "style",
+        "version": "1.0.0",
+        "content_digest": "5dd2eae8f4022068406f7141010d94f09ac5bfdcbcef2a9ee538cbba28f7e953"
+      },
+      "image": "style.webp",
+      "sha256": "246b2bb51afa4d0c7db18ced9b6af962e05a5e5f7620b76c33a1fd9b0b028adb",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_ENV_WINDOW_001",
+        "type": "environment",
+        "version": "1.0.0",
+        "content_digest": "4c73fdc9c7c679a2bffd7479e8165a91b077c369e4b6bb4976289d940de60fa0"
+      },
+      "image": "environment.webp",
+      "sha256": "6e71af4f7960bd916a2beeec18eda45c3011fa977dab1cdf5d15a809c73a556d",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_LIGHT_WINDOW_001",
+        "type": "lighting",
+        "version": "1.0.0",
+        "content_digest": "82ee1421187113b320e510d9d0c74e21b2c704b79f31e6e03e82abada740382b"
+      },
+      "image": "lighting.webp",
+      "sha256": "ac90398a3420b41e020821011bdd0aaaee452bdce14f8ce0b05d044c4d5ff397",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_COMP_SEQUENCE_001",
+        "type": "composition",
+        "version": "1.0.0",
+        "content_digest": "0aa4a21ced85672e7812e6781f410c59ef404b9c3093a411350c106d84e9cd0b"
+      },
+      "image": "composition.webp",
+      "sha256": "12ce36971e6a2df63d61dce67b63cbf3bd49fe22f2e9970b0ff59de02271acb2",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_SHOT_NINE_001",
+        "type": "shot",
+        "version": "1.0.0",
+        "content_digest": "60fed6be922b979f7207055b4567d2cfe85509e28a09b7a9256c17688896f823"
+      },
+      "image": "shot.webp",
+      "sha256": "e55158c7324df87d59441a5f042dc3369b25d66fbaae0e70591d8e237852cbd5",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    },
+    {
+      "schema_version": "0.1.0",
+      "ref": {
+        "namespace": "official",
+        "id": "OPEN_QA_PORTRAIT_001",
+        "type": "qa",
+        "version": "1.0.0",
+        "content_digest": "5ef51933854d06e7265a9f1050e3790d803a72380e198b547d7ab5e16b8ac383"
+      },
+      "image": "qa.webp",
+      "sha256": "48b66faa65bf093648fc3197e3c05b502b28b8ef0098e67f29cd9de33c88ef54",
+      "kind": "semantic_card",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "status": "original_open_content",
+        "attribution": "HenyJone / APSAL Open contributors"
+      },
+      "qa_status": "static_validated",
+      "visual_qa_status": "not_applicable_semantic_card",
+      "disclaimer": "Design preview; not generated-image quality evidence."
+    }
+  ]
+}

@@ -5,14 +5,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 DENY = re.compile("(" + "|".join(("gh" + "o_", "github" + "_pat_", "s" + "k-[A-Za-z0-9]", "BEGIN (RSA|OPENSSH|EC)" + " PRIVATE KEY", "APSAL_ACCESS" + r"_TOKEN\s*=")) + ")")
 
 def check_tree() -> list[str]:
     errors = []
-    for path in ROOT.rglob("*"):
-        if ".git" in path.parts or not path.is_file(): continue
-        rel = path.relative_to(ROOT)
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True).stdout
+    for encoded in listed.split(b"\0"):
+        if not encoded: continue
+        rel = Path(encoded.decode("utf-8")); path = ROOT / rel
+        if not path.is_file(): continue
         if "__pycache__" in rel.parts or path.suffix in {".pyc", ".pyo"}: continue
         if path.stat().st_size > 2_000_000: errors.append(f"large file: {rel}")
         if any(part in {"private", "generated"} for part in rel.parts): errors.append(f"forbidden path: {rel}")
@@ -25,6 +27,8 @@ def build() -> tuple[Path, str]:
     subprocess.run([sys.executable, str(ROOT / "scripts/build_example.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/migrate_quiet_window_1_1.py"), "--check"], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/generate_semantic_docs.py"), "--check"], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/generate_preview_cards.py"), "--check"], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/validate_plugin_bundle.py")], check=True)
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "validate", str(ROOT / "examples/quiet-window/theme.json")], check=True)
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "validate", str(ROOT / "examples/quiet-window/theme.apsal.yaml")], check=True)
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "check-sync", str(ROOT / "examples/quiet-window")], check=True)

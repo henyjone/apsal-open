@@ -36,11 +36,11 @@ APSAL is that open visual language. It turns creative intuition into explicit el
 
 ```mermaid
 flowchart LR
-    A["Intent"] --> B["Elements"]
-    B --> C["Relations + constraints"]
-    C --> D["World model"]
-    D --> E["Independent shot Jobs"]
-    E --> F["JSON · Skill · Images"]
+    A["One natural-language idea"] --> B["APSAL decomposition"]
+    B --> C["Character · World · Scene · Photo DNA cards"]
+    C --> D["Creator confirmation"]
+    D --> E["Nine independent shot Jobs"]
+    E --> F["Nine images · Prompts · Skill"]
 ```
 
 | ELEMENTS | GRAMMAR | WORLD | CAMERA | OUTPUT |
@@ -55,7 +55,7 @@ The protocol defines 13 composable module roles. The DNA Registry stores reusabl
 
 ## Install the Codex plugin
 
-The Git marketplace is the recommended path. It installs the protocol, DNA Registry, validator, compiler, templates, and Skill packager together.
+The Git marketplace is the recommended path. It installs the protocol, official DNA Registry, local engine, interactive card service, validators, and Skill packager together.
 
 ```bash
 codex plugin marketplace add henyjone/apsal-open --ref main
@@ -68,27 +68,32 @@ Restart Codex or open a new task after installation. You can also download the p
 
 Ask Codex:
 
-> Use APSAL Studio to create a nine-shot Eastern-minimalist window portrait theme. Keep one fictional adult identity, make every shot narratively distinct, validate the package, and export an installable Skill.
+> Create a nine-shot Eastern-minimalist window portrait series.
 
 APSAL Studio will:
 
-1. Select exact, versioned assets from the bundled DNA Registry.
-2. Create independent shot definitions with identity and continuity locks.
-3. Validate rights, lineage, checksums, filenames, and output rules.
-4. Export canonical JSON, compiled shot prompts, and a reproducible Skill ZIP.
+1. Decompose the sentence and present Character, World, Scene, and Photo DNA cards.
+2. Let you choose, revise in natural language, or redesign one scene without hand-writing data files.
+3. Show the nine-shot overview and wait for your confirmation.
+4. Generate nine independent images, save the Prompts only, or export a reproducible Skill.
 
-Protocol 0.3 keeps the reason behind every creative decision. Creators edit safe YAML; APSAL normalizes canonical JSON and compiles separate scene-design, image-generation, and QA outputs.
+Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
 
-Expected artifacts:
+### Where your DNA lives
+
+| Layer | Location | Purpose |
+|---|---|---|
+| Official | inside the installed plugin | read-only, rights-cleared starter DNA and previews |
+| Personal | `~/.apsal/` or `APSAL_HOME` | reusable DNA and the private content-addressed reference Vault |
+| Project | `<project>/.apsal/` | drafts, project DNA, frozen themes, exact Prompts, runs, outputs and QA |
+
+Resolution is project → personal → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Private character references stay in `~/.apsal/vault/sha256/`; they are never put in Git or exported Skills.
+
+Behind the interface, a finalized theme and each real run retain complete lineage:
 
 ```text
-theme.apsal.yaml
-theme.apsal.json
-compiled.design.json
-compiled.image.json
-compiled.qa.json
-your-theme-1-0-0.zip
-your-theme-1-0-0.zip.sha256
+.apsal/themes/<theme-id>/<version>/   source, canonical artifact, three compiled targets, 18 Prompt files
+.apsal/runs/<run-id>/                 exact submitted Prompts, nine outputs, retries and per-shot QA
 ```
 
 ## Use the engine directly
@@ -96,6 +101,9 @@ your-theme-1-0-0.zip.sha256
 No account, hosted API, or model key is required for validation and packaging.
 
 ```bash
+python3 plugins/apsal-studio/scripts/apsal.py init
+python3 plugins/apsal-studio/scripts/apsal.py session start "Create a nine-shot Eastern-minimalist window portrait series"
+python3 plugins/apsal-studio/scripts/apsal.py registry search --stage character
 python3 plugins/apsal-studio/scripts/apsal.py catalog
 python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.apsal.yaml
 python3 plugins/apsal-studio/scripts/apsal.py normalize examples/quiet-window/theme.apsal.yaml -o build/theme.apsal.json
@@ -112,7 +120,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 
 | Creator | Developer | Contributor |
 |---|---|---|
-| Describe a theme in Codex and receive a validated package. | Build against the [protocol](protocol/APSAL_OPEN_PROTOCOL.md), [schemas](plugins/apsal-studio/assets/schemas), and offline CLI. | Submit original DNA through the [DNA template](https://github.com/henyjone/apsal-open/issues/new?template=dna-submission.yml) and follow [CONTRIBUTING.md](CONTRIBUTING.md). |
+| Describe a world, choose visual DNA cards, then generate nine independent images. | Build against the [protocol](protocol/APSAL_OPEN_PROTOCOL.md), [schemas](plugins/apsal-studio/assets/schemas), local MCP and offline CLI. | Submit original DNA through the [DNA template](https://github.com/henyjone/apsal-open/issues/new?template=dna-submission.yml) and follow [CONTRIBUTING.md](CONTRIBUTING.md). |
 
 ## Open does not mean unlicensed
 
@@ -124,6 +132,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 
 - [Building Visible Worlds — APSAL methodology monograph](docs/monograph/README.md)
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
+- [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
+- [APSAL Studio 0.4 release and installation notes](docs/releases/0.4.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

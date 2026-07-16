@@ -1,18 +1,31 @@
 {
   "name": "apsal-studio",
-  "version": "0.3.0",
-  "description": "Design semantic APSAL worlds in safe YAML, normalize canonical JSON, compile design/image/QA targets, and export Codex Skills.",
+  "version": "0.4.0",
+  "description": "Create modular AI photography from natural language with interactive DNA cards, local Registry, reproducible prompts, and resumable image runs.",
   "author": {
-    "name": "APSAL Open contributors"
+    "name": "HenyJone / APSAL Open",
+    "url": "https://github.com/henyjone"
   },
+  "homepage": "https://github.com/henyjone/apsal-open#readme",
+  "repository": "https://github.com/henyjone/apsal-open",
+  "license": "Apache-2.0",
+  "keywords": ["ai-photography", "world-building", "dna-registry", "codex-plugin", "creative-tools"],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "用开放 DNA 生成摄影主题 JSON 和 Skill",
-    "longDescription": "APSAL Studio bundles Semantic Contract 0.3, safe YAML authoring, canonical JSON normalization, the offline DNA catalog, three-target compiler, validators, and reproducible Skill packaging.",
-    "developerName": "APSAL Open",
-    "category": "Developer Tools",
-    "capabilities": ["Skills"],
-    "defaultPrompt": "使用 APSAL Studio，根据我的创意生成一套详细、可验证的摄影场景 JSON，并打包成 Codex Skill。"
+    "shortDescription": "一句话设计世界，选择 DNA，生成九张独立摄影作品",
+    "longDescription": "APSAL Studio turns one natural-language idea into interactive Character, World, Scene, and Photo DNA decisions, then saves deterministic prompts and runs nine independent image Jobs. Its official Registry, Semantic Contract 0.3, validators, and Skill packager work offline.",
+    "developerName": "HenyJone / APSAL Open",
+    "category": "Design",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/henyjone/apsal-open",
+    "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
+    "defaultPrompt": [
+      "创建一套九张东方极简窗边人像主题。",
+      "用自然语言帮我设计 Character、World、Scene 和 Photo DNA。",
+      "继续上次未完成的 APSAL 九镜头创作。"
+    ],
+    "brandColor": "#84A99C"
   }
 }

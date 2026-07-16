@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/run.schema.json",
+  "title": "APSAL Studio Generation Run 0.4",
+  "type": "object",
+  "required": ["schema_version", "run_id", "session_id", "mode", "status", "theme", "dna", "engine_version", "adapter", "model", "parameters", "jobs", "resume_count", "created_at", "updated_at"],
+  "properties": {
+    "schema_version": {"const": "0.4.0"},
+    "run_id": {"type": "string", "pattern": "^RUN-[A-Za-z0-9-]+$"},
+    "mode": {"enum": ["generate", "prompts", "skill"]},
+    "status": {"enum": ["generating", "completed", "partial"]},
+    "model": {"type": "string"},
+    "parameters": {"oneOf": [{"type": "object"}, {"const": "not_reported"}]},
+    "jobs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": ["shot_id", "status", "prompt_digest", "attempts"],
+        "properties": {"status": {"enum": ["pending", "saved", "succeeded", "failed"]}}
+      }
+    }
+  },
+  "additionalProperties": true
+}
