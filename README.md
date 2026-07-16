@@ -21,9 +21,10 @@
 <p align="center">
   <a href="#install-the-codex-plugin"><strong>Install Plugin</strong></a> ·
   <a href="#30-second-start"><strong>Quick Start</strong></a> ·
+  <a href="docs/USAGE_GUIDE.md"><strong>Complete Guide</strong></a> ·
   <a href="protocol/APSAL_OPEN_PROTOCOL.md"><strong>Read Protocol</strong></a> ·
   <a href="docs/monograph/README.md"><strong>Read the Method</strong></a> ·
-  <a href="README.zh-CN.md"><strong>中文文档</strong></a>
+  <a href="docs/USAGE_GUIDE.zh-CN.md"><strong>中文使用手册</strong></a>
 </p>
 
 ---
@@ -92,6 +93,8 @@ APSAL Studio will:
 5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, reference and usage guide. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
 Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.9 keeps the complete five-layer, thirteen-role authoring method and Codex-native delivery, and can now take over old APSAL run packages. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
+
+For the complete installation, five-layer conversation, DNA/reference, generation, package-installation and troubleshooting workflow, follow the [APSAL Studio complete usage guide](docs/USAGE_GUIDE.md) or the [中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md).
 
 ### Already have an old APSAL ZIP?
 
@@ -178,6 +181,9 @@ Static validation proves structure and reproducibility—not generated-image qua
 
 ## Project map
 
+- [Documentation hub](docs/README.md)
+- [Complete APSAL Studio usage guide](docs/USAGE_GUIDE.md)
+- [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md)
 - [Building Visible Worlds — APSAL methodology monograph](docs/monograph/README.md)
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
 - [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 READMES = (ROOT / "README.md", ROOT / "README.zh-CN.md")
-REQUIRED = ("APSAL", "apsal-studio", "releases/latest", "APSAL_OPEN_PROTOCOL.md", "validate-package", "Extension Pack", "registry recommend")
+REQUIRED = ("APSAL", "apsal-studio", "releases/latest", "APSAL_OPEN_PROTOCOL.md", "USAGE_GUIDE", "validate-package", "Extension Pack", "registry recommend")
 
 
 def main() -> int:

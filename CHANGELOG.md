@@ -10,6 +10,7 @@
 - Added automatic private Codex Prompt/Skill repackaging for imported runs, including positive/negative/full Prompts, restored reference media, rights metadata, checksums, offline validation and a plain-language guide.
 - Added a high-priority imported-run instruction to generate the finished photograph itself and reject code, JSON, terminals, programming interfaces and Prompt sheets as image content.
 - Added missing-reference recovery that asks only for the exact omitted image and verifies its original digest before continuing.
+- Added a bilingual documentation hub and complete creator usage guides covering installation, five-layer confirmation, DNA memory, reference roles, Codex continuation, Prompt/Skill installation, legacy ZIP takeover, storage, visual QA and troubleshooting.
 
 ## 0.8.0 - 2026-07-16
 

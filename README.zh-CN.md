@@ -13,7 +13,7 @@
   <a href="CONTENT_LICENSE.md"><img alt="内容许可" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="#安装-codex-插件">安装插件</a> · <a href="#30-秒开始使用">快速开始</a> · <a href="docs/monograph/README.md">阅读方法论专著</a> · <a href="protocol/APSAL_OPEN_PROTOCOL.md">阅读协议</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="#安装-codex-插件">安装插件</a> · <a href="#30-秒开始使用">快速开始</a> · <a href="docs/USAGE_GUIDE.zh-CN.md"><strong>完整使用手册</strong></a> · <a href="docs/monograph/README.md">阅读方法论专著</a> · <a href="protocol/APSAL_OPEN_PROTOCOL.md">阅读协议</a></p>
 
 ---
 
@@ -81,6 +81,8 @@ codex plugin add apsal-studio@apsal-open
 5. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、参考图和使用说明。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
 创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.9 保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法与 Codex 原生交付，并能直接接管旧 APSAL 运行包。APSAL 不调用图像 API；主题确认后一定生成可复现的 Codex Prompt/Skill ZIP，由 Codex 自己逐张生成。
+
+从安装、五层对话、DNA 与参考图，到逐张生成、安装主题 Skill 和排查问题，请直接按照 [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md) 操作。
 
 ### 已经有旧版 APSAL ZIP？
 
@@ -167,6 +169,9 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 
 ## 项目导航
 
+- [GitHub 文档中心](docs/README.md)
+- [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md)
+- [APSAL Studio Complete Usage Guide](docs/USAGE_GUIDE.md)
 - [《构建可见世界：APSAL 元素摄影法》](docs/monograph/README.md)
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
 - [本地 Registry 与对话创作 RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)

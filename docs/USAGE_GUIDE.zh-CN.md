@@ -1,0 +1,437 @@
+# APSAL Studio 0.9 完整使用手册
+
+[English](USAGE_GUIDE.md) · [文档中心](README.md) · [返回中文首页](../README.zh-CN.md)
+
+这份手册面向 AI 摄影创作者，覆盖从安装插件、输入一句自然语言、确认十三元素、管理 DNA 与参考图，到让 Codex 逐张生成九张图片、交付 Prompt/Skill，以及接管旧版 APSAL ZIP 的完整流程。
+
+## 1. 先理解最终体验
+
+APSAL Studio 的标准流程是：
+
+```text
+一句自然语言
+→ APSAL 提出五层设计方案
+→ 按场景推荐 DNA
+→ 创作者确认或用自然语言修改
+→ 十三元素与九镜头总览
+→ 自动生成 Prompt/Skill 包
+→ Codex 每回合生成一张图
+→ 说“继续”生成下一张
+→ 模型视觉 QA + 人工视觉 QA
+```
+
+创作者不需要手写 JSON/YAML，不需要配置图像 API，也不需要寻找单独的图片生成运行器。JSON、YAML、摘要和运行记录只在后台承担复用、版本、校验与血缘管理。
+
+## 2. 安装 APSAL Studio
+
+### 2.1 安装固定稳定版
+
+在终端执行：
+
+```bash
+codex plugin marketplace add henyjone/apsal-open --ref v0.9.0
+codex plugin add apsal-studio@apsal-open
+```
+
+然后重启 Codex，或至少打开一个新任务。插件是在任务启动时加载的，已经打开的旧任务不一定能看到刚安装的能力。
+
+### 2.2 跟随主分支
+
+如果希望持续使用仓库 `main` 的最新文档和代码：
+
+```bash
+codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin add apsal-studio@apsal-open
+```
+
+正式创作和可复现实验更适合固定 Release 标签；参与开发和测试可以跟随 `main`。
+
+### 2.3 检查是否安装成功
+
+```bash
+codex plugin list
+```
+
+应当看到：
+
+```text
+apsal-studio@apsal-open  installed, enabled  0.9.0
+```
+
+如果显示旧版本，先移除插件和旧 marketplace，再重新安装：
+
+```bash
+codex plugin remove apsal-studio@apsal-open
+codex plugin marketplace remove apsal-open
+codex plugin marketplace add henyjone/apsal-open --ref v0.9.0
+codex plugin add apsal-studio@apsal-open
+```
+
+## 3. 创建第一套九张主题
+
+### 3.1 先打开项目文件夹
+
+建议先在 Codex 中打开一个专门的创作项目文件夹。APSAL 会把主题、Prompt、运行记录、生成结果与 QA 保存到该项目的 `.apsal/` 目录，而不是只留在聊天记录里。
+
+### 3.2 最短启动语句
+
+直接输入：
+
+> 使用 APSAL Studio 创建一套九张东方极简窗边真人摄影主题。
+
+APSAL 会开始五层确认，而不是立即写一大段不可控的 Prompt。
+
+### 3.3 信息更完整的启动模板
+
+如果已有明确想法，可以复制下面的模板并替换括号内容：
+
+```text
+使用 APSAL Studio 创建一套九张真人摄影主题。
+主题命题：（这组作品关于什么）
+人物：（年龄、气质、身份是否需要参考图锁定）
+世界：（地点、时代、时间、天气、空间规则）
+总体情绪：（欢喜 / 悲伤 / 宁静 / 紧张 / 混合，以及如何变化）
+摄影语言：（纪实、编辑、电影感、闪光灯、自然光等）
+色彩与后期：（主色、色温、饱和度、颗粒、曲线、肤色要求）
+必须出现：（服装、道具、动作或叙事节点）
+禁止出现：（插画人物、九宫格、文字、水印等）
+参考图用途：（identity / style / world / prop / wardrobe / composition）
+```
+
+没有填写的部分不必提前想完；APSAL 会在对应层提出方案。
+
+## 4. 五层对话怎样确认十三元素
+
+五层是创作者的对话顺序，十三元素是协议中不能遗漏的设计角色，七类 DNA 是可以复用的资产。
+
+| 创作层 | 必须确认的元素 | 你实际要判断什么 |
+|---|---|---|
+| 命题与情绪 Direction | Content、Emotion | 作品关于什么；总体欢喜、悲伤、宁静还是紧张；情绪怎样从第 1 镜推进到第 9 镜 |
+| 人物与世界 Worldbuilding | Subject、World、Look | 人物身份、年龄、面部和发型锁定；空间、时间、物理规则；服装、妆发、道具与归属 |
+| 事件与序列 Narrative | Event、Sequence | 每镜发生什么；动作造成什么后果；九镜是否递进而不是九次重复摆姿 |
+| 摄影与成像 Image | Camera、Light、Style、Color/Post | 景别、机位、焦段、构图；光源、方向、软硬、反差；摄影风格、色调和后期 |
+| 执行与验证 Delivery | Job、Quality Control | 一 Job 一张图；文件与画幅要求；拒绝规则；模型与人工 QA |
+
+### 4.1 如何确认
+
+每一层都会显示纯文字卡片，包含选择值、为什么这样设计、会影响什么、必须保持什么，以及如何检查成功。你可以回复：
+
+> 确认这一层。
+
+也可以只修改一个目标：
+
+> 人物更成熟一些，年龄改为 32–38 岁；短发和冷静气质保持不变。
+
+> 第 4 镜更悲伤，但不要改变窗户方向、服装和灯光系统。
+
+> 道具改为未寄出的信，必须始终属于人物本人，不能漂浮或重复出现。
+
+APSAL 会依据 Semantic Contract 的 `affects` 让受影响的下游选择失效并重新确认，避免继续使用旧 Prompt。
+
+### 4.2 不要过早回复“全部确认”
+
+建议逐层看完人物、空间、九镜动作、灯光和色彩。真正需要重点检查的是：
+
+- 九个镜头是否具有九个不同叙事职能；
+- 人物、年龄、发型和关键服装是否锁定；
+- 道具是否有明确所有者与状态变化；
+- 主光方向、时间和天气是否连续；
+- 手部、镜面、水面、雨丝和空间透视是否可执行；
+- 真人摄影契约是否高于手绘、蜡笔或戏剧化布景修辞。
+
+## 5. DNA 推荐、确认与入库
+
+APSAL 会根据当前场景推荐 Character、Environment、Composition、Shot、Style、Lighting 和 QA DNA，并说明匹配原因、版本、来源、权利和 QA 状态。
+
+### 5.1 四层 Registry
+
+| Registry | 位置 | 含义 |
+|---|---|---|
+| Official | 插件内部 | 随 Release 发布，只读，适合作为开放起点 |
+| Personal | `~/.apsal/` | 由你明确保存、跨项目复用的个人 DNA |
+| Extension | `~/.apsal/extensions/` | 安装的社区 DNA Extension Pack，只读且不可覆盖官方版本 |
+| Project | `<project>/.apsal/` | 当前项目的草稿、正式 DNA、主题、Prompt、运行与 QA |
+
+解析顺序是“项目 → 个人 → 扩展 → 官方”。
+
+### 5.2 确认新 DNA 后会发生什么
+
+新建或修改 DNA 时，APSAL 会建议受控标签，并只询问一次：
+
+> 保存到我的 DNA、仅保留在当前项目，还是稍后决定？
+
+- **保存到我的 DNA**：成为跨项目个人资产，以后相关场景可主动推荐。
+- **仅当前项目**：只服务本主题，不进入个人库。
+- **稍后决定**：保留待处理状态，不会静默入库。
+
+修改正式 DNA 不会覆盖原版本，而会建立新版本并记录父版本、变更字段与变更摘要。
+
+### 5.3 分享 DNA，而不是泄露整个私人主题
+
+可以对 Codex 说：
+
+> 把这次确认的灯光 DNA 单独打包为可分享的 Extension Pack，先检查权利、标签、预览和依赖。
+
+公开包必须权利清晰、标签已确认、预览和署名完整、依赖可解析，并具有 SHA-256。私人参考图、运行结果和权利不明内容不会进入公开包。
+
+## 6. 正确使用参考图
+
+上传参考图时，最好明确它的角色：
+
+| 用途 | 允许影响 | 不应自动影响 |
+|---|---|---|
+| `identity` | 同一人物身份、年龄、稳定面部特征 | 姿势、背景、机位、构图 |
+| `style` | 色彩、材质、摄影修辞 | 人物身份、精确构图 |
+| `world` | 空间语言、建筑、环境材质 | 参考图人物与原始事件 |
+| `prop` | 道具形态、材质、状态 | 人物身份与无关背景 |
+| `wardrobe` | 服装轮廓、面料、配饰 | 模特身份与原姿势 |
+| `composition` | 观看关系或构图方法 | 原图人物、背景和逐像素复制 |
+
+示例：
+
+> 这张图只用于 style 和 world：借鉴冷紫灰色彩、木作与镜面空间；禁止复制人物面容、姿势和精确构图。
+
+APSAL 会记录允许用途、禁止用途、适用镜头、SHA-256、版权、肖像授权、署名和再分发状态。禁止用途优先于冲突的用途声明。
+
+参考图原件默认进入 `~/.apsal/vault/sha256/`，不会写入 DNA JSON 或 Git。若再分发权利未确认，生成的 Skill 会自动标记 `private_only`。
+
+## 7. 最终总览与自动打包
+
+五层确认完成后，APSAL 应当展示：
+
+- 十三元素的最终选择与锁定项；
+- 九个镜头的标题、叙事职能、动作、机位与连续性；
+- 真人摄影 Rendering Contract；
+- 参考图数量、用途与私人/公开状态；
+- 请求画幅与交付目标；
+- 一 Job 一张图、无九宫格、无文字、无水印规则；
+- 模型视觉 QA 和人工视觉 QA 的区别。
+
+你确认总览后，`finalize_theme` 会自动生成主题资产和 Codex Prompt/Skill ZIP。无论选择立即生成还是只取 Prompt，包都会先创建，因此聊天记录不是唯一血缘证据。
+
+典型包结构：
+
+```text
+<theme>-codex-prompt-skill[-private].zip
+├── SKILL.md
+├── PROMPT_GUIDE.md
+├── prompts/
+│   ├── SHOT_01.prompt.txt
+│   ├── SHOT_01.negative.txt
+│   ├── SHOT_01.full.txt
+│   └── ... SHOT_09
+├── references/
+│   ├── theme.json
+│   ├── compiled.json
+│   ├── design_context.json
+│   ├── qa_checklist.json
+│   ├── rendering_contract.json
+│   ├── reference_manifest.json
+│   └── manifest.json
+├── assets/references/
+└── scripts/validate_prompt_pack.py
+```
+
+## 8. 用 Codex 逐张生成九张图
+
+### 8.1 第一次确认
+
+最终选择：
+
+> 现在用 Codex 生成第一张。
+
+APSAL 准备可续跑 run，并把 SHOT_01 的完整 Prompt 和允许的真实参考图交给 Codex 内置图像生成。它不会调用外部图像 API，也不会询问 API Key。
+
+### 8.2 为什么每次只生成一张
+
+APSAL 的“一次生成九张”是指只确认一次，之后依次执行九个独立 Job；不是一次请求输出九宫格。每镜独立才能保留：
+
+- 不同叙事职能和机位；
+- 独立 Prompt 与参考图范围；
+- 单镜失败重试；
+- 成功镜头不被其他失败镜头连带重做；
+- 逐镜视觉 QA 和可追溯摘要。
+
+图像显示后，本回合会停止。下一回合只需说：
+
+> 继续。
+
+或：
+
+> 继续下一张。
+
+APSAL 会记录上一镜、完成模型视觉检查，然后取下一个未完成 Job。
+
+### 8.3 当前镜头不合格怎么办
+
+不要简单要求“全部重做”。指出镜头与失败原因：
+
+> SHOT_04 真人摄影媒介 QA 不通过，人物像 3D 模型；记录失败并按原镜头重试，保留身份、空间和灯光锁定。
+
+> SHOT_06 右手结构错误，其他部分合格；只重试 SHOT_06。
+
+> SHOT_08 道具归属错误，信件不能出现在桌上；按连续性规则重试这一镜。
+
+模型视觉 QA 失败会重新开放该 Job；已经成功的其他镜头不会被覆盖。
+
+### 8.4 身份连续性
+
+有明确 identity 参考图时，每镜使用该参考图的身份作用域。没有本地身份参考时，上一张已接受图片可以成为后续镜头的运行时身份锚点，但只能继承人物身份，不能继承姿势、动作、背景、机位、灯光或构图。
+
+## 9. 只使用 Prompt/Skill 包
+
+### 9.1 直接复制某一镜 Prompt
+
+- `SHOT_XX.prompt.txt`：正向可观察画面语言。
+- `SHOT_XX.negative.txt`：负向和拒绝规则。
+- `SHOT_XX.full.txt`：已经组合好的完整 Prompt，普通使用优先打开它。
+
+如果镜头声明了参考图，复制文字不能替代图片；必须同时提供 `reference_manifest.json` 为该镜列出的真实参考图。
+
+### 9.2 安装为个人 Skill
+
+1. 解压 ZIP。
+2. 找到包含 `SKILL.md` 的顶层目录。
+3. 将该目录放入 `~/.codex/skills/`。
+4. 重启 Codex 或打开新任务。
+5. 输入：“使用 `<skill-name>` 生成第一张。”之后说“继续”。
+
+也可以把解压后的目录直接提供给 Codex，并要求它先读取 `PROMPT_GUIDE.md`。
+
+### 9.3 离线验证 Prompt 包
+
+在解压后的 Skill 根目录运行：
+
+```bash
+python3 scripts/validate_prompt_pack.py --list
+```
+
+该命令检查 Prompt 与参考图摘要并列出所有 Job，不访问网络，也不生成图片。
+
+## 10. 打开旧版 APSAL ZIP
+
+从 0.9.0 开始，不需要自己解压旧包。把 ZIP 附到 Codex，输入：
+
+> 打开这个 APSAL 包并生成第一张图。
+
+系统会自动：
+
+1. 安全识别唯一的 `run.json`；
+2. 恢复所有正向和负向 Prompt；
+3. 把旧 `openai-image-api`、模型名和 API 参数降为不可执行的历史血缘；
+4. 按 SHA-256 从 ZIP 或私人 Vault 恢复参考图；
+5. 删除新包中的旧电脑绝对路径；
+6. 生成新的 `private_only` Codex Prompt/Skill ZIP；
+7. 返回可直接生图的 SHOT_01。
+
+如果参考图确实不存在，APSAL 只会告诉你缺少的 reference ID 和原文件名。重新上传该图后，系统核对 SHA-256；不会让你编辑 `run.json`、修复路径或寻找 API 运行器。
+
+旧包里的供应商设置不代表现在仍要调用该 API。
+
+## 11. 文件保存在哪里
+
+```text
+<project>/.apsal/
+├── drafts/                 未确认草稿
+├── registry/               项目 DNA
+├── themes/<id>/<version>/  YAML、canonical JSON、编译结果、Prompt、导出包
+└── runs/<run-id>/          实际 Prompt、参考图、输出、重试与 QA
+
+~/.apsal/
+├── registry/               个人 DNA
+├── extensions/             社区 Extension Pack
+├── usage/                  本地推荐结果记忆
+└── vault/sha256/            私人参考图内容寻址 Vault
+```
+
+项目的 drafts、runs、cache 与 Vault 默认忽略 Git。不要把 `private_only` Skill、个人照片、Vault 或生成结果误提交到公开仓库。
+
+## 12. 每张图应该检查什么
+
+模型视觉 QA 和人工视觉 QA 必须分开。人工至少检查：
+
+- 人物是否为真实成年人的实拍摄影呈现；
+- 同一人物的年龄、脸型、发型与身体比例是否连续；
+- 双眼、手指、关节、四肢和皮肤是否可信；
+- 服装、妆发与配饰是否保持锁定；
+- 道具所有者、数量、位置与状态变化是否正确；
+- 空间几何、门窗、镜面、水面与反射是否符合机位；
+- 主光方向、阴影、色温、天气与时间是否连续；
+- 当前镜头是否完成独特叙事职能；
+- 是否出现九宫格、拼图、文字、标志或水印；
+- 是否错误复制了参考图人物、姿势或精确构图。
+
+Schema、Prompt 或摘要校验通过，只证明结构正确，不能证明成片质量已经通过。
+
+## 13. 常见问题
+
+| 现象 | 原因与处理 |
+|---|---|
+| 安装后没有触发 APSAL | 重启 Codex 或打开新任务；明确说“使用 APSAL Studio” |
+| Codex 开始向你解释 JSON | 确认插件为 0.9.0；对旧包直接说“打开这个 APSAL 包并生成第一张图” |
+| 生成了编程界面或代码画面 | 这是错误结果；将当前镜头标记为视觉 QA 失败并重试，不要接受为摄影输出 |
+| 人物像插画、3D 或玩偶 | 检查 Rendering Contract 是否为 `live_action_photography`，按媒介失败重试当前镜头 |
+| 只生成了一张 | 这是正确行为；看完后说“继续”，不是要求九宫格 |
+| 没有严格返回 2160×3840 | 该尺寸是创作交付目标，Codex 当前实际返回像素由其可用图像能力决定；不得虚报原生 4K |
+| 提示缺少参考图 | 上传系统列出的原图；摘要不一致表示文件不是当时绑定的那一张 |
+| Skill 标记为 `private_only` | 参考图或肖像/版权再分发权利未确认，这是安全保护，不是错误 |
+| 修改人物后旧 Prompt 失效 | 正常；上游 DNA 影响下游镜头，必须重新确认和编译 |
+| 想公开分享方法但不分享私人主题 | 单独导出权利清晰的 DNA Extension Pack |
+
+## 14. 开发者与高级用户 CLI
+
+普通创作者不需要下面的命令。开发、诊断或批量验证时可以使用：
+
+```bash
+# 初始化本地目录
+python3 plugins/apsal-studio/scripts/apsal.py init
+
+# 导入旧 run ZIP，恢复参考图并准备 Codex Job
+python3 plugins/apsal-studio/scripts/apsal.py import-run path/to/legacy-run.zip
+
+# 为旧包补回缺失参考图
+python3 plugins/apsal-studio/scripts/apsal.py run-bind-reference RUN-ID REF-ID path/to/reference.png
+
+# 查看下一份冻结的 Codex Job
+python3 plugins/apsal-studio/scripts/apsal.py run-next RUN-ID
+
+# 验证主题与 YAML/JSON 同步
+python3 plugins/apsal-studio/scripts/apsal.py validate path/to/theme.apsal.yaml
+python3 plugins/apsal-studio/scripts/apsal.py check-sync path/to/theme-directory
+
+# 搜索与推荐 DNA
+python3 plugins/apsal-studio/scripts/apsal.py registry search "安静窗边"
+python3 plugins/apsal-studio/scripts/apsal.py registry recommend-layer "安静窗边真人摄影" --layer image
+```
+
+## 15. 一段完整示例对话
+
+```text
+你：使用 APSAL Studio 创建九张东方极简窗边真人摄影。主题是“未寄出的信”，情绪从犹豫走向释然。我上传的人物图只用于 identity。
+
+APSAL：提出命题与情绪卡片。
+
+你：确认情绪弧线；结尾不要完全快乐，要保留一点未决。
+
+APSAL：推荐人物、环境 DNA，并提出服装、空间、信件归属。
+
+你：人物确认。信件始终属于她，只有一封；保存这个人物 DNA 到我的 DNA。
+
+APSAL：设计九镜事件与序列。
+
+你：第 4 镜改成停在窗前但不读信，其他顺序确认。
+
+APSAL：提出机位、镜头、灯光、风格、色彩和后期。
+
+你：确认。保持自然肤色，颗粒轻微，窗光方向不能变。
+
+APSAL：展示十三元素、九镜与 QA 总览，并生成 Prompt/Skill 包。
+
+你：现在用 Codex 生成第一张。
+
+Codex：显示 SHOT_01 图片后停止。
+
+你：继续。
+```
+
+这就是 APSAL 的目标：让创作者始终面对创作语言和可判断的选择，让结构化资产在后台保证世界、人物、镜头与血缘不会失控。
