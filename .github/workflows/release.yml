@@ -17,5 +17,7 @@ jobs:
       - run: python3 scripts/release.py
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/apsal-studio-codex-plugin-${{ github.ref_name }}.zip
+            dist/apsal-studio-codex-plugin-${{ github.ref_name }}.zip.sha256
           generate_release_notes: true
