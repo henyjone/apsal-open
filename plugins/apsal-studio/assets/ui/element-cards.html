@@ -4,40 +4,43 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    :root { color-scheme:dark; --bg:#101311; --panel:#151916; --text:#eeeade; --muted:#9ba69f; --accent:#8fb3a5; --line:#303a35; --soft:#232b27; }
+    :root { color-scheme:dark; --bg:#101311; --panel:#151916; --text:#eeeade; --muted:#a6b0aa; --accent:#8fb3a5; --accent-strong:#b9dfd0; --accent-surface:#1d2d27; --accent-ink:#0c1511; --line:#303a35; --soft:#232b27; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
     main { max-width:1080px; margin:0 auto; padding:20px; }
     header { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; padding-bottom:14px; border-bottom:1px solid var(--soft); }
-    h1 { margin:0; font-size:19px; font-weight:620; }
+    h1 { margin:0; color:var(--accent-strong); font-size:20px; font-weight:700; }
     header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
     .progress { color:var(--accent); font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; }
     #cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:10px; margin-top:16px; }
-    article { padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
-    .role { color:var(--accent); font:600 10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; }
-    h2 { margin:5px 0 2px; font-size:16px; }
-    .question { color:var(--muted); font-size:12px; }
-    .source { display:inline-block; margin-top:10px; padding:3px 7px; border:1px solid #405047; border-radius:999px; color:#b7c2bc; font-size:10px; }
-    .intent { margin-top:12px; color:#d9d9d4; }
+    article { position:relative; overflow:hidden; padding:17px; border:1px solid var(--line); border-radius:12px; background:var(--panel); transition:border-color .18s ease,background .18s ease; }
+    article::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--accent); opacity:.72; }
+    article:hover { border-color:#577166; background:#171d19; }
+    .role { color:var(--accent); font:700 11px/1.4 ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; letter-spacing:.06em; }
+    h2 { margin:5px 0 2px; color:var(--accent-strong); font-size:17px; font-weight:700; }
+    .question { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    .source { display:inline-block; margin-top:10px; padding:4px 8px; border:1px solid #4d6a5e; border-radius:999px; background:var(--accent-surface); color:var(--accent-strong); font-size:11px; font-weight:650; }
+    .intent { margin-top:13px; padding:10px 12px; border-left:2px solid var(--accent); background:var(--accent-surface); color:#e5eee9; font-weight:520; overflow-wrap:anywhere; }
     section { margin-top:13px; padding-top:11px; border-top:1px solid var(--soft); }
-    .label { margin-bottom:6px; color:#7f8a84; font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+    .label { margin-bottom:7px; color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.08em; }
     dl { display:grid; grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr); gap:6px 10px; margin:0; }
     dt { color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
-    dd { margin:0; color:#cdd2ce; font-size:12px; overflow-wrap:anywhere; }
-    ul { margin:0; padding-left:18px; color:#cdd2ce; font-size:12px; }
+    dd { margin:0; color:var(--accent-strong); font-size:12px; font-weight:650; overflow-wrap:anywhere; }
+    ul { margin:0; padding-left:18px; color:#cdd2ce; font-size:12px; overflow-wrap:anywhere; }
     li + li { margin-top:4px; }
     .actions { display:flex; gap:8px; margin-top:13px; }
-    button { min-height:44px; flex:1; padding:8px 10px; border:1px solid #58766a; border-radius:8px; background:transparent; color:var(--text); font:inherit; cursor:pointer; touch-action:manipulation; }
-    button:hover { border-color:var(--accent); background:#202b26; }
+    button { min-height:44px; flex:1; padding:9px 11px; border:1px solid #648679; border-radius:8px; background:transparent; color:var(--accent-strong); font:650 14px/1.4 ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; cursor:pointer; touch-action:manipulation; transition:background .18s ease,color .18s ease,border-color .18s ease; }
+    button:hover { border-color:var(--accent-strong); background:#24362f; }
     button:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
-    #confirm { width:100%; margin-top:14px; border-color:var(--accent); }
+    #confirm { width:100%; margin-top:14px; border-color:var(--accent-strong); background:var(--accent-strong); color:var(--accent-ink); font-weight:750; }
+    #confirm:hover { background:#c9eadf; color:#07100c; }
     @media(max-width:540px) { body{font-size:16px} main{padding:14px} header{align-items:flex-start;flex-direction:column} #cards{grid-template-columns:1fr} dl{grid-template-columns:1fr} }
     @media(prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important} }
   </style>
 </head>
 <body>
 <main>
-  <header><div><h1 id="title">APSAL Elements</h1><p id="subtitle"></p></div><div class="progress" id="progress"></div></header>
+  <header><div><h1 id="title">元素设计</h1><p id="subtitle"></p></div><div class="progress" id="progress"></div></header>
   <div id="cards"></div>
   <button id="confirm" type="button"></button>
 </main>
@@ -48,36 +51,41 @@
   document.documentElement.lang = zh ? "zh-CN" : "en";
   const labels = zh ? {
     subtitle:"逐层确认创作含义、可观察结果与不可改变项。", elements:"个元素", values:"确认取值",
-    observable:"可观察结果", preserve:"必须保持", revise:"用自然语言修改此元素", confirm:"确认本层全部元素"
+    observable:"可观察结果", preserve:"必须保持", revise:"用自然语言修改此元素", confirm:"确认本层全部元素", none:"无"
   } : {
     subtitle:"Confirm creative meaning, observable results, and invariants layer by layer.", elements:"elements", values:"Confirmed values",
-    observable:"Observable result", preserve:"Must preserve", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer"
+    observable:"Observable result", preserve:"Must preserve", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer", none:"None"
   };
-  const safe = value => value == null ? "" : typeof value === "object" ? JSON.stringify(value, null, 0) : String(value);
+  const safe = value => {
+    if (value == null) return "";
+    if (Array.isArray(value)) return value.length ? value.map(safe).join(zh ? "、" : ", ") : labels.none;
+    if (typeof value === "object") return Object.entries(value).map(([key,item])=>`${key}${zh ? "：" : ": "}${safe(item)}`).join(" · ");
+    return String(value);
+  };
   const add = (parent, tag, className, value) => { const node=document.createElement(tag); if(className)node.className=className; node.textContent=safe(value); parent.appendChild(node); return node; };
   document.querySelector("#title").textContent = safe(output.title);
   document.querySelector("#subtitle").textContent = labels.subtitle;
-  document.querySelector("#progress").textContent = `${safe(output.layer)} · ${cards.length} ${labels.elements}`;
+  document.querySelector("#progress").textContent = `${safe(output.layer_label || output.title)} · ${cards.length} ${labels.elements}`;
   document.querySelector("#confirm").textContent = labels.confirm;
   const host=document.querySelector("#cards");
   cards.forEach(card => {
     const article=document.createElement("article");
-    add(article,"div","role",card.role);
+    add(article,"div","role",card.role_label || card.title);
     add(article,"h2","",safe(card.title));
     add(article,"div","question",card.question);
-    add(article,"span","source",`${safe(card.source)} · ${safe(card.status)}`);
-    add(article,"div","intent",card.intent);
+    add(article,"span","source",`${safe(card.source_label)} · ${safe(card.status_label)}`);
+    add(article,"div","intent",card.display_intent);
     const values=document.createElement("section"); add(values,"div","label",labels.values);
-    const dl=document.createElement("dl"); Object.entries(card.values || {}).forEach(([key,value])=>{add(dl,"dt","",key);add(dl,"dd","",safe(value));}); values.appendChild(dl); article.appendChild(values);
+    const dl=document.createElement("dl"); Object.entries(card.display_values || {}).forEach(([key,value])=>{add(dl,"dt","",key);add(dl,"dd","",safe(value));}); values.appendChild(dl); article.appendChild(values);
     const observable=document.createElement("section"); add(observable,"div","label",labels.observable);
-    const ul=document.createElement("ul"); (card.observable||[]).forEach(value=>add(ul,"li","",value)); observable.appendChild(ul); article.appendChild(observable);
-    const preserve=document.createElement("section"); add(preserve,"div","label",labels.preserve); add(preserve,"div","question",(card.must_preserve||[]).join(" · ")); article.appendChild(preserve);
+    const ul=document.createElement("ul"); (card.display_observable||[]).forEach(value=>add(ul,"li","",value)); observable.appendChild(ul); article.appendChild(observable);
+    const preserve=document.createElement("section"); add(preserve,"div","label",labels.preserve); add(preserve,"div","question",(card.display_must_preserve||[]).join(" · ")); article.appendChild(preserve);
     const actions=document.createElement("div"); actions.className="actions";
     const revise=add(actions,"button","",labels.revise); revise.type="button";
-    revise.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `请修改 ${card.role} 元素，先询问我希望改变什么，并说明会影响哪些下游元素。` : `Revise the ${card.role} element. First ask what I want to change, then explain which downstream elements will be affected.`}));
+    revise.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `请修改“${card.title}”元素，先询问我希望改变什么，并说明会影响哪些后续元素。` : `Revise the ${card.role} element. First ask what I want to change, then explain which downstream elements will be affected.`}));
     article.appendChild(actions); host.appendChild(article);
   });
-  document.querySelector("#confirm").addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `我确认 ${output.layer} 层的全部元素，请使用当前卡片值提交，并继续下一层。` : `I confirm every element in the ${output.layer} layer. Commit the current card values and continue to the next layer.`}));
+  document.querySelector("#confirm").addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `我确认“${output.title}”层的全部元素，请使用当前卡片值提交，并继续下一层。` : `I confirm every element in the ${output.layer} layer. Commit the current card values and continue to the next layer.`}));
 </script>
 </body>
 </html>

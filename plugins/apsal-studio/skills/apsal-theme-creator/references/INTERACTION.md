@@ -44,6 +44,8 @@ The seven DNA categories remain reusable Registry assets. The thirteen roles rem
 
 Each element card shows its purpose, current values, source, observable effect, invariants and QA expectations. Direction must classify emotion with a controlled primary tone, optional secondary tones, undertone, valence, arousal, expression, energy and tension, plus a `start → turn → end` arc. If the brief combines positive and negative tones, keep both and propose mixed valence instead of silently discarding one. Chinese concepts such as 意境 or 气韵 may explain relationships, but do not replace observable behavior, light, color, space or sequence decisions.
 
+For Chinese sessions, the creator-visible projection is Chinese-only. Do not expose the English machine role, layer, value-key, enum, status, source, scope, QA, tag, digest or asset-ID fields in the card. Use the localized display fields and localized text fallback; keep internal references available only for the actual tool call.
+
 ## State transitions
 
 Use this order:

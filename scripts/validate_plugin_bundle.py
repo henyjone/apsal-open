@@ -65,17 +65,21 @@ def main() -> int:
         elif responses[0].get("result", {}).get("serverInfo", {}).get("version") != manifest.get("version"): errors.append("MCP smoke test: server and manifest versions differ")
         elif len(responses[1].get("result", {}).get("tools", [])) != 21: errors.append("MCP smoke test: expected twenty-one tools")
         elif not {"set_session_language", "recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
-            errors.append("MCP smoke test: 0.10 bilingual authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
+            errors.append("MCP smoke test: 0.11 localized authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
         elif "execute_generation_run" in {tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}:
             errors.append("MCP smoke test: direct provider execution must not be exposed")
         elif len(responses[2].get("result", {}).get("resources", [])) != 2:
             errors.append("MCP smoke test: expected DNA and element-card resources")
-        elif "APSAL DNA Registry" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
+        elif "元素资源库" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA card UI resource missing")
+        elif not all(token in responses[3].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--celadon-strong", "card.type_label", "card.reference_label", "card.display_reasons")):
+            errors.append("MCP smoke test: DNA card localization or highlight hierarchy missing")
         elif "<img" in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA selection UI must be text-only")
-        elif "APSAL Elements" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
+        elif "元素设计" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: bilingual thirteen-element card UI resource missing")
+        elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--accent-strong", "card.role_label", "card.display_values", "output.layer_label")):
+            errors.append("MCP smoke test: element card localization or highlight hierarchy missing")
         elif "<img" in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: element decision UI must be text-only")
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0 - 2026-07-17
+
+- Added a strict creator-facing Chinese projection for all five creative layers, thirteen protocol roles and seven official Registry DNA categories. Chinese cards no longer expose English machine role names, layer IDs, statuses, sources, field keys, enum values, Registry scopes, QA states, recommendation reasons or asset IDs.
+- Kept stable English machine identifiers, canonical theme data, DNA digests and provider-neutral Prompts unchanged underneath the presentation layer.
+- Added curated Chinese titles, summaries and core constraints for every official starter DNA plus safe Chinese fallbacks for project, personal and extension assets.
+- Reworked both card surfaces with an accessible celadon highlight system: stronger layer and card titles, highlighted intent blocks and key values, emphasized recommendation reasons, clearer selected state and a filled primary confirmation action.
+- Removed visible `JSON`, `YAML`, `Registry`, raw digest and namespace language from Chinese cards while preserving those records in the local artifact layer.
+- Added regression checks that reject Latin letters in every creator-visible Chinese element-card field and official DNA-card field.
+- Kept Protocol and Semantic Contract at 0.3.0 and session schema at compatible 0.7.0. This release changes presentation only, not photographic generation intent.
+
 ## 0.10.0 - 2026-07-16
 
 - Added complete creator-facing Chinese (`zh-CN`) and English (`en`) interaction across session start/resume, thirteen-element cards, DNA cards, text fallback, starter prompts and usage documentation.

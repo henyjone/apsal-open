@@ -25,6 +25,8 @@ After the answer, call `set_session_language` with `en` or `zh-CN`. Do not resta
 - element and DNA card titles, questions, labels, buttons, and text fallback;
 - quick-start and packaged usage guides shown to the creator.
 
+In a Chinese session, card rendering must read `role_label`, `status_label`, `source_label`, `display_intent`, `display_values`, `display_observable`, `display_must_preserve`, localized DNA labels and localized recommendation reasons. Raw machine fields remain in structured tool output for execution but must not appear in the visible Chinese card or its text fallback.
+
 ## What language cannot change
 
 - stable namespace, DNA ID, type, version, content digest, dependencies, or rights;

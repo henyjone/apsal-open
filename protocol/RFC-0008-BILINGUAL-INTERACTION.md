@@ -1,6 +1,6 @@
 # RFC-0008 — Bilingual Creator Interaction
 
-Status: Implemented in APSAL Studio and reference engine 0.10.0  
+Status: Implemented in 0.10.0; strict Chinese presentation added in 0.11.0
 Protocol compatibility: APSAL Open 0.3.0  
 Interface languages: `zh-CN`, `en`
 
@@ -47,6 +47,8 @@ For ambiguous input, `code` is `null`, `status` is `pending`, and the MCP start 
 - exported Prompt/Skill instructions.
 
 Each card displays one active language. Machine fields such as `content`, `camera`, `namespace`, IDs, semantic tags and digests remain stable and are not translated into competing identifiers.
+
+Beginning with Studio 0.11.0, a Chinese card must render only creator-facing localized fields. Raw machine role names, layer IDs, field keys, statuses, sources, Registry scopes, QA states, semantic tags, digests and asset IDs remain available in structured tool output but are not visible in the card or Chinese text fallback. The localization projection does not enter canonical theme or DNA digests.
 
 ## Packaged guides
 

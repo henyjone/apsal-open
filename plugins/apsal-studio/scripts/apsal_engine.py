@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.10.0"
+ENGINE_VERSION = "0.11.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -152,6 +152,144 @@ def session_interface_language(session: dict[str, Any]) -> dict[str, Any]:
     if inferred["status"] == "pending":
         inferred = {"code": "en", "status": "confirmed", "source": "legacy_fallback", "supported": list(SUPPORTED_INTERFACE_LANGUAGES)}
     return inferred
+
+
+ZH_UI_LABELS = {
+    "layers": {
+        "direction": "创作命题与情绪", "worldbuilding": "人物与世界陈设", "narrative": "事件与叙事序列",
+        "image": "摄影与成像语言", "delivery": "执行与验证",
+    },
+    "stages": {
+        "character": "人物", "world": "世界", "scene": "场景", "photo": "摄影",
+        "direction": "创作命题与情绪", "worldbuilding": "人物与世界陈设", "narrative": "事件与叙事序列",
+        "image": "摄影与成像语言", "delivery": "执行与验证",
+    },
+    "types": {
+        "character": "人物资源", "style": "摄影风格资源", "environment": "环境资源", "lighting": "灯光资源",
+        "composition": "构图资源", "shot": "镜头资源", "qa": "质量检查资源",
+    },
+    "scopes": {"project": "当前项目", "personal": "我的资源库", "extension": "社区扩展库", "official": "官方资源库"},
+    "status": {"proposed": "待确认", "confirmed": "已确认", "pending": "待处理"},
+    "source": {
+        "proposed_from_brief": "根据创作描述提出", "derived_from_dna": "根据已选资源推导",
+        "system_policy": "根据执行规则设定", "creator_confirmed": "创作者已确认",
+    },
+    "qa": {
+        "visual_qa_pending": "等待视觉检查", "static_validated": "结构检查通过",
+        "visual_qa_passed": "视觉检查通过", "not_applicable_semantic_card": "语义卡检查完成",
+    },
+    "value_keys": {
+        "theme_statement": "主题命题", "subject_matter": "画面主体", "central_tension": "核心张力",
+        "primary_tone": "主情绪", "secondary_tones": "辅助情绪", "undertone": "潜在情绪", "valence": "情绪倾向",
+        "arousal": "唤醒程度", "expression": "表达强度", "energy": "运动能量", "tension": "张力状态", "arc": "情绪弧线",
+        "start": "开始", "turn": "转折", "end": "结束", "identity": "人物身份", "representation": "呈现媒介",
+        "identity_locks": "身份锁定", "space": "空间", "time": "时间", "materials": "材质", "physical_rules": "物理规则",
+        "continuity": "连续性", "wardrobe": "服装", "grooming": "妆发", "props": "道具", "ownership_policy": "道具归属",
+        "inciting_action": "起始动作", "state_changes": "状态变化", "consequences": "后续结果", "strategy": "序列策略",
+        "rhythm": "节奏", "progression": "推进阶段", "shot_count": "镜头数量", "viewpoint": "观看视点", "coverage": "镜头覆盖",
+        "framing_language": "景别语言", "lens_language": "镜头语言", "composition": "构图关系", "source": "光源",
+        "direction": "方向", "quality": "光线质感", "contrast": "反差", "time_phase": "时间阶段",
+        "photographic_genre": "摄影类型", "visual_rhetoric": "视觉修辞", "texture": "质感", "realism": "真实感",
+        "palette": "色彩组合", "temperature": "色温", "saturation": "饱和度", "contrast_curve": "影调曲线", "grain": "颗粒",
+        "sharpness": "锐度", "dynamic_range": "动态范围", "skin_tone_policy": "肤色规则", "one_job_one_image": "单镜单图",
+        "output_count": "输出数量", "aspect_ratio": "画面比例", "size": "请求尺寸", "format": "文件形式",
+        "required_checks": "必查项目", "reject_if": "拒绝条件", "human_visual_qa": "人工视觉检查",
+    },
+}
+
+ZH_UI_TERMS = {
+    "quiet_joy": "安静的喜悦", "tenderness": "温柔", "serenity": "宁静", "hope": "希望", "nostalgia": "怀旧",
+    "melancholy": "忧郁", "sorrow": "悲伤", "tension": "紧张", "mystery": "神秘", "solemnity": "庄重", "contemplative": "沉思",
+    "anticipation": "期待", "intimacy": "亲密", "relief": "释然", "longing": "向往", "hesitation": "犹疑", "loneliness": "孤独",
+    "loss": "失落", "unease": "不安", "awe": "敬畏", "none": "无", "positive": "正向", "negative": "负向", "mixed": "复合",
+    "neutral": "中性", "low": "低", "medium": "中", "high": "高", "restrained": "克制", "clear": "清晰", "intense": "强烈",
+    "still": "静止", "slow": "缓慢", "flowing": "流动", "urgent": "急促", "stable": "稳定", "suspended": "悬置",
+    "rising": "上升", "released": "释放", "arrival": "进入", "attention": "凝视", "stillness": "静止", "distance": "疏离",
+    "approach": "靠近", "uncertainty": "不确定", "opening": "打开", "possibility": "可能", "encounter": "相遇", "memory": "回忆",
+    "aftertaste": "余韵", "quiet": "沉静", "absence": "缺席", "resistance": "抗拒", "recognition": "确认", "acceptance": "接受",
+    "warning": "预兆", "escalation": "升级", "suspension": "悬停", "trace": "线索", "revelation": "显现", "unresolved": "未决",
+    "preparation": "准备", "ritual": "仪式", "observation": "观察", "decision": "决定", "release": "释放",
+    "one stable fictional adult identity": "一个稳定的虚构成年人物身份",
+    "real adult human in live-action photography": "真人成年人的实拍摄影呈现",
+    "face geometry": "面部结构", "age band": "年龄区间", "skin characteristics": "皮肤特征", "hair": "发型", "body proportions": "身体比例",
+    "one coherent physical location": "一个连续统一的真实空间", "one continuous time phase": "一个连续的时间阶段",
+    "photographically plausible materials": "符合摄影真实感的材质", "consistent geometry": "一致的空间几何", "gravity": "重力",
+    "reflection": "反射关系", "material response": "材质受光反应", "location": "地点", "weather": "天气", "object placement": "物体位置",
+    "one locked wardrobe look unless a declared event changes it": "一套锁定服装，除非事件明确改变", "consistent across the sequence": "整组保持一致",
+    "every prop has one declared owner, location and state": "每件道具都有明确的归属、位置与状态",
+    "one observable action initiates the sequence": "以一个可观察动作启动序列", "each major action leaves a visible consequence": "每个关键动作都留下可见结果",
+    "later Jobs inherit the changed state": "后续镜头继承已经发生的状态变化", "distinct functional progression": "具有不同职能的递进序列",
+    "measured progression with no duplicate shot function": "克制推进，镜头职能不重复", "one coherent physical camera position per Job": "每个镜头只有一个连贯机位",
+    "physically plausible perspective without arbitrary lens drift": "透视符合物理规律，镜头语言不随意漂移",
+    "one motivated key source with declared practical or ambient support": "一个有动机的主光源，并由明确的环境光辅助",
+    "consistent with the world": "与世界设定一致", "physically plausible softness and falloff": "软硬与衰减符合物理规律",
+    "motivated by the emotional direction": "由情绪方向决定", "continuous unless the sequence declares a transition": "除非序列明确转场，否则时间保持连续",
+    "direction, shadow and exposure remain traceable": "方向、阴影与曝光关系可以追溯", "restrained live-action editorial photography": "克制的真人编辑摄影",
+    "world-led rather than effect-led": "由世界关系主导，而非由效果主导", "photographic material detail": "摄影材质细节", "live-action photographic realism": "真人实拍摄影真实感",
+    "world-derived base colors": "来自世界材质的基础色", "one restrained accent": "一个克制的强调色", "motivated by light and emotional arc": "由光线与情绪弧线决定",
+    "controlled": "受控", "preserve skin and material latitude": "保留肤色与材质层次", "subtle photographic grain": "轻微摄影颗粒",
+    "natural detail without synthetic oversharpening": "自然细节，不做人工过度锐化", "retain highlight and shadow information": "保留高光与暗部信息",
+    "natural and stable across all Jobs": "全部镜头中的肤色自然且稳定", "not_guaranteed": "不保证具体像素", "png_requested": "请求无损图片文件",
+    "high_requested": "请求高质量", "pending until evidence": "等待生成结果后检查",
+    "identity": "身份", "live-action medium": "真人摄影媒介", "anatomy and hands": "人体结构与手部", "world geometry": "空间几何",
+    "prop ownership": "道具归属", "lighting": "灯光", "color": "色彩", "shot intent": "镜头意图", "rights": "权利信息",
+    "illustrated person": "插画人物", "identity drift": "身份漂移", "anatomy failure": "人体结构错误", "prop duplication": "道具重复",
+    "contradictory light": "光线矛盾", "collage or text": "拼图或文字", "creator intent": "创作者意图", "rights provenance": "权利来源",
+    "subject identity": "人物身份", "stable identity": "稳定身份", "adult age": "成年年龄", "natural anatomy": "自然人体结构",
+    "physical causality": "物理因果", "wardrobe continuity": "服装连续性", "material continuity": "材质连续性", "world physics": "世界物理规则",
+    "event consequences": "事件后果", "shot order": "镜头顺序", "required action visibility": "关键动作可见", "skin tone": "肤色", "time continuity": "时间连续性",
+    "live-action human medium": "真人实拍媒介", "world material response": "世界材质反应", "light motivation": "光线动机", "material distinctions": "材质区分",
+    "unique output filename": "唯一输出文件名", "no grid": "不生成网格", "no text": "不生成文字", "no watermark": "不生成水印",
+    "successful outputs are immutable": "已成功结果不可覆盖", "True": "是", "False": "否",
+}
+
+ZH_ROLE_COPY = {
+    "content": ("把创作描述整理为一个具体、可被摄影表达的命题。", ["所有镜头都围绕同一创作命题。", "物体与行动共同服务于核心表达。"], ["创作者意图", "权利来源"], ["无需解释文字也能理解主题。"]),
+    "emotion": ("把整体情绪转化为可观察的行为和九镜情绪弧线。", ["主情绪、潜在情绪和表达强度在画面中可见。", "情绪随镜头序列逐步推进。"], ["人物身份", "情绪通过视线、呼吸、动作和距离呈现"], ["不依赖情绪标签也能看出情绪。", "最后一镜完成预设情绪弧线。"]),
+    "subject": ("定义谁存在于画面中，以及哪些身份特征不能漂移。", ["全部镜头都能识别为同一个真实成年人物。"], ["稳定身份", "成年年龄", "自然人体结构"], ["全部输出中的人物身份保持连续。"]),
+    "world": ("构建一个具有持续空间、材质和物理规则的世界。", ["建筑、入口、窗户、反射和物体位置保持物理一致。"], ["空间几何", "物理因果"], ["每个镜头都能被推断为属于同一世界。"]),
+    "look": ("把服装、妆发和道具归属定义为世界状态，而不是装饰。", ["服装与妆发保持连续。", "每件道具都有稳定归属，只能通过事件改变状态。"], ["服装连续性", "道具归属", "材质连续性"], ["道具不能无故重复、漂浮或改变归属。"]),
+    "event": ("先让可观察事件改变世界状态，再设计人物姿态。", ["动作在物理上清楚可见，并在后续镜头留下结果。"], ["人物身份", "世界物理规则", "道具归属"], ["每个动作都改变或揭示状态，而不是空洞摆姿。"]),
+    "sequence": ("把多个观看视点组织成时间、节奏和叙事推进。", ["全部镜头形成可读的递进关系，且职能各不相同。", "信息、距离、动作和情绪随序列发展。"], ["事件后果", "世界连续性", "镜头顺序"], ["不能有两个镜头重复相同叙事职能。"]),
+    "camera": ("为每个独立镜头选择必要的观看视点与摄影覆盖。", ["每个镜头都有明确动机的视点和不同构图。"], ["空间几何", "关键动作可见"], ["景别与透视符合镜头职能。"]),
+    "light": ("用物理一致的光线让时间、深度、材质和情绪变得可见。", ["光线方向、阴影、衰减和反射属于同一物理系统。"], ["肤色", "空间几何", "时间连续性"], ["不能出现矛盾阴影或无动机的灯光变化。"]),
+    "style": ("定义可观察的摄影修辞，不用艺术家姓名代替风格设计。", ["画面呈现有意图、质感连贯的真实摄影语言。"], ["真人实拍媒介", "世界材质反应"], ["风格不能压过身份、物理规律、事件和相机逻辑。"]),
+    "color_post": ("把色彩与后期组织为肤色、服装、道具、空间、情绪和时间之间的关系。", ["整组的色彩、肤色、饱和度、反差与颗粒关系保持连贯。"], ["自然肤色", "光线动机", "材质区分"], ["整体滤镜不能破坏肤色、材质和时间关系。"]),
+    "job": ("把每个视点冻结为一个独立、可复现的生成任务。", ["每个任务只生成一张可独立使用的图片。"], ["唯一输出文件名", "不生成网格", "不生成文字", "不生成水印"], ["每个任务必须只产生一张独立成图。"]),
+    "quality_control": ("定义接受或拒绝每个镜头及整组作品的证据。", ["每个镜头都有模型视觉检查，并保留独立的人工视觉检查。"], ["权利来源", "已成功结果不可覆盖"], ["任何必查项失败都必须拒绝；结构检查不能冒充视觉质量检查。"]),
+}
+
+
+def _contains_latin(value: str) -> bool:
+    return bool(re.search(r"[A-Za-z]", value))
+
+
+def _zh_ui_value(value: Any) -> Any:
+    if isinstance(value, bool): return "是" if value else "否"
+    if isinstance(value, list): return [_zh_ui_value(item) for item in value]
+    if isinstance(value, dict): return {ZH_UI_LABELS["value_keys"].get(str(key), str(key)): _zh_ui_value(item) for key, item in value.items()}
+    if not isinstance(value, str): return value
+    if value in ZH_UI_TERMS: return ZH_UI_TERMS[value]
+    if "→" in value:
+        return " → ".join(str(_zh_ui_value(item.strip())) for item in value.split("→"))
+    if re.fullmatch(r"[0-9]+ distinct viewpoints", value): return value.split()[0] + " 个不同视点"
+    if re.fullmatch(r"[0-9]+", value) or not _contains_latin(value): return value
+    return "已按当前创作方案设置"
+
+
+def _zh_element_presentation(role: str, decision: dict[str, Any]) -> dict[str, Any]:
+    intent, observable, preserve, qa = ZH_ROLE_COPY[role]
+    values = {
+        ZH_UI_LABELS["value_keys"].get(str(key), "创作参数"): _zh_ui_value(value)
+        for key, value in decision.get("values", {}).items()
+    }
+    return {
+        "role_label": load_semantic_registry()["roles"][role]["zh"],
+        "status_label": ZH_UI_LABELS["status"].get(decision.get("status"), "待确认"),
+        "source_label": ZH_UI_LABELS["source"].get(decision.get("source"), "根据当前方案设定"),
+        "display_intent": intent, "display_values": values, "display_observable": observable,
+        "display_must_preserve": preserve, "display_qa_expectations": qa,
+    }
 
 
 def canonical_json(value: Any) -> str:
@@ -715,19 +853,79 @@ def recommend_layer_dna(
     }
 
 
-def dna_card(record: dict[str, Any]) -> dict[str, Any]:
+ZH_OFFICIAL_DNA = {
+    "OPEN_CHAR_ADULT_001": {
+        "title": "稳定成年人物基线", "summary": "原创虚构成年人物身份基线。",
+        "core": ["虚构东亚成年女性，年龄二十八至三十五岁", "自然面部结构与真实皮肤质感", "整组锁定年龄、发型和身体比例"],
+    },
+    "OPEN_STYLE_EDITORIAL_001": {
+        "title": "克制的当代编辑摄影", "summary": "克制、真实并保留材质触感的当代编辑摄影风格。",
+        "core": ["真实材质与轻微胶片颗粒", "受控反差和自然色彩分离", "避免过度修饰与人工光泽"],
+    },
+    "OPEN_ENV_WINDOW_001": {
+        "title": "静谧窗边空间", "summary": "原创、连续且物理关系清楚的安静窗边环境。",
+        "core": ["灰泥墙、东向高窗、浅色木地板与亚麻帘", "低矮木桌和稳定空间几何", "全部镜头属于同一房间"],
+    },
+    "OPEN_LIGHT_WINDOW_001": {
+        "title": "三阶段自然窗光", "summary": "从冷调进入到温暖余晖的三阶段自然窗光。",
+        "core": ["柔和定向窗光与可信衰减", "冷调进入、中性日间、温暖余晖", "每个阶段保持一致阴影方向"],
+    },
+    "OPEN_COMP_SEQUENCE_001": {
+        "title": "均衡的多镜头覆盖", "summary": "兼顾叙事变化和画面呼吸的多镜头编辑摄影覆盖。",
+        "core": ["环境、全身、中景、近景与细节有意变化", "主体分离清楚", "负空间服务叙事而非装饰"],
+    },
+    "OPEN_SHOT_NINE_001": {
+        "title": "九镜独立成图基线", "summary": "九个镜头分别完成叙事职能，并各自输出一张独立成图。",
+        "core": ["每镜都有不同叙事职能", "先设计可观察动作，再设计姿态", "不生成九宫格、拼图、文字或水印"],
+    },
+    "OPEN_QA_PORTRAIT_001": {
+        "title": "人像套片质量检查", "summary": "覆盖身份、人体结构、连续性和输出规则的人像套片检查方案。",
+        "core": ["检查身份、手部、人体结构和服装连续性", "检查道具归属、空间几何、反射和灯光方向", "检查镜头意图、非目标漂移及文字水印"],
+    },
+}
+
+
+def _zh_rights_label(rights: dict[str, Any]) -> str:
+    status = str(rights.get("status", ""))
+    if status in {"original_open_content", "authorized_open_content"}: return "权利清晰的开放内容"
+    if status == "private_user_content": return "仅限私人使用的内容"
+    return "权利状态已记录"
+
+
+def dna_card(record: dict[str, Any], locale: str = "en") -> dict[str, Any]:
     """Return the compact text-card projection used by conversational clients.
 
     Registry previews remain available for rights review and Extension Pack
     validation, but are deliberately excluded from interactive selection data.
     """
     asset = record["asset"]
-    return {
+    card = {
         "ref": asset_ref(asset), "scope": record["scope"], "title": asset["id"], "type": asset["type"],
         "summary": asset["change_summary"], "version": asset["version"], "locks": asset.get("locks", []),
         "core_attributes": asset.get("locks") or [asset["prompt_fragment"]],
         "rights": asset["rights"], "qa_status": asset["qa_status"],
     }
+    if locale != "zh-CN":
+        card.update({
+            "type_label": asset["type"], "scope_label": record["scope"], "qa_status_label": asset["qa_status"],
+            "reference_label": f"{asset['namespace']}/{asset['id']} · v{asset['version']} · {record['scope']}",
+            "rights_label": f"{asset['rights'].get('license', '')} · {asset['rights'].get('attribution', '')}",
+        })
+        return card
+    official = ZH_OFFICIAL_DNA.get(asset["id"])
+    summary_text = str(asset.get("change_summary", ""))
+    has_zh_summary = bool(re.search(r"[\u3400-\u9fff]", summary_text)) and not _contains_latin(summary_text)
+    type_label = ZH_UI_LABELS["types"].get(asset["type"], "创作资源")
+    card.update({
+        "title": official["title"] if official else (asset["change_summary"] if has_zh_summary else "自定义" + type_label),
+        "type_label": type_label, "scope_label": ZH_UI_LABELS["scopes"].get(record["scope"], "资源库"),
+        "summary": official["summary"] if official else (asset["change_summary"] if has_zh_summary else "已按当前创作方案记录的可复用资源。"),
+        "core_attributes": official["core"] if official else ["核心约束已记录", "正式版本不可原地覆盖"],
+        "qa_status_label": ZH_UI_LABELS["qa"].get(asset["qa_status"], "质量状态已记录"),
+        "reference_label": f"{ZH_UI_LABELS['scopes'].get(record['scope'], '资源库')} · 版本 {asset['version']} · 摘要已校验",
+        "rights_label": _zh_rights_label(asset["rights"]),
+    })
+    return card
 
 
 def promote_registry_asset(ref: dict[str, str], *, project_root: Path, home: Path | None = None) -> dict[str, Any]:
@@ -1736,7 +1934,7 @@ def present_element_layer(session_id: str, layer: str, *, project_root: Path) ->
     cards = []
     for role in LAYER_ROLES[layer]:
         role_meta = load_semantic_registry()["roles"][role]; decision = theme["element_decisions"][role]
-        cards.append({
+        card = {
             "role": role, "title": role_meta["en"] if locale == "en" else role_meta["zh"],
             "title_en": role_meta["en"], "title_zh": role_meta["zh"],
             "question": role_meta["question_en"] if locale == "en" else role_meta["question_zh"],
@@ -1745,11 +1943,21 @@ def present_element_layer(session_id: str, layer: str, *, project_root: Path) ->
             "intent": decision["intent"], "values": decision["values"], "observable": decision["observable"],
             "must_preserve": decision["must_preserve"], "qa_expectations": decision["qa_expectations"],
             "basis": decision["basis"], "dna_refs": decision.get("dna_refs", []),
-        })
+        }
+        if locale == "zh-CN": card.update(_zh_element_presentation(role, decision))
+        else:
+            card.update({
+                "role_label": role, "status_label": decision["status"], "source_label": decision["source"],
+                "display_intent": decision["intent"], "display_values": decision["values"],
+                "display_observable": decision["observable"], "display_must_preserve": decision["must_preserve"],
+                "display_qa_expectations": decision["qa_expectations"],
+            })
+        cards.append(card)
     result = {
         "session_id": session_id, "layer": layer, "language": locale,
         "title": layer_spec["en"] if locale == "en" else layer_spec["zh"],
         "title_en": layer_spec["en"], "title_zh": layer_spec["zh"],
+        "layer_label": layer_spec["en"] if locale == "en" else layer_spec["zh"],
         "roles": list(LAYER_ROLES[layer]), "required_dna_types": list(LAYER_TYPES[layer]),
         "cards": cards, "status": session["layers"][layer]["status"],
     }

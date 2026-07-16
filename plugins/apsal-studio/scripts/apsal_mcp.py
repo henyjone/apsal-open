@@ -195,6 +195,32 @@ def _interaction_language(arguments: dict[str, Any], text: str = "") -> dict[str
     return resolve_interface_language(text, arguments.get("language", "auto"))
 
 
+def _stage_label(stage: str, locale: str) -> str:
+    if locale != "zh-CN": return stage
+    return {
+        "character": "人物", "world": "世界", "scene": "场景", "photo": "摄影",
+        "direction": "创作命题与情绪", "worldbuilding": "人物与世界陈设", "narrative": "事件与叙事序列",
+        "image": "摄影与成像语言", "delivery": "执行与验证",
+    }.get(stage, "创作资源")
+
+
+def _zh_recommendation_presentation(item: dict[str, Any]) -> dict[str, Any]:
+    reasons = []
+    if item.get("matched_tags"): reasons.append("与场景语义相符")
+    if item.get("matched_facets"): reasons.append("与场景属性相符")
+    if any(str(reason).startswith("brief terms:") for reason in item.get("reasons", [])): reasons.append("与创作描述中的关键词相符")
+    if any("compatible with confirmed upstream" in str(reason) for reason in item.get("reasons", [])): reasons.append("与已经确认的上游资源明确兼容")
+    if any("personal usage memory" in str(reason) for reason in item.get("reasons", [])): reasons.append("符合你的本地使用偏好")
+    record = item["record"]; asset = record["asset"]
+    scope = {"project": "当前项目", "personal": "我的资源库", "extension": "社区扩展库", "official": "官方资源库"}.get(record["scope"], "资源库")
+    qa = {"visual_qa_pending": "等待视觉检查", "static_validated": "结构检查通过", "visual_qa_passed": "视觉检查通过"}.get(asset.get("qa_status"), "质量状态已记录")
+    reasons.append(f"来自{scope}；{qa}；权利状态已记录")
+    tags = []
+    if item.get("matched_tags"): tags.append("语义匹配")
+    if item.get("matched_facets"): tags.append("场景匹配")
+    return {"display_reasons": reasons, "display_tags": tags}
+
+
 def _records(arguments: dict[str, Any]) -> list[dict[str, Any]]:
     return search_registry(_root(arguments), arguments.get("query", ""), arguments.get("stage"), limit=arguments.get("limit", 12))
 
@@ -206,23 +232,27 @@ def _tool_search(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
     value = recommend_dna(arguments["brief"], arguments["stage"], project_root=_root(arguments), session_id=arguments.get("session_id"), limit=arguments.get("limit", 6))
+    locale = _interaction_language(arguments, arguments["brief"]).get("code") or "en"
     recommendations = []
     for item in value["recommendations"]:
-        card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+        card = dna_card(item["record"], locale); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+        if locale == "zh-CN": card.update(_zh_recommendation_presentation(item))
         recommendations.append(card)
-    return {**value, "language": _interaction_language(arguments, arguments["brief"]).get("code") or "en", "recommendations": recommendations}
+    return {**value, "language": locale, "stage_label": _stage_label(arguments["stage"], locale), "recommendations": recommendations}
 
 
 def _tool_layer_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
     value = recommend_layer_dna(arguments["brief"], arguments["layer"], project_root=_root(arguments), session_id=arguments.get("session_id"), limit_per_type=arguments.get("limit_per_type", 3))
+    locale = _interaction_language(arguments, arguments["brief"]).get("code") or "en"
     by_type = {}; cards = []
     for asset_type, items in value["by_type"].items():
         converted = []
         for item in items:
-            card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+            card = dna_card(item["record"], locale); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+            if locale == "zh-CN": card.update(_zh_recommendation_presentation(item))
             converted.append(card); cards.append(card)
         by_type[asset_type] = converted
-    return {**value, "language": _interaction_language(arguments, arguments["brief"]).get("code") or "en", "by_type": by_type, "cards": cards, "stage": arguments["layer"]}
+    return {**value, "language": locale, "stage_label": _stage_label(arguments["layer"], locale), "by_type": by_type, "cards": cards, "stage": arguments["layer"]}
 
 
 def _tool_element_layer(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -235,8 +265,9 @@ def _tool_suggest(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
-    cards = [dna_card(item) for item in _records(arguments)]
-    return {"stage": arguments["stage"], "language": _interaction_language(arguments, arguments.get("query", "")).get("code") or "en", "cards": cards, "count": len(cards)}
+    locale = _interaction_language(arguments, arguments.get("query", "")).get("code") or "en"
+    cards = [dna_card(item, locale) for item in _records(arguments)]
+    return {"stage": arguments["stage"], "stage_label": _stage_label(arguments["stage"], locale), "language": locale, "cards": cards, "count": len(cards)}
 
 
 def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -315,18 +346,25 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name in {"present_dna_cards", "recommend_dna", "recommend_layer_dna"}:
         cards = value["cards"] if name in {"present_dna_cards", "recommend_layer_dna"} else value["recommendations"]
         zh = value.get("language") == "zh-CN"
-        lines = [f"APSAL {value['stage']} DNA 选择（文字回退）：" if zh else f"APSAL {value['stage']} DNA choices (text fallback):"]
+        lines = [f"{value.get('stage_label', '创作资源')}资源选择：" if zh else f"APSAL {value['stage']} DNA choices (text fallback):"]
         for number, card in enumerate(cards, 1):
             ref = card["ref"]
-            attributes = "; ".join(card["core_attributes"])
-            reason = f" — {'匹配原因' if zh else 'Why'}: {'; '.join(card.get('reasons', []))}" if card.get("reasons") else ""
-            lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}{reason}")
+            attributes = "；".join(card["core_attributes"]) if zh else "; ".join(card["core_attributes"])
+            shown_reasons = card.get("display_reasons", []) if zh else card.get("reasons", [])
+            reason = f" — {'匹配原因' if zh else 'Why'}: {'；'.join(shown_reasons) if zh else '; '.join(shown_reasons)}" if shown_reasons else ""
+            if zh:
+                lines.append(f"{number}. {card['title']}｜{card['type_label']}｜{card['scope_label']}｜{card['summary']}｜{attributes}｜{card['rights_label']}｜{card['qa_status_label']}{reason}")
+            else:
+                lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}{reason}")
         text = "\n".join(lines)
     elif name == "present_element_layer":
-        lines = [(f"APSAL 层：{value['title']}" if value.get("language") == "zh-CN" else f"APSAL layer: {value['title']}")]
+        lines = [(f"创作层：{value['title']}" if value.get("language") == "zh-CN" else f"APSAL layer: {value['title']}")]
         for card in value["cards"]:
             labels = ("取值", "可观察结果") if value.get("language") == "zh-CN" else ("Values", "Observable")
-            lines.append(f"- {card['title']} [{card['source']}]: {card['intent']} {labels[0]}: {json.dumps(card['values'], ensure_ascii=False)} {labels[1]}: {'; '.join(card['observable'])}")
+            if value.get("language") == "zh-CN":
+                lines.append(f"- {card['title']}【{card['source_label']}；{card['status_label']}】：{card['display_intent']} {labels[0]}：{json.dumps(card['display_values'], ensure_ascii=False)} {labels[1]}：{'；'.join(card['display_observable'])}")
+            else:
+                lines.append(f"- {card['title']} [{card['source']}]: {card['intent']} {labels[0]}: {json.dumps(card['values'], ensure_ascii=False)} {labels[1]}: {'; '.join(card['observable'])}")
         text = "\n".join(lines)
     else:
         text = json.dumps(value, ensure_ascii=False, indent=2)
@@ -341,7 +379,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.10.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.11.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

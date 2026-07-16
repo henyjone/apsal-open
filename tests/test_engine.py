@@ -2,6 +2,7 @@ import importlib.util
 import hashlib
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -234,6 +235,40 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(layer["language"], "en")
             self.assertEqual(layer["title"], "Direction and Emotion")
             self.assertEqual(layer["cards"][0]["title"], "Content")
+
+            chinese = engine.start_design_session(
+                "创建一套九张安静窗边真人摄影主题", project_root=project, home=home, theme_id="TEST-LANGUAGE-ZH",
+            )
+            visible_fields = ("title", "question", "role_label", "status_label", "source_label", "display_intent", "display_values", "display_observable", "display_must_preserve", "display_qa_expectations")
+
+            def visible_strings(value):
+                if isinstance(value, str): yield value
+                elif isinstance(value, list):
+                    for item in value: yield from visible_strings(item)
+                elif isinstance(value, dict):
+                    for key, item in value.items():
+                        yield str(key)
+                        yield from visible_strings(item)
+
+            for layer_name in engine.CREATIVE_LAYERS:
+                chinese_layer = engine.present_element_layer(chinese["session_id"], layer_name, project_root=project)
+                visible = [chinese_layer["title"], chinese_layer["layer_label"]]
+                for card in chinese_layer["cards"]: visible.extend(card[key] for key in visible_fields)
+                self.assertFalse(
+                    [item for item in visible_strings(visible) if re.search(r"[A-Za-z]", item)],
+                    f"Chinese {layer_name} card leaked English creator-facing text",
+                )
+            for asset in engine.load_catalog()["assets"]:
+                card = engine.dna_card({"scope": "official", "asset": asset}, "zh-CN")
+                visible = [card[key] for key in ("title", "type_label", "scope_label", "summary", "core_attributes", "qa_status_label", "reference_label", "rights_label")]
+                self.assertFalse(
+                    [item for item in visible_strings(visible) if re.search(r"[A-Za-z]", item)],
+                    f"Chinese {asset['type']} DNA card leaked English creator-facing text",
+                )
+            mixed_summary_asset = self._custom_asset()
+            mixed_summary_asset["change_summary"] = "中文 DNA 测试资源"
+            mixed_card = engine.dna_card({"scope": "project", "asset": mixed_summary_asset}, "zh-CN")
+            self.assertFalse([item for item in visible_strings([mixed_card[key] for key in ("title", "summary", "core_attributes")]) if re.search(r"[A-Za-z]", item)])
 
             ambiguous = engine.start_design_session("APSAL", project_root=project, home=home, theme_id="TEST-LANGUAGE-PENDING")
             self.assertEqual(ambiguous["language"]["status"], "pending")
@@ -572,14 +607,14 @@ class EngineTests(unittest.TestCase):
             requests = [
                 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-                {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "present_dna_cards", "arguments": {"project_root": str(project), "stage": "character"}}},
+                {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "present_dna_cards", "arguments": {"project_root": str(project), "stage": "character", "session_id": session["session_id"]}}},
                 {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "present_element_layer", "arguments": {"project_root": str(project), "session_id": session["session_id"], "layer": "direction"}}},
                 {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "import_apsal_package", "arguments": {"project_root": str(project), "source": str(legacy_archive)}}},
             ]
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.10.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.11.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 21)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("set_session_language", names)
@@ -591,7 +626,9 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(len(cards), 1)
             self.assertNotIn("preview", cards[0])
             self.assertNotIn("preview_metadata", cards[0])
-            self.assertIn("change_summary", cards[0]["summary"] if isinstance(cards[0]["summary"], dict) else {"change_summary": cards[0]["summary"]})
+            self.assertEqual(cards[0]["title"], "稳定成年人物基线")
+            self.assertEqual(cards[0]["type_label"], "人物资源")
+            self.assertNotRegex(" ".join([cards[0]["title"], cards[0]["type_label"], cards[0]["scope_label"], cards[0]["summary"], cards[0]["reference_label"], cards[0]["rights_label"], cards[0]["qa_status_label"], *cards[0]["core_attributes"]]), r"[A-Za-z]")
             elements = responses[3]["result"]["structuredContent"]["cards"]
             self.assertEqual([card["role"] for card in elements], ["content", "emotion"])
             self.assertTrue(all("values" in card and "observable" in card and "qa_expectations" in card for card in elements))

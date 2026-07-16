@@ -13,6 +13,8 @@ Use the current Codex conversation or user-message language as the creator-facin
 
 Language affects conversation, card labels, explanations, and user guides only. It must never alter DNA IDs, rights, theme generation intent, canonical JSON, provider-neutral image Prompts, checksums, or compiled Prompt digests. Read [references/LANGUAGE.md](references/LANGUAGE.md) for the complete policy and exact bilingual wording.
 
+For a Chinese session, present only the localized creator-facing fields returned by the tools. Never repeat raw role names, layer IDs, field keys, statuses, sources, Registry scopes, QA states, semantic tags, digests or asset IDs inside a visible choice card. Stable machine identifiers remain available to tools for exact selection and validation. Important creator decisions should follow the card hierarchy: highlighted title, intent, key values, recommendation reason and primary confirmation action.
+
 ## Open an APSAL package without exposing internals
 
 When the creator attaches or points to an APSAL ZIP/directory containing `run.json`, call `import_apsal_package` before explaining the package. Do not answer that `run.json` is not executable, do not tell the creator to find an API runner, and never generate a screenshot of code, JSON, a terminal, or a programming interface.

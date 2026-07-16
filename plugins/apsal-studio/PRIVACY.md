@@ -1,6 +1,6 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.10 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.11 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
 
 The selected creator-facing language (`zh-CN` or `en`) is stored inside the local design session. Detection uses only the current creator message or brief. APSAL Studio does not read or transmit an operating-system locale, Codex account preference, or remote profile.
 
