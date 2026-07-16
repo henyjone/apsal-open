@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-07-16T06:00:00Z",
+  "generated_at": "2026-07-16T12:00:00Z",
   "project": "APSAL Open",
   "protocol": {"id": "apsal-open", "version": "0.3.0", "license": "Apache-2.0", "compatibility": ["0.2.0"]},
   "semantic_contract": {"version": "0.3.0", "status": "pilot_validated"},
-  "reference_engine": {"version": "0.4.0", "license": "Apache-2.0"},
-  "plugin": {"id": "apsal-studio", "version": "0.4.0", "authoring_compatibility": ["0.3.0"]},
+  "reference_engine": {"version": "0.5.0", "license": "Apache-2.0"},
+  "plugin": {"id": "apsal-studio", "version": "0.5.0", "authoring_compatibility": ["0.3.0"], "runtime_compatibility": ["0.4.0"]},
   "catalog": {"version": "0.1.0", "status": "unchanged starter catalog", "content_license": "CC-BY-4.0"},
   "preview_catalog": {"version": "0.1.0", "count": 7, "kind": "rights-cleared semantic cards", "generation_intent": false},
   "pilots": {
@@ -21,6 +21,15 @@
       "status": "structure_reference_only_rights_unresolved",
       "redistributed": false,
       "report": "protocol/MIGRATION_APSAL_006_001.md"
+    },
+    "APSAL-006@2.0.0": {
+      "parent_version": "1.0.0",
+      "status": "local_private_migration_validated_rights_and_human_visual_qa_pending",
+      "redistributed": false,
+      "distribution": "private_only",
+      "reference_count": 5,
+      "output": {"count": 9, "aspect_ratio": "9:16", "size": "2160x3840", "provider_native": true},
+      "note": "The private theme, reference media and Skill ZIP are intentionally excluded from this public repository and its releases."
     }
   }
 }

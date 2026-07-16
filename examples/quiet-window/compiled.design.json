@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.4.0",
+  "engine_version": "0.5.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
@@ -51,6 +51,21 @@
       "job.output.independent"
     ],
     "priority": 95
+  },
+  "rendering_contract": null,
+  "reference_summary": [],
+  "output_contract": {
+    "count": 9,
+    "aspect_ratio": "2:3",
+    "independent_images": true,
+    "forbid": [
+      "collage",
+      "grid",
+      "contact sheet",
+      "text",
+      "logo",
+      "watermark"
+    ]
   },
   "protocol_mapping": {
     "character": [
@@ -2298,5 +2313,5 @@
       "output_filename": "apsal-open-001_09.jpg"
     }
   ],
-  "compiled_digest": "e3215606cf0cb0b273b7bcaa846549ef4c26e7ce0035f3c42d0c4520150aeaee"
+  "compiled_digest": "c9c8bc7ee2c56063e74483bf7e1a9add62255a9db77db65b24b2cb3aba714f5a"
 }

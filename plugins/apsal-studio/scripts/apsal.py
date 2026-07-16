@@ -8,10 +8,10 @@ from pathlib import Path
 from apsal_engine import (
     COMPILE_TARGETS, ValidationError, YamlError, check_sync, compile_theme,
     commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
-    init_workspace, load_catalog, load_design_session, load_document,
+    execute_generation_run, init_workspace, load_catalog, load_design_session, load_document,
     load_generation_run, load_layered_registry, new_semantic_theme, new_theme,
     pack_theme, project_root_from, promote_registry_asset, registry_assets,
-    search_registry, start_design_session, start_generation_run,
+    record_model_visual_qa, search_registry, start_design_session, start_generation_run,
     validate_protocol_package, validate_theme, write_canonical_json,
 )
 
@@ -43,7 +43,7 @@ def main() -> int:
     explain = sub.add_parser("explain"); explain.add_argument("theme", type=Path); explain.add_argument("--path", required=True)
     compile_cmd = sub.add_parser("compile"); compile_cmd.add_argument("theme", type=Path); compile_cmd.add_argument("--target", choices=COMPILE_TARGETS, default="image"); compile_cmd.add_argument("-o", "--output", type=Path, required=True)
     sync = sub.add_parser("check-sync"); sync.add_argument("package", type=Path)
-    pack = sub.add_parser("pack"); pack.add_argument("theme", type=Path); pack.add_argument("-o", "--output", type=Path, required=True)
+    pack = sub.add_parser("pack"); pack.add_argument("theme", type=Path); pack.add_argument("-o", "--output", type=Path, required=True); pack.add_argument("--reference-bindings", type=Path); pack.add_argument("--distribution", choices=("auto", "private_only", "public"), default="auto")
     registry = sub.add_parser("registry"); registry.add_argument("--project", type=Path, default=Path.cwd()); registry.add_argument("--home", type=Path)
     registry_sub = registry.add_subparsers(dest="registry_command", required=True)
     registry_sub.add_parser("list")
@@ -56,7 +56,9 @@ def main() -> int:
     show_session = session_sub.add_parser("show"); show_session.add_argument("session_id")
     apply = session_sub.add_parser("apply"); apply.add_argument("session_id"); apply.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); apply.add_argument("--selection", type=Path, required=True)
     finalize = session_sub.add_parser("finalize"); finalize.add_argument("session_id")
-    run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--adapter", default="codex-imagegen"); run.add_argument("--model", default="not_reported"); run.add_argument("--resume")
+    run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--adapter", default="openai-image-api"); run.add_argument("--model", default="gpt-image-2"); run.add_argument("--resume")
+    execute = sub.add_parser("run-execute"); execute.add_argument("run_id"); execute.add_argument("--project", type=Path, default=Path.cwd()); execute.add_argument("--home", type=Path); execute.add_argument("--max-jobs", type=int, default=1); execute.add_argument("--max-retries", type=int, default=2)
+    model_qa = sub.add_parser("run-model-qa"); model_qa.add_argument("run_id"); model_qa.add_argument("shot_id"); model_qa.add_argument("--status", choices=("passed", "failed"), required=True); model_qa.add_argument("--finding", action="append", default=[]); model_qa.add_argument("--project", type=Path, default=Path.cwd())
     run_show = sub.add_parser("run-show"); run_show.add_argument("run_id"); run_show.add_argument("--project", type=Path, default=Path.cwd())
     args = parser.parse_args()
     try:
@@ -66,7 +68,7 @@ def main() -> int:
             print(json.dumps(init_workspace(args.project, args.home), ensure_ascii=False, indent=2))
         elif args.command == "new":
             semantic = args.output.name.lower().endswith((".yaml", ".yml"))
-            value = new_semantic_theme(args.id, args.name, args.shots) if semantic else new_theme(args.id, args.name, args.shots)
+            value = new_semantic_theme(args.id, args.name, args.shots, native_4k=True, live_action=True) if semantic else new_theme(args.id, args.name, args.shots, native_4k=True, live_action=True)
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(dump_yaml(value) if semantic else json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"); print(args.output)
         elif args.command == "validate":
@@ -91,7 +93,11 @@ def main() -> int:
             print("in sync: authoring YAML and canonical JSON are semantically identical")
         elif args.command == "pack":
             source_yaml = args.theme.read_bytes() if args.theme.name.lower().endswith((".yaml", ".yml")) else None
-            path, sha = pack_theme(load_document(args.theme), args.output, source_yaml); print(f"{path}\nsha256 {sha}")
+            reference_paths = None
+            if args.reference_bindings:
+                bindings = json.loads(args.reference_bindings.read_text(encoding="utf-8"))
+                reference_paths = {item["reference_id"]: Path(item["path"]) for item in bindings}
+            path, sha = pack_theme(load_document(args.theme), args.output, source_yaml, reference_paths=reference_paths, distribution=args.distribution); print(f"{path}\nsha256 {sha}")
         elif args.command == "registry":
             project = _root(args.project)
             if args.registry_command in {"list", "search"}:
@@ -113,7 +119,7 @@ def main() -> int:
                 value, _ = load_design_session(args.session_id, project)
             elif args.session_command == "apply":
                 selection = json.loads(args.selection.read_text(encoding="utf-8"))
-                value = commit_session_stage(args.session_id, args.stage, selection.get("refs", []), project_root=project, home=args.home, shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, draft_assets=selection.get("draft_assets"))
+                value = commit_session_stage(args.session_id, args.stage, selection.get("refs", []), project_root=project, home=args.home, shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, reference_bindings=selection.get("reference_bindings"), draft_assets=selection.get("draft_assets"))
             else:
                 value = finalize_design_session(args.session_id, project_root=project, home=args.home)
             print(json.dumps(value, ensure_ascii=False, indent=2))
@@ -121,6 +127,10 @@ def main() -> int:
             project = _root(args.project)
             value = start_generation_run(args.session, project_root=project, home=args.home, confirmed=args.confirm, mode=args.mode, adapter=args.adapter, model=args.model, resume_run_id=args.resume)
             print(json.dumps(value, ensure_ascii=False, indent=2))
+        elif args.command == "run-execute":
+            print(json.dumps(execute_generation_run(args.run_id, project_root=_root(args.project), home=args.home, max_jobs=args.max_jobs, max_retries=args.max_retries), ensure_ascii=False, indent=2))
+        elif args.command == "run-model-qa":
+            print(json.dumps(record_model_visual_qa(args.run_id, args.shot_id, args.status, project_root=_root(args.project), findings=args.finding), ensure_ascii=False, indent=2))
         elif args.command == "run-show":
             print(json.dumps(load_generation_run(args.run_id, _root(args.project)), ensure_ascii=False, indent=2))
     except (ValidationError, YamlError, OSError, ValueError, json.JSONDecodeError) as exc:

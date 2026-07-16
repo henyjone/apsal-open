@@ -10,3 +10,5 @@ dist/
 private/
 references/private/
 generated/
+# Local rights-unresolved APSAL-006 migration and its bundled reference media.
+examples/crayon-reverie/

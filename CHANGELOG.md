@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 - 2026-07-16
+
+- Added typed, rights-aware reference binding. Local Skills now contain sanitized reference images, per-image SHA-256, permitted/forbidden uses, Job scope, attribution, and independent redistribution state.
+- Added public-export gates: unverified or non-redistributable media forces `private_only` and cannot enter GitHub Release or APSAL Hub publication.
+- Added a high-priority live-action photography Rendering Contract that keeps adult subjects photographic while allowing handmade, crayon, painted, or theatrical sets and props.
+- Added live-action QA for medium, skin, eyes, hands, anatomy, optical depth, physical light, and material response; model visual QA and human visual QA are recorded separately.
+- Changed new Studio themes to nine independent 9:16, 2160×3840, high-quality PNG Jobs.
+- Added the optional `openai-image-api` / `gpt-image-2` executor: nine sequential `n: 1` requests, two retries, exact-dimension validation, partial-run resume, and a `SHOT_01` identity-only runtime anchor.
+- Added a self-contained `scripts/generate_set.py` to exported Skills and two MCP tools for execution and model visual-QA recording.
+- Kept Protocol and Semantic Contract at 0.3.0. Existing 0.4 themes, runs, and Skills remain readable without gaining false reference-binding or native-4K claims.
+- Migrated 《蜡笔梦游》 locally to `APSAL-006@2.0.0` as a private-only package with five verified file digests. Its media and Skill are excluded from the public repository while redistribution rights and human visual QA remain unresolved.
+
 ## 0.4.0 - 2026-07-16
 
 - Added a natural-language-first four-stage creator flow with Character, World, Scene, and Photo DNA cards; JSON and YAML remain background artifacts.

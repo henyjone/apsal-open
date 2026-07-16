@@ -1,9 +1,11 @@
 {
-  "engine_version": "0.4.0",
+  "engine_version": "0.5.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
   "target": "qa",
+  "model_visual_qa": "required_before_delivery",
+  "human_visual_qa": "pending_until_evidence",
   "global_checks": [
     {
       "id": "qa.no_false_pass",
@@ -509,5 +511,5 @@
       ]
     }
   ],
-  "compiled_digest": "423d702f95a2498ee48339dedf8b649dce1712c42aba1434531521c2290b4ac2"
+  "compiled_digest": "c98671002965e433fa3c7d0d25f8ceb977ed455d91cd050b0d5c959ed2abd98e"
 }

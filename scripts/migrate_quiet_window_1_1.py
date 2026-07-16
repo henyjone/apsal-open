@@ -58,7 +58,7 @@ def field_intent(field: str, shot: dict, field_def: dict) -> dict:
 
 def build() -> dict:
     legacy = engine.load_json(EXAMPLE / "theme.json")
-    theme = engine.new_semantic_theme(legacy["id"], legacy["name"], len(legacy["shots"]))
+    theme = engine.new_semantic_theme(legacy["id"], legacy["name"], len(legacy["shots"]), native_4k=False, live_action=False)
     theme.update({
         "version": "1.1.0", "parent_version": "1.0.0",
         "changed_fields": ["schema_version", "semantics", "protocol_mapping", "element_semantics", "shots[*].intent", "shots[*].field_intents"],

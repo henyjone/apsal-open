@@ -1,4 +1,4 @@
-# APSAL Studio 0.4 interaction contract
+# APSAL Studio 0.5 interaction contract
 
 ## What creators see
 
@@ -41,7 +41,18 @@ A creator may return to an earlier stage. Committing a changed upstream selectio
 
 Translate requests such as “人物更成熟，但保留短发” into a proposed DNA revision. Explain the one intended variable and the locks that remain. Save drafts automatically to the project. Confirmation promotes the draft to project DNA; copy it to personal DNA only after an explicit “保存到我的 DNA”. Never edit a formal ID/version in place.
 
-At Scene, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, composition, continuity phase, and output filename. Default is one Job and one 2:3 image.
+At Scene, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, 9:16-safe composition, continuity phase, and output filename. Default is one Job and one 2160×3840 PNG.
+
+## Reference binding
+
+Do not accept “use this image” as an untyped instruction. For every supplied image, confirm:
+
+- stable reference ID and applicable Jobs;
+- one or more allowed roles: style, world, prop, wardrobe, composition, or identity;
+- forbidden uses such as copying a face, body, pose, exact composition, text, signature, or watermark;
+- copyright, portrait consent, attribution, and redistribution status.
+
+The image is stored in the private Vault by SHA-256. Theme DNA stores only purpose, restrictions, rights metadata, and the Vault URI needed by the local engine. Replacing bytes creates a new content digest and requires a new theme version. A prose analysis can supplement a reference but cannot replace the actual image sent to the provider.
 
 ## Local storage
 
@@ -51,14 +62,16 @@ At Scene, first explain the sequence arc, then show nine Scene summaries. Every 
 
 Store provider-neutral theme prompts under the frozen theme version. Store exact effective prompts again under every run. Chat history is never the only lineage record.
 
-Private identity references go to `~/.apsal/vault/sha256/`. Retain only their vault URI and digest in the session. They never enter theme DNA, public Git, a release, or an exported Skill.
+Private references go to `~/.apsal/vault/sha256/`. Retain only their Vault URI, digest, roles, scope, and rights state in the session/theme. They never enter public Git or a public Release. A local `private_only` Skill contains sanitized copies and an integrity manifest because the image model must actually see them; it explicitly forbids redistribution.
 
 ## Final choices
 
 After the nine-shot overview, offer:
 
-1. Generate nine images — requires explicit confirmation and nine independent calls.
+1. Generate nine images — show the live-action contract, reference count, private/public status, 9:16, 2160×3840, nine provider requests, and possible cost; then require one explicit confirmation.
 2. Save prompts only — no image provider call.
-3. Export Skill — reproducible ZIP plus SHA-256.
+3. Export Skill — reproducible ZIP plus SHA-256. Private references force `private_only` packaging; public export fails unless redistribution rights are explicit.
 
-For partial runs, show successful, failed, and pending Jobs separately. Resume only failed or pending Jobs.
+Native 4K execution uses `gpt-image-2` through the optional OpenAI Image API adapter. Run nine independent `n: 1` Jobs sequentially, not one `n: 9` call. References are attached through Image Edits; jobs without references use Generations. `SHOT_01` becomes an identity-only runtime anchor after it passes model visual QA. Every output must parse as exactly 2160×3840 or the Job fails. For partial runs, show successful, failed, and pending Jobs separately and resume only failed or pending Jobs.
+
+Keep model visual QA and human visual QA separate. Prompt validation never proves that the result is a real human photograph.

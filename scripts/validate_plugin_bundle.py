@@ -59,14 +59,14 @@ def main() -> int:
         try: responses = [json.loads(line) for line in process.stdout.splitlines()]
         except json.JSONDecodeError as exc: errors.append(f"MCP smoke test returned invalid JSON: {exc}"); responses = []
         if len(responses) != 4: errors.append("MCP smoke test: expected four responses")
-        elif len(responses[1].get("result", {}).get("tools", [])) != 7: errors.append("MCP smoke test: expected seven tools")
+        elif len(responses[1].get("result", {}).get("tools", [])) != 9: errors.append("MCP smoke test: expected nine tools")
         elif "APSAL DNA Registry" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA card UI resource missing")
 
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 7 MCP tools, card resource")
+    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 9 MCP tools, card resource")
     return 0
 
 

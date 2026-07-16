@@ -75,9 +75,9 @@ APSAL Studio will:
 1. Decompose the sentence and present Character, World, Scene, and Photo DNA cards.
 2. Let you choose, revise in natural language, or redesign one scene without hand-writing data files.
 3. Show the nine-shot overview and wait for your confirmation.
-4. Generate nine independent images, save the Prompts only, or export a reproducible Skill.
+4. Confirm the live-action contract and reference uses, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
 
-Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
+Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Studio 0.5 binds actual reference images and places a live-action photography contract before scene style. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
 
 ### Where your DNA lives
 
@@ -87,7 +87,7 @@ Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local ar
 | Personal | `~/.apsal/` or `APSAL_HOME` | reusable DNA and the private content-addressed reference Vault |
 | Project | `<project>/.apsal/` | drafts, project DNA, frozen themes, exact Prompts, runs, outputs and QA |
 
-Resolution is project → personal → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Private character references stay in `~/.apsal/vault/sha256/`; they are never put in Git or exported Skills.
+Resolution is project → personal → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Original references stay in `~/.apsal/vault/sha256/` and never enter DNA JSON or Git. A local exported Skill contains sanitized copies plus a purpose-and-rights manifest so the image model can actually see them. If redistribution rights are unresolved, the Skill is `private_only` and public export fails.
 
 Behind the interface, a finalized theme and each real run retain complete lineage:
 
@@ -95,6 +95,14 @@ Behind the interface, a finalized theme and each real run retain complete lineag
 .apsal/themes/<theme-id>/<version>/   source, canonical artifact, three compiled targets, 18 Prompt files
 .apsal/runs/<run-id>/                 exact submitted Prompts, nine outputs, retries and per-shot QA
 ```
+
+### Real people, real references, native 4K
+
+New Studio themes default to live-action adult-human photography and nine independent 9:16, 2160×3840 high-quality PNG Jobs. Handmade, crayon, painted, or theatrical language may describe sets and props; it must not turn the person into an illustration, doll, mannequin, wax figure, or 3D character.
+
+Provider-native 4K execution is optional: set `OPENAI_API_KEY`, select `openai-image-api` with `gpt-image-2`, and APSAL sends nine sequential `n: 1` requests. Jobs with references use Image Edits; other Jobs use Generations. Every returned file must be exactly 2160×3840. Codex ImageGen is not presented as a guaranteed native-4K fallback. GPT Image 2 supports this size, but output above 2K is experimental; see the [official OpenAI guide](https://developers.openai.com/api/docs/guides/image-generation).
+
+Model visual QA checks the generated medium, skin, eyes, hands, anatomy, optics, light, and material response. Human visual QA remains a separate pending decision; passing schemas or Prompts never proves photographic quality.
 
 ## Use the engine directly
 
@@ -116,6 +124,8 @@ python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.a
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
+Native-4K execution is also available through `session finalize`, `run --confirm`, `run-execute`, and `run-model-qa`; use `python3 plugins/apsal-studio/scripts/apsal.py --help` for the local workflow. Packaging and validation remain fully offline.
+
 ## Choose your path
 
 | Creator | Developer | Contributor |
@@ -124,7 +134,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 
 ## Open does not mean unlicensed
 
-The protocol and reference engine are Apache-2.0. Official starter DNA and examples are CC BY 4.0. An individual theme is public only when it carries its own license, attribution, provenance, version lineage, checksums, and honest QA state. Private references, credentials, personal media, and unlicensed source material are excluded.
+The protocol and reference engine are Apache-2.0. Official starter DNA and examples are CC BY 4.0. An individual theme is public only when it carries its own license, attribution, provenance, version lineage, checksums, and honest QA state. Every reference has an independent license and consent record; it never inherits CC BY 4.0 from theme text. Private references, credentials, personal media, and unlicensed source material are excluded from this repository and public releases.
 
 Static validation proves structure and reproducibility—not generated-image quality. Visual QA requires human evidence.
 
@@ -133,7 +143,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Building Visible Worlds — APSAL methodology monograph](docs/monograph/README.md)
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
 - [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
-- [APSAL Studio 0.4 release and installation notes](docs/releases/0.4.0.md)
+- [Reference binding, live-action and native-4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
+- [APSAL Studio 0.5 release and installation notes](docs/releases/0.5.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

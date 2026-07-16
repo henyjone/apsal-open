@@ -8,8 +8,8 @@ from typing import Any, Callable
 
 from apsal_engine import (
     ValidationError, commit_session_stage, dna_card, finalize_design_session,
-    load_design_session, project_root_from, record_generation_result, search_registry, start_design_session,
-    start_generation_run,
+    execute_generation_run, load_design_session, project_root_from, record_generation_result,
+    record_model_visual_qa, search_registry, start_design_session, start_generation_run,
 )
 
 UI_URI = "ui://apsal/dna-cards.html"
@@ -44,7 +44,7 @@ TOOLS = [
     },
     {
         "name": "commit_stage", "description": "Confirm one DNA stage and invalidate affected downstream selections when an upstream choice changes.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}}, ["session_id", "stage"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "stage"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -55,6 +55,16 @@ TOOLS = [
     {
         "name": "start_generation_run", "description": "Create or resume one-Job-one-image work; generate mode requires explicit user confirmation.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, "confirmed": {"type": "boolean"}, "mode": {"enum": ["generate", "prompts", "skill"]}, "adapter": {"type": "string"}, "model": {"type": "string"}, "parameters": {"type": "object"}, "resume_run_id": {"type": "string"}}, ["session_id", "mode"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "execute_generation_run", "description": "Execute native 4K GPT Image 2 Jobs sequentially; one call defaults to one Job so Codex can visually review it before continuing.",
+        "inputSchema": _schema({"run_id": {"type": "string"}, "project_root": {"type": "string"}, "max_jobs": {"type": "integer", "minimum": 1, "maximum": 24}, "max_retries": {"type": "integer", "minimum": 0, "maximum": 5}}, ["run_id"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True},
+    },
+    {
+        "name": "record_model_visual_qa", "description": "Record Codex visual review separately from pending human QA; failed medium checks archive the candidate and reopen the Job for retry.",
+        "inputSchema": _schema({"run_id": {"type": "string"}, "shot_id": {"type": "string"}, "status": {"enum": ["passed", "failed"]}, "findings": {"type": "array", "items": {"type": "string"}}, "project_root": {"type": "string"}}, ["run_id", "shot_id", "status"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -74,6 +84,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "session_id": session["session_id"], "state": session["state"], "brief": session["brief"],
         "shot_count": session["shot_count"], "stages": session["stages"],
         "theme_artifact": session.get("theme_artifact"), "invalidations": session.get("invalidations", []),
+        "reference_count": len(session.get("private_references", [])),
     }
 
 
@@ -101,7 +112,7 @@ def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
-    session = commit_session_stage(arguments["session_id"], arguments["stage"], arguments.get("refs", []), project_root=_root(arguments), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, draft_assets=arguments.get("draft_assets"))
+    session = commit_session_stage(arguments["session_id"], arguments["stage"], arguments.get("refs", []), project_root=_root(arguments), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, reference_bindings=arguments.get("reference_bindings"), draft_assets=arguments.get("draft_assets"))
     return _summary(session)
 
 
@@ -110,8 +121,16 @@ def _tool_finalize(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_run(arguments: dict[str, Any]) -> dict[str, Any]:
-    run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], adapter=arguments.get("adapter", "codex-imagegen"), model=arguments.get("model", "not_reported"), parameters=arguments.get("parameters"), resume_run_id=arguments.get("resume_run_id"))
+    run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], adapter=arguments.get("adapter", "openai-image-api"), model=arguments.get("model", "gpt-image-2"), parameters=arguments.get("parameters"), resume_run_id=arguments.get("resume_run_id"))
     return run
+
+
+def _tool_execute(arguments: dict[str, Any]) -> dict[str, Any]:
+    return execute_generation_run(arguments["run_id"], project_root=_root(arguments), max_jobs=arguments.get("max_jobs", 1), max_retries=arguments.get("max_retries", 2))
+
+
+def _tool_model_qa(arguments: dict[str, Any]) -> dict[str, Any]:
+    return record_model_visual_qa(arguments["run_id"], arguments["shot_id"], arguments["status"], project_root=_root(arguments), findings=arguments.get("findings"))
 
 
 def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -122,6 +141,7 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "start_design_session": _tool_start, "search_dna": _tool_search,
     "present_dna_cards": _tool_cards, "commit_stage": _tool_commit,
     "finalize_theme": _tool_finalize, "start_generation_run": _tool_run,
+    "execute_generation_run": _tool_execute, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
 }
 
@@ -148,7 +168,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.4.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.5.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [{"uri": UI_URI, "name": "APSAL DNA Cards", "mimeType": "text/html;profile=mcp-app"}]}
     elif method == "resources/read":

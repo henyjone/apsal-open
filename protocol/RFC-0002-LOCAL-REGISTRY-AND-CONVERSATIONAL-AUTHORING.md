@@ -47,6 +47,8 @@ Preview bytes are presentation metadata and are excluded from the DNA content di
 
 Private character references MUST be stored in the user's content-addressed Vault under `~/.apsal/vault/sha256/`. Themes and sessions MAY retain a vault URI and digest. They MUST NOT embed the media, place it in Git, export it in a Skill, or upload it automatically.
 
+This 0.4 export rule is superseded for new 0.5 Skills by [RFC-0003](RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md): a local `private_only` Skill may contain sanitized, manifest-bound copies so the provider receives the real references. The Git and automatic-upload prohibitions remain unchanged. Existing 0.4 Skills retain their original semantics.
+
 ## Session semantics
 
 The state order is:

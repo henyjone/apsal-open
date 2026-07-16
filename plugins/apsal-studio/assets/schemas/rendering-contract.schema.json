@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/rendering-contract.schema.json",
+  "title": "APSAL Live-action Rendering Contract 0.5",
+  "type": "object",
+  "required": ["medium", "subject_representation", "environment_style_may_be_handmade", "must_preserve", "forbid", "priority", "instruction"],
+  "properties": {
+    "medium": {"const": "live_action_photography"},
+    "subject_representation": {"const": "real_adult_human"},
+    "environment_style_may_be_handmade": {"const": true},
+    "must_preserve": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+    "forbid": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+    "priority": {"const": 100},
+    "instruction": {
+      "type": "object",
+      "required": ["en", "zh"],
+      "properties": {"en": {"type": "string", "minLength": 1}, "zh": {"type": "string", "minLength": 1}}
+    }
+  },
+  "additionalProperties": true
+}

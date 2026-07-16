@@ -11,6 +11,9 @@ import re
 import shutil
 import struct
 import sys
+import tempfile
+import urllib.error
+import urllib.request
 import uuid
 import zipfile
 from pathlib import Path
@@ -29,7 +32,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.4.0"
+ENGINE_VERSION = "0.5.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
 PROTOCOL_TYPES = ("subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job")
@@ -51,6 +54,15 @@ SAFE_ID = re.compile(r"^[A-Z][A-Z0-9-]*$")
 SAFE_ASSET_ID = re.compile(r"^[A-Z][A-Z0-9_]*$")
 SAFE_NAMESPACE = re.compile(r"^[a-z][a-z0-9-]*$")
 SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+REFERENCE_USES = {"style", "world", "prop", "wardrobe", "composition", "identity"}
+LIVE_ACTION_FORBID = (
+    "illustrated_human", "anime", "painting", "3d_rendered_person",
+    "mannequin", "doll", "wax_figure", "clay_character",
+)
+NATIVE_4K_OUTPUT = {
+    "aspect_ratio": "9:16", "size": "2160x3840", "quality": "high",
+    "format": "png", "provider_native": True,
+}
 
 
 class ValidationError(ValueError):
@@ -165,15 +177,16 @@ def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, st
     project_root = project_root.expanduser().resolve()
     home = (home or apsal_home()).expanduser().resolve()
     _mkdir_private(home)
-    for relative in ("registry", "vault/sha256", "cache"):
+    for relative in ("registry", "vault", "vault/sha256", "cache"):
         _mkdir_private(_inside(home, home / relative))
     workspace = project_root / ".apsal"
+    _mkdir_private(workspace)
     for relative in ("drafts", "registry", "themes", "runs", "cache"):
         _mkdir_private(_inside(workspace, workspace / relative))
     project_file = workspace / "project.json"
     if not project_file.exists():
         _write_private_json({
-            "schema_version": "0.4.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
+            "schema_version": "0.5.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
             "created_at": _utc_now(), "storage": "local_first",
         }, project_file)
     ignore = workspace / ".gitignore"
@@ -456,7 +469,28 @@ def asset_ref(asset: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def new_theme(theme_id: str, name: str, shot_count: int = 9) -> dict[str, Any]:
+def live_action_rendering_contract() -> dict[str, Any]:
+    return {
+        "medium": "live_action_photography",
+        "subject_representation": "real_adult_human",
+        "environment_style_may_be_handmade": True,
+        "must_preserve": [
+            "natural_skin_texture", "plausible_human_anatomy", "optical_depth_of_field",
+            "physically_plausible_light", "photographic_material_response",
+        ],
+        "forbid": list(LIVE_ACTION_FORBID),
+        "priority": 100,
+        "instruction": {
+            "en": "The set and props may use hand-drawn, crayon, or handmade textures; the adult subject must always be rendered as a real human in live-action photography.",
+            "zh": "布景和道具可以具有手绘、蜡笔与手工质感；成年人物必须始终是真实人物的实拍摄影呈现。",
+        },
+    }
+
+
+def new_theme(
+    theme_id: str, name: str, shot_count: int = 9, *, native_4k: bool = True,
+    live_action: bool = True,
+) -> dict[str, Any]:
     if not SAFE_ID.fullmatch(theme_id):
         raise ValidationError("theme id must match ^[A-Z][A-Z0-9-]*$")
     if not 1 <= shot_count <= 24:
@@ -475,18 +509,22 @@ def new_theme(theme_id: str, name: str, shot_count: int = 9) -> dict[str, Any]:
             "gaze": "Describe gaze direction and motivation.",
             "composition": "Describe subject placement, depth, foreground and background.",
             "continuity": {"identity": "locked", "wardrobe": "LOOK_A", "phase": f"PHASE_{((i - 1) * 3 // shot_count) + 1}"},
-            "output_filename": f"{theme_id.lower()}_{i:02d}.jpg",
+            "output_filename": f"{theme_id.lower()}_{i:02d}.{'png' if native_4k else 'jpg'}",
         })
-    return {
+    output = {"count": shot_count, "aspect_ratio": "2:3", "independent_images": True,
+              "forbid": ["collage", "grid", "contact sheet", "text", "logo", "watermark"]}
+    if native_4k: output.update(NATIVE_4K_OUTPUT)
+    theme = {
         "schema_version": "1.0.0", "id": theme_id, "version": "1.0.0", "name": name,
         "parent_version": None, "changed_fields": ["initial_version"],
         "change_summary": "Initial original APSAL Open theme.", "dna": refs,
-        "output": {"count": shot_count, "aspect_ratio": "2:3", "independent_images": True,
-                   "forbid": ["collage", "grid", "contact sheet", "text", "logo", "watermark"]},
+        "output": output,
         "shots": shots,
         "rights": {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "APSAL Open contributors"},
         "qa_status": "visual_qa_pending",
     }
+    if live_action: theme["rendering_contract"] = live_action_rendering_contract()
+    return theme
 
 
 def _statement(statement_id: str, en: str, zh: str) -> dict[str, str]:
@@ -518,9 +556,12 @@ def _generic_field_intent(field_name: str, field: dict[str, Any]) -> dict[str, A
     }
 
 
-def new_semantic_theme(theme_id: str, name: str, shot_count: int = 9) -> dict[str, Any]:
+def new_semantic_theme(
+    theme_id: str, name: str, shot_count: int = 9, *, native_4k: bool = True,
+    live_action: bool = True,
+) -> dict[str, Any]:
     """Create a Protocol 0.3 authoring theme with complete generic semantics."""
-    theme = new_theme(theme_id, name, shot_count)
+    theme = new_theme(theme_id, name, shot_count, native_4k=native_4k, live_action=live_action)
     registry = load_semantic_registry()
     theme["schema_version"] = "1.1.0"
     theme["semantic_contract_version"] = SEMANTIC_CONTRACT_VERSION
@@ -704,6 +745,89 @@ def validate_semantic_theme(theme: dict[str, Any]) -> list[str]:
     return errors
 
 
+def validate_rendering_contract(value: Any) -> list[str]:
+    if not isinstance(value, dict): return ["rendering_contract: must be an object"]
+    errors: list[str] = []
+    if value.get("medium") != "live_action_photography": errors.append("rendering_contract: medium must be live_action_photography")
+    if value.get("subject_representation") != "real_adult_human": errors.append("rendering_contract: subject_representation must be real_adult_human")
+    if value.get("environment_style_may_be_handmade") is not True: errors.append("rendering_contract: handmade environment allowance must be explicit")
+    preserve = value.get("must_preserve")
+    required_preserve = set(live_action_rendering_contract()["must_preserve"])
+    if not isinstance(preserve, list) or not required_preserve.issubset(set(preserve)):
+        errors.append("rendering_contract: live-action preservation rules are incomplete")
+    forbidden = value.get("forbid")
+    if not isinstance(forbidden, list) or not set(LIVE_ACTION_FORBID).issubset(set(forbidden)):
+        errors.append("rendering_contract: illustrated/CGI human prohibitions are incomplete")
+    if value.get("priority") != 100: errors.append("rendering_contract: priority must be 100")
+    instruction = value.get("instruction", {})
+    if not instruction.get("en") or not instruction.get("zh"): errors.append("rendering_contract: bilingual instruction is required")
+    return errors
+
+
+def validate_reference_metadata(references: Any, theme: dict[str, Any] | None = None) -> list[str]:
+    if references is None: return []
+    if not isinstance(references, list): return ["references: must be an array"]
+    errors: list[str] = []; ids: set[str] = set(); digests: set[str] = set()
+    shot_ids = {shot.get("shot_id") for shot in (theme or {}).get("shots", [])}
+    for pos, ref in enumerate(references, 1):
+        label = f"reference {pos}"
+        if not isinstance(ref, dict): errors.append(f"{label}: must be an object"); continue
+        ref_id = str(ref.get("reference_id", ""))
+        if not SAFE_ASSET_ID.fullmatch(ref_id): errors.append(f"{label}: invalid reference_id")
+        if ref_id in ids: errors.append(f"{label}: duplicate reference_id {ref_id}")
+        ids.add(ref_id)
+        sha = str(ref.get("original_sha256", ""))
+        if not re.fullmatch(r"[a-f0-9]{64}", sha): errors.append(f"{label}: invalid original_sha256")
+        if sha in digests: errors.append(f"{label}: duplicate original_sha256")
+        digests.add(sha)
+        filename = ref.get("original_filename")
+        if not isinstance(filename, str) or not filename or Path(filename).name != filename:
+            errors.append(f"{label}: original_filename must be one safe filename")
+        uses_value = ref.get("uses"); uses = set(uses_value) if isinstance(uses_value, list) else set()
+        if not isinstance(uses_value, list) or not uses or uses - REFERENCE_USES:
+            errors.append(f"{label}: uses must be selected from {sorted(REFERENCE_USES)}")
+        for key in ("allowed_uses", "forbidden_uses", "applies_to"):
+            value = ref.get(key)
+            if not isinstance(value, list) or not value or any(not isinstance(item, str) or not item for item in value):
+                errors.append(f"{label}: {key} must be a non-empty string array")
+        applies_value = ref.get("applies_to"); applies = set(applies_value) if isinstance(applies_value, list) else set()
+        if theme is not None:
+            unknown_shots = applies - shot_ids - {"*"}
+            if unknown_shots: errors.append(f"{label}: unknown Jobs {sorted(unknown_shots)}")
+        elif any(item != "*" and not re.fullmatch(r"SHOT_[0-9]{2,3}", item) for item in applies):
+            errors.append(f"{label}: applies_to contains an invalid Job ID")
+        rights_value = ref.get("rights"); rights = rights_value if isinstance(rights_value, dict) else {}
+        if not isinstance(rights_value, dict): errors.append(f"{label}: rights must be an object")
+        for key in ("copyright_status", "portrait_rights", "attribution", "redistribution_allowed"):
+            if key not in rights: errors.append(f"{label}: missing rights.{key}")
+        for key in ("copyright_status", "portrait_rights", "attribution"):
+            if key in rights and (not isinstance(rights[key], str) or not rights[key].strip()):
+                errors.append(f"{label}: rights.{key} must be a non-empty string")
+        if "redistribution_allowed" in rights and not isinstance(rights["redistribution_allowed"], bool):
+            errors.append(f"{label}: rights.redistribution_allowed must be boolean")
+        forbidden_value = ref.get("forbidden_uses"); forbidden = set(forbidden_value) if isinstance(forbidden_value, list) else set()
+        if "identity" not in uses and "identity" not in forbidden:
+            errors.append(f"{label}: non-identity reference must explicitly forbid identity use")
+    analysis_value = (theme or {}).get("reference_analysis", {}); analysis = analysis_value if isinstance(analysis_value, dict) else {}
+    expected = {item.get("sha256") for item in analysis.get("references", []) if isinstance(item, dict)}
+    actual = {item.get("original_sha256") for item in references if isinstance(item, dict)}
+    if expected and expected != actual: errors.append("references: digests must match reference_analysis exactly")
+    if analysis.get("identity_usage") == "none" and any("identity" in ref.get("uses", []) for ref in references if isinstance(ref, dict)):
+        errors.append("references: identity usage conflicts with reference_analysis.identity_usage=none")
+    return errors
+
+
+def _reference_rights_allow_public(ref: dict[str, Any]) -> bool:
+    rights = ref.get("rights", {})
+    if not isinstance(rights, dict) or rights.get("redistribution_allowed") is not True:
+        return False
+    unresolved = ("unverified", "unknown", "unresolved", "pending", "private_only")
+    for key in ("copyright_status", "portrait_rights"):
+        value = str(rights.get(key, "")).lower()
+        if not value or any(token in value for token in unresolved): return False
+    return bool(str(rights.get("attribution", "")).strip())
+
+
 def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = None) -> list[str]:
     errors = validate_catalog() if assets is None else []
     for key in ("schema_version", "id", "version", "name", "parent_version", "changed_fields", "change_summary", "dna", "output", "shots", "rights", "qa_status"):
@@ -732,6 +856,10 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
     output = theme.get("output", {})
     if output.get("count") != len(shots): errors.append("theme: output count does not match shots")
     if output.get("independent_images") is not True: errors.append("theme: outputs must be independent images")
+    if output.get("provider_native") is True:
+        expected_output = NATIVE_4K_OUTPUT
+        for key, expected in expected_output.items():
+            if output.get(key) != expected: errors.append(f"theme: native 4K output {key} must be {expected}")
     required = ("shot_id", "title", "narrative_purpose", "framing", "action", "hands", "gaze", "composition", "continuity", "output_filename")
     ids, filenames = set(), set()
     for shot in shots:
@@ -744,6 +872,11 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
     if rights.get("status") != "original_open_content": errors.append("theme: rights status must be original_open_content")
     if theme.get("qa_status") == "visual_qa_passed" and not theme.get("visual_qa_evidence"):
         errors.append("theme: visual_qa_passed requires evidence")
+    if "rendering_contract" in theme: errors.extend(validate_rendering_contract(theme["rendering_contract"]))
+    if "references" in theme:
+        errors.extend(validate_reference_metadata(theme["references"], theme))
+        if any(not _reference_rights_allow_public(ref) for ref in theme.get("references", []) if isinstance(ref, dict)):
+            if theme.get("distribution") != "private_only": errors.append("theme: unredistributable references require distribution=private_only")
     if theme.get("schema_version") == "1.1.0":
         if theme.get("parent_version"):
             if theme.get("version") == theme.get("parent_version"):
@@ -836,6 +969,16 @@ def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[
     ordered = sorted(assets, key=lambda a: CATEGORIES.index(a["type"]))
     shared = ", ".join(a["prompt_fragment"] for a in ordered)
     negative = ", ".join(a["negative_fragment"] for a in ordered)
+    rendering = theme.get("rendering_contract")
+    medium_prefix = ""
+    if rendering:
+        medium_prefix = (
+            "MEDIUM CONTRACT — LIVE-ACTION PHOTOGRAPHY. Create a photograph of a real adult human captured by a physical camera, "
+            "with natural skin texture, plausible anatomy, optical depth of field, physically plausible light, and photographic material response. "
+            "The set and props may use hand-drawn, crayon, or handmade textures; the adult subject must never become an illustration, anime figure, "
+            "painting, 3D-rendered person, mannequin, doll, wax figure, or clay character. "
+        )
+        negative = f"{', '.join(rendering['forbid'])}, illustrated person, cartoon human, synthetic 3D human, {negative}"
     compiled = []
     for shot in theme["shots"]:
         observable = _english_statements(shot.get("intent", {}), "expected_effects")
@@ -847,10 +990,15 @@ def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[
             f"Continuity: {canonical_json(shot['continuity'])}. Output file: {shot['output_filename']}."
             f"{observable_text}"
         )
-        positive = f"{shared}, {instruction}"
+        positive = f"{medium_prefix}{shared}, {instruction}"
+        reference_ids = [
+            ref["reference_id"] for ref in theme.get("references", [])
+            if "*" in ref.get("applies_to", []) or shot["shot_id"] in ref.get("applies_to", [])
+        ]
         compiled.append({"shot_id": shot["shot_id"], "title": shot["title"], "positive_prompt": positive,
-                         "negative_prompt": negative, "prompt_digest": digest({"positive": positive, "negative": negative})})
-    return {"target": "image", "shots": compiled}
+                         "negative_prompt": negative, "reference_ids": reference_ids,
+                         "prompt_digest": digest({"positive": positive, "negative": negative, "references": reference_ids})})
+    return {"target": "image", "rendering_contract": rendering, "output_contract": theme.get("output"), "shots": compiled}
 
 
 def _compile_design(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[str, Any]:
@@ -862,6 +1010,9 @@ def _compile_design(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict
             "camera_light_and_color", "style_rhetoric",
         ],
         "theme_semantics": theme.get("semantics"),
+        "rendering_contract": theme.get("rendering_contract"),
+        "reference_summary": [{"reference_id": ref["reference_id"], "uses": ref["uses"], "applies_to": ref["applies_to"]} for ref in theme.get("references", [])],
+        "output_contract": theme.get("output"),
         "protocol_mapping": theme.get("protocol_mapping"),
         "element_semantics": theme.get("element_semantics"),
         "dna": [{"id": asset["id"], "type": asset["type"], "version": asset["version"]} for asset in assets],
@@ -883,6 +1034,12 @@ def _compile_qa(theme: dict[str, Any]) -> dict[str, Any]:
     quality = theme.get("element_semantics", {}).get("quality_control", {})
     for item in quality.get("qa_expectations", []):
         global_checks.append({"id": item["id"], "en": item["en"], "zh": item["zh"], "scope": "theme"})
+    if theme.get("rendering_contract"):
+        global_checks.extend([
+            {"id": "medium.live_action", "en": "The adult subject is unmistakably a real human in live-action photography, while handmade styling remains confined to set and props.", "zh": "成年人物明确呈现为真人实拍摄影；手绘和手工风格仅作用于布景与道具。", "scope": "theme"},
+            {"id": "medium.skin_eyes_hands", "en": "Skin pores, both eyes when visible, and all visible hands are anatomically and photographically plausible.", "zh": "可见皮肤毛孔、双眼与手部在解剖和摄影表现上均可信。", "scope": "theme"},
+            {"id": "medium.optics_light", "en": "Depth of field, light falloff, shadows and material response behave like physical photography rather than illustration or CGI.", "zh": "景深、光线衰减、阴影与材质响应符合物理摄影，而非插画或 CGI。", "scope": "theme"},
+        ])
     shots = []
     for shot in theme["shots"]:
         checks: list[dict[str, Any]] = []
@@ -900,8 +1057,10 @@ def _compile_qa(theme: dict[str, Any]) -> dict[str, Any]:
             {"id": "continuity.identity", "en": "The same fictional adult identity is preserved.", "zh": "保持同一虚构成年人物身份。", "source": "continuity"},
             {"id": "output.independent", "en": "The output is one independent finished image with no text or grid.", "zh": "输出为一张无文字、无拼图的独立完成图。", "source": "output"},
         ])
+        if theme.get("rendering_contract"):
+            checks.append({"id": "medium.real_adult_human", "en": "This Job depicts a real adult human in live-action photography, not an illustrated, painted, doll-like, wax, clay or 3D-rendered person.", "zh": "本 Job 呈现真人成年人的实拍摄影，而非插画、绘画、玩偶、蜡像、黏土或 3D 人物。", "source": "rendering_contract"})
         shots.append({"shot_id": shot["shot_id"], "title": shot["title"], "output_filename": shot["output_filename"], "checks": checks})
-    return {"target": "qa", "global_checks": global_checks, "shots": shots}
+    return {"target": "qa", "model_visual_qa": "required_before_delivery", "human_visual_qa": "pending_until_evidence", "global_checks": global_checks, "shots": shots}
 
 
 def compile_theme(
@@ -964,10 +1123,10 @@ def start_design_session(
     if not brief: raise ValidationError("creative brief cannot be empty")
     project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
     theme_id = theme_id or _new_theme_id()
-    theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count)
+    theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=True, live_action=True)
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
     session = {
-        "schema_version": "0.4.0", "session_id": session_id, "brief": brief,
+        "schema_version": "0.5.0", "session_id": session_id, "brief": brief,
         "project_root": str(project_root), "state": "character_pending", "shot_count": shot_count,
         "stages": {stage: {"status": "pending", "selection": [], "confirmed_at": None} for stage in INTERACTION_STAGES},
         "private_references": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
@@ -996,24 +1155,63 @@ def _resolve_refs(
     return selected
 
 
-def store_private_reference(path: Path, *, home: Path | None = None) -> dict[str, Any]:
+def store_private_reference(
+    path: Path, *, home: Path | None = None, reference_id: str | None = None,
+    uses: list[str] | None = None, allowed_uses: list[str] | None = None,
+    forbidden_uses: list[str] | None = None, applies_to: list[str] | None = None,
+    rights: dict[str, Any] | None = None, expected_sha256: str | None = None,
+) -> dict[str, Any]:
     """Copy a user reference into the private content-addressed vault."""
     source = path.expanduser().resolve()
     if not source.is_file(): raise ValidationError(f"reference image not found: {source}")
     data = source.read_bytes(); sha = hashlib.sha256(data).hexdigest()
+    if expected_sha256 and expected_sha256 != sha: raise ValidationError(f"reference digest mismatch for {source.name}")
+    reference_id = reference_id or f"REF_{sha[:12].upper()}"
+    if not SAFE_ASSET_ID.fullmatch(reference_id): raise ValidationError("reference_id must match ^[A-Z][A-Z0-9_]*$")
+    uses = uses or ["identity"]
+    if not uses or set(uses) - REFERENCE_USES: raise ValidationError(f"reference uses must be selected from {sorted(REFERENCE_USES)}")
+    allowed_uses = allowed_uses or list(uses)
+    forbidden_uses = forbidden_uses or [item for item in sorted(REFERENCE_USES) if item not in uses]
+    if "identity" not in uses and "identity" not in forbidden_uses: forbidden_uses.append("identity")
+    applies_to = applies_to or ["*"]
+    rights = rights or {
+        "copyright_status": "user_provided_unverified", "portrait_rights": "user_provided_unverified",
+        "attribution": "User-provided private reference", "redistribution_allowed": False,
+    }
     home = (home or apsal_home()).resolve(); root = home / "vault" / "sha256" / sha[:2] / sha
-    _mkdir_private(root)
     suffix = source.suffix.lower() if re.fullmatch(r"\.[a-z0-9]{1,8}", source.suffix.lower()) else ".bin"
+    _sanitize_reference_bytes(data, suffix)
     target = root / f"reference{suffix}"
-    if not target.exists(): target.write_bytes(data)
     metadata = {
-        "schema_version": "0.4.0", "sha256": sha, "size": len(data), "source_filename": source.name,
-        "rights_status": "private_user_provided_not_redistributable", "visibility": "private",
+        "schema_version": "0.5.0", "reference_id": reference_id, "original_sha256": sha, "sha256": sha,
+        "size": len(data), "original_filename": source.name, "uses": uses,
+        "allowed_uses": allowed_uses, "forbidden_uses": forbidden_uses, "applies_to": applies_to,
+        "rights": rights, "rights_status": "private_user_provided_not_redistributable", "visibility": "private",
         "created_at": _utc_now(),
     }
+    metadata_errors = validate_reference_metadata([metadata])
+    if metadata_errors: raise ValidationError("\n".join(metadata_errors))
+    for directory in (home, home / "vault", home / "vault" / "sha256", root.parent, root): _mkdir_private(directory)
+    if not target.exists(): target.write_bytes(data)
+    try: target.chmod(0o600)
+    except OSError: pass
     metadata_path = root / "reference.json"
-    if not metadata_path.exists(): _write_private_json(metadata, metadata_path)
-    return {"vault_uri": f"vault:sha256:{sha}", "sha256": sha, "rights_status": metadata["rights_status"]}
+    if metadata_path.exists():
+        existing = load_json(metadata_path)
+        if existing.get("original_sha256") not in {None, sha}: raise ValidationError("vault reference digest conflict")
+    _write_private_json(metadata, metadata_path)
+    return {**metadata, "vault_uri": f"vault:sha256:{sha}"}
+
+
+def _vault_reference_path(vault_uri: str, home: Path | None = None) -> Path:
+    if not vault_uri.startswith("vault:sha256:"): raise ValidationError("unsupported private reference URI")
+    sha = vault_uri.rsplit(":", 1)[-1]
+    if not re.fullmatch(r"[a-f0-9]{64}", sha): raise ValidationError("invalid private reference URI")
+    root = (home or apsal_home()).resolve() / "vault" / "sha256" / sha[:2] / sha
+    matches = sorted(path for path in root.glob("reference.*") if path.name != "reference.json")
+    if len(matches) != 1: raise ValidationError(f"vault reference is missing or ambiguous: {sha}")
+    if hashlib.sha256(matches[0].read_bytes()).hexdigest() != sha: raise ValidationError(f"vault reference digest mismatch: {sha}")
+    return matches[0]
 
 
 def _validate_shot_replacement(shots: list[dict[str, Any]], expected_count: int) -> None:
@@ -1026,7 +1224,8 @@ def _validate_shot_replacement(shots: list[dict[str, Any]], expected_count: int)
 def commit_session_stage(
     session_id: str, stage: str, refs: list[dict[str, str]], *, project_root: Path,
     home: Path | None = None, shots: list[dict[str, Any]] | None = None,
-    reference_path: Path | None = None, draft_assets: list[dict[str, Any]] | None = None,
+    reference_path: Path | None = None, reference_bindings: list[dict[str, Any]] | None = None,
+    draft_assets: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Confirm or revise one interaction stage and invalidate every affected downstream stage."""
     if stage not in INTERACTION_STAGES: raise ValidationError(f"unknown interaction stage: {stage}")
@@ -1055,7 +1254,7 @@ def commit_session_stage(
     selected_types = set(STAGE_TYPES[stage])
     next_selection = [asset_ref(record["asset"]) for record in records]
     shots_changed = shots is not None and digest(shots) != digest(theme["shots"])
-    reference_changed = False
+    reference_changed = False; bound_references: list[dict[str, Any]] = []
     theme["dna"] = [ref for ref in theme["dna"] if ref["type"] not in selected_types]
     theme["dna"].extend(next_selection)
     theme["dna"].sort(key=lambda ref: CATEGORIES.index(ref["type"]))
@@ -1066,12 +1265,31 @@ def commit_session_stage(
     if reference_path is not None:
         if stage != "character": raise ValidationError("private references belong to the character stage")
         stored = store_private_reference(reference_path, home=home)
-        if stored not in session["private_references"]:
+        bound_references.append(stored)
+    for binding in reference_bindings or []:
+        if not isinstance(binding, dict) or not binding.get("path"): raise ValidationError("reference binding requires a path")
+        stored = store_private_reference(
+            Path(binding["path"]), home=home, reference_id=binding.get("reference_id"), uses=binding.get("uses"),
+            allowed_uses=binding.get("allowed_uses"), forbidden_uses=binding.get("forbidden_uses"),
+            applies_to=binding.get("applies_to"), rights=binding.get("rights"), expected_sha256=binding.get("expected_sha256"),
+        )
+        bound_references.append(stored)
+    for stored in bound_references:
+        previous = next((item for item in session["private_references"] if item.get("reference_id") == stored["reference_id"]), None)
+        if previous != stored:
+            session["private_references"] = [item for item in session["private_references"] if item.get("reference_id") != stored["reference_id"]]
             session["private_references"].append(stored); reference_changed = True
+        public_metadata = {key: value for key, value in stored.items() if key not in {"vault_uri", "visibility", "created_at", "size"}}
+        theme.setdefault("references", [])
+        theme["references"] = [item for item in theme["references"] if item.get("reference_id") != stored["reference_id"]]
+        theme["references"].append(public_metadata)
+        theme["references"].sort(key=lambda item: item["reference_id"])
+        if stored["rights"].get("redistribution_allowed") is not True: theme["distribution"] = "private_only"
     changed = session["stages"][stage].get("selection") != next_selection or shots_changed or reference_changed
     session["stages"][stage] = {
         "status": "confirmed", "selection": next_selection,
         "confirmed_at": _utc_now(), "created_project_assets": created_assets,
+        "reference_ids": [item["reference_id"] for item in bound_references],
     }
     if changed:
         for later in INTERACTION_STAGES[stage_index + 1:]:
@@ -1121,22 +1339,35 @@ def finalize_design_session(
         if digest(current) != digest(theme):
             raise ValidationError(f"immutable theme conflict for {theme['id']}@{theme['version']}")
     else:
-        _mkdir_private(root / "compiled")
+        _mkdir_private(root / "compiled"); _mkdir_private(root / "references")
         (root / "theme.apsal.yaml").write_text(dump_yaml(theme), encoding="utf-8")
         write_canonical_json(theme, canonical_path)
         compiled = {target: compile_theme(theme, target, assets) for target in COMPILE_TARGETS}
         for target, value in compiled.items(): write_canonical_json(value, root / "compiled" / f"{target}.json")
         prompt_digests = _write_theme_prompts(compiled["image"], root)
+        reference_manifest = {
+            "schema_version": "0.5.0", "theme_id": theme["id"], "theme_version": theme["version"],
+            "distribution": theme.get("distribution", "public"),
+            "private_media_included": bool(session.get("private_references")),
+            "redistribution_allowed": all(item.get("rights", {}).get("redistribution_allowed") is True for item in session.get("private_references", [])),
+            "references": session.get("private_references", []),
+        }
+        write_canonical_json(reference_manifest, root / "references" / "reference_manifest.json")
+        write_canonical_json(theme.get("rendering_contract", {"status": "not_declared_legacy"}), root / "references" / "rendering_contract.json")
         files = sorted(path for path in root.rglob("*") if path.is_file())
         manifest = {
-            "schema_version": "0.4.0", "theme_id": theme["id"], "theme_version": theme["version"],
+            "schema_version": "0.5.0", "theme_id": theme["id"], "theme_version": theme["version"],
             "theme_digest": digest(theme), "engine_version": ENGINE_VERSION, "prompt_digests": prompt_digests,
+            "reference_manifest_digest": digest(reference_manifest), "reference_count": len(reference_manifest["references"]),
+            "distribution": reference_manifest["distribution"], "output_contract": theme["output"],
             "files": {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files},
             "visual_qa_status": "pending",
         }
         write_canonical_json(manifest, root / "artifact_manifest.json")
     session["state"] = "ready"; session["theme_artifact"] = {
         "path": str(root), "theme_id": theme["id"], "version": theme["version"], "digest": digest(theme),
+        "reference_count": len(session.get("private_references", [])), "distribution": theme.get("distribution", "public"),
+        "rendering_medium": theme.get("rendering_contract", {}).get("medium", "not_declared"), "output": theme["output"],
     }
     _write_session(session, theme, project_root)
     return session
@@ -1158,9 +1389,19 @@ def _write_run(run: dict[str, Any], project_root: Path) -> None:
     _write_private_json(run, _run_dir(project_root, run["run_id"]) / "run.json")
 
 
+def _generation_run_status(run: dict[str, Any]) -> str:
+    jobs = run.get("jobs", [])
+    if any(job.get("status") == "failed" for job in jobs): return "partial"
+    if jobs and all(job.get("status") == "succeeded" for job in jobs):
+        if run.get("rendering_contract", {}).get("medium") == "live_action_photography":
+            return "completed" if all(job.get("model_visual_qa") == "passed" for job in jobs) else "generating"
+        return "completed"
+    return "generating"
+
+
 def start_generation_run(
     session_id: str, *, project_root: Path, confirmed: bool = False, mode: str = "generate",
-    adapter: str = "codex-imagegen", model: str = "not_reported", parameters: dict[str, Any] | None = None,
+    adapter: str = "openai-image-api", model: str = "gpt-image-2", parameters: dict[str, Any] | None = None,
     resume_run_id: str | None = None, home: Path | None = None,
 ) -> dict[str, Any]:
     """Create or resume a nine-Job run without calling a remote image provider."""
@@ -1173,13 +1414,32 @@ def start_generation_run(
     if resume_run_id:
         run = load_generation_run(resume_run_id, project_root)
         if run["session_id"] != session_id: raise ValidationError("run does not belong to this session")
+        failed_jobs = [job for job in run["jobs"] if job.get("status") == "failed"]
+        if not failed_jobs: raise ValidationError("generation run has no failed Jobs to resume")
         run["resume_count"] += 1
-        for job in run["jobs"]:
-            if job["status"] == "failed": job["status"] = "pending"; job["error"] = None
+        for job in failed_jobs: job["status"] = "pending"; job["error"] = None
         run["status"] = "generating"
         _write_run(run, project_root); session["state"] = "generating"; _write_session(session, theme, project_root)
         return run
     theme_root = Path(session["theme_artifact"]["path"]); compiled = load_json(theme_root / "compiled" / "image.json")
+    reference_manifest_path = theme_root / "references" / "reference_manifest.json"
+    reference_manifest = load_json(reference_manifest_path) if reference_manifest_path.is_file() else {
+        "schema_version": "0.5.0", "references": [], "reference_count": 0, "distribution": "public",
+    }
+    output_contract = theme.get("output", {})
+    effective_parameters = {
+        "size": output_contract.get("size", "not_reported"), "quality": output_contract.get("quality", "not_reported"),
+        "output_format": output_contract.get("format", "not_reported"), "n": 1,
+    }
+    if parameters is not None:
+        unsupported = set(parameters) - set(effective_parameters)
+        if unsupported: raise ValidationError(f"unsupported image parameters: {sorted(unsupported)}")
+        effective_parameters.update(parameters)
+    if effective_parameters.get("n") != 1: raise ValidationError("APSAL generation requires n=1 for every independent Job")
+    if output_contract.get("provider_native") is True:
+        expected_parameters = {"size": output_contract["size"], "quality": output_contract["quality"], "output_format": output_contract["format"]}
+        for key, value in expected_parameters.items():
+            if effective_parameters.get(key) != value: raise ValidationError(f"provider-native parameter {key} must be {value}")
     run_id = f"RUN-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8].upper()}"
     root = _run_dir(project_root, run_id)
     for relative in ("prompts", "outputs", "qa"): _mkdir_private(root / relative)
@@ -1190,19 +1450,26 @@ def start_generation_run(
         (root / "prompts" / f"{shot_id}.negative.txt").write_text(shot["negative_prompt"] + "\n", encoding="utf-8")
         jobs.append({
             "shot_id": shot_id, "status": "pending" if mode == "generate" else "saved",
-            "prompt_digest": shot["prompt_digest"], "attempts": [], "output": None, "error": None,
+            "prompt_digest": shot["prompt_digest"], "reference_ids": shot.get("reference_ids", []),
+            "attempts": [], "output": None, "error": None, "model_visual_qa": "pending",
+            "human_visual_qa": "pending",
         })
     run = {
-        "schema_version": "0.4.0", "run_id": run_id, "session_id": session_id, "mode": mode,
+        "schema_version": "0.5.0", "run_id": run_id, "session_id": session_id, "mode": mode,
         "status": "generating" if mode == "generate" else "completed", "theme": session["theme_artifact"],
         "dna": theme["dna"], "engine_version": ENGINE_VERSION, "adapter": adapter,
-        "model": model or "not_reported", "parameters": parameters if parameters is not None else "not_reported",
+        "model": model or "not_reported", "parameters": effective_parameters, "output_contract": output_contract,
+        "rendering_contract": theme.get("rendering_contract", {"status": "not_declared_legacy"}),
+        "reference_manifest": {key: value for key, value in reference_manifest.items() if key != "references"} | {
+            "references": [{key: value for key, value in item.items() if key != "vault_uri"} for item in reference_manifest.get("references", [])]
+        },
         "jobs": jobs, "resume_count": 0, "created_at": _utc_now(), "updated_at": _utc_now(),
-        "lineage_note": "Prompts are the exact local payload prepared for one independent image per Job.",
+        "lineage_note": "Prompts and reference IDs are the exact local payload prepared for one independent request and image per Job; n is always 1.",
     }
     if mode == "skill":
         assets = registry_assets(project_root, home)
-        path, sha = pack_theme(theme, root, (theme_root / "theme.apsal.yaml").read_bytes(), assets=assets)
+        reference_paths = {item["reference_id"]: _vault_reference_path(item["vault_uri"], home) for item in reference_manifest.get("references", [])}
+        path, sha = pack_theme(theme, root, (theme_root / "theme.apsal.yaml").read_bytes(), assets=assets, reference_paths=reference_paths)
         run["skill"] = {"path": str(path), "sha256": sha}
     _write_run(run, project_root)
     session["state"] = "generating" if mode == "generate" else "completed"; _write_session(session, theme, project_root)
@@ -1229,29 +1496,202 @@ def record_generation_result(
     else:
         if output_path is None and not artifact_uri:
             raise ValidationError("successful generation requires an output path or artifact URI")
+        if run.get("output_contract", {}).get("provider_native") is True and output_path is None:
+            raise ValidationError("provider-native output requires a local file for format and dimension validation")
         output: dict[str, Any] = {"artifact_uri": artifact_uri or "not_reported", "sha256": "not_reported"}
         if output_path is not None:
             source = output_path.expanduser().resolve()
             if not source.is_file(): raise ValidationError(f"generated output not found: {source}")
+            data = source.read_bytes()
+            dimensions = _validate_output_image(data, run.get("output_contract", {}))
             suffix = source.suffix.lower() if re.fullmatch(r"\.[a-z0-9]{1,8}", source.suffix.lower()) else ".bin"
             target = _run_dir(project_root, run_id) / "outputs" / f"{shot_id}{suffix}"
             if target.exists(): raise ValidationError(f"output already exists: {target.name}")
             shutil.copyfile(source, target)
-            output.update({"path": str(target), "sha256": hashlib.sha256(target.read_bytes()).hexdigest(), "size": target.stat().st_size})
+            output.update({"path": str(target), "sha256": hashlib.sha256(data).hexdigest(), "size": target.stat().st_size})
+            if dimensions: output.update({"width": dimensions[0], "height": dimensions[1]})
         attempt["output"] = output; job["output"] = output; job["error"] = None
+        job["model_visual_qa"] = "pending"; job["human_visual_qa"] = "pending"
     job["attempts"].append(attempt); job["status"] = status
     qa = {
-        "schema_version": "0.4.0", "run_id": run_id, "shot_id": shot_id,
+        "schema_version": "0.5.0", "run_id": run_id, "shot_id": shot_id,
         "static_record_status": "recorded", "visual_qa_status": "pending" if status == "succeeded" else "not_available",
-        "human_conclusion": "not_reported",
+        "model_visual_qa_status": "pending" if status == "succeeded" else "not_available",
+        "human_visual_qa_status": "pending" if status == "succeeded" else "not_available", "human_conclusion": "not_reported",
     }
     _write_private_json(qa, _run_dir(project_root, run_id) / "qa" / f"{shot_id}.json")
-    statuses = {item["status"] for item in run["jobs"]}
-    run["status"] = "completed" if statuses == {"succeeded"} else "partial" if statuses & {"failed", "succeeded"} else "generating"
+    run["status"] = _generation_run_status(run)
     _write_run(run, project_root)
     session, theme = load_design_session(run["session_id"], project_root)
     session["state"] = run["status"]; _write_session(session, theme, project_root)
     return run
+
+
+def _image_dimensions(data: bytes) -> tuple[int, int]:
+    if len(data) >= 24 and data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
+        return struct.unpack(">II", data[16:24])
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP": return _webp_dimensions(data)
+    raise ValidationError("generated output has an unsupported or invalid image header")
+
+
+def _validate_output_image(data: bytes, output_contract: dict[str, Any]) -> tuple[int, int] | None:
+    """Validate concrete bytes whenever an image contract declares a format or native size."""
+    if not output_contract.get("format") and not output_contract.get("provider_native"):
+        return None
+    if output_contract.get("format") == "png" and not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValidationError("provider output format is not PNG")
+    width, height = _image_dimensions(data)
+    size = str(output_contract.get("size", ""))
+    if output_contract.get("provider_native") is True:
+        if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", size):
+            raise ValidationError("provider-native output contract has an invalid size")
+        expected = tuple(int(value) for value in size.split("x", 1))
+        if (width, height) != expected:
+            raise ValidationError(f"provider output dimensions {width}x{height}, expected {size}")
+    return width, height
+
+
+def _multipart_image_request(fields: dict[str, str], images: list[Path]) -> tuple[bytes, str]:
+    boundary = "apsal-" + uuid.uuid4().hex; body = bytearray()
+    for name, value in fields.items():
+        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n".encode())
+    for path in images:
+        suffix = path.suffix.lower(); mime = "image/png" if suffix == ".png" else "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/webp"
+        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"image[]\"; filename=\"{path.name}\"\r\nContent-Type: {mime}\r\n\r\n".encode())
+        body.extend(path.read_bytes()); body.extend(b"\r\n")
+    body.extend(f"--{boundary}--\r\n".encode())
+    return bytes(body), f"multipart/form-data; boundary={boundary}"
+
+
+def _openai_image_api_request(request: dict[str, Any], references: list[Path], api_key: str) -> dict[str, Any]:
+    if not api_key: raise ValidationError("OPENAI_API_KEY is required for openai-image-api generation")
+    endpoint = "https://api.openai.com/v1/images/edits" if references else "https://api.openai.com/v1/images/generations"
+    fields = {key: str(request[key]) for key in ("model", "prompt", "size", "quality", "output_format", "n")}
+    if references: payload, content_type = _multipart_image_request(fields, references)
+    else: payload, content_type = json.dumps(fields).encode(), "application/json"
+    http_request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
+        "Authorization": f"Bearer {api_key}", "Content-Type": content_type,
+    })
+    try:
+        with urllib.request.urlopen(http_request, timeout=600) as response:
+            value = json.loads(response.read()); request_id = response.headers.get("x-request-id", "not_reported")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:1000]
+        raise ValidationError(f"OpenAI Image API HTTP {exc.code}: {detail}") from exc
+    try: image_data = base64.b64decode(value["data"][0]["b64_json"], validate=True)
+    except Exception as exc: raise ValidationError("OpenAI Image API response did not contain valid image data") from exc
+    return {"image_bytes": image_data, "provider_metadata": {
+        "request_id": request_id, "endpoint": "edits" if references else "generations",
+        "usage": value.get("usage", "not_reported"),
+    }}
+
+
+def record_model_visual_qa(
+    run_id: str, shot_id: str, status: str, *, project_root: Path, findings: list[str] | None = None,
+) -> dict[str, Any]:
+    if status not in {"passed", "failed"}: raise ValidationError("model visual QA status must be passed or failed")
+    project_root = project_root.expanduser().resolve(); run = load_generation_run(run_id, project_root)
+    job = next((item for item in run["jobs"] if item["shot_id"] == shot_id), None)
+    if not job or job.get("status") != "succeeded" or not job.get("output"):
+        raise ValidationError(f"model visual QA requires a successful output for {shot_id}")
+    qa_path = _run_dir(project_root, run_id) / "qa" / f"{shot_id}.json"
+    qa = load_json(qa_path) if qa_path.is_file() else {"schema_version": "0.5.0", "run_id": run_id, "shot_id": shot_id}
+    qa.update({"model_visual_qa_status": status, "model_visual_qa_findings": findings or [], "human_visual_qa_status": "pending", "reviewed_at": _utc_now()})
+    job["model_visual_qa"] = status
+    if status == "failed":
+        source = Path(job["output"].get("path", "")); rejected_root = _run_dir(project_root, run_id) / "qa" / "rejected"
+        _mkdir_private(rejected_root)
+        if source.is_file():
+            rejected = rejected_root / f"{shot_id}-attempt-{len(job['attempts'])}{source.suffix}"
+            shutil.move(source, rejected); qa["rejected_output"] = str(rejected)
+        job["output"] = None; job["status"] = "failed"; job["error"] = "model_visual_qa_failed"
+    run["status"] = _generation_run_status(run)
+    _write_private_json(qa, qa_path); _write_run(run, project_root)
+    session, theme = load_design_session(run["session_id"], project_root)
+    session["state"] = run["status"]; _write_session(session, theme, project_root)
+    return run
+
+
+def execute_generation_run(
+    run_id: str, *, project_root: Path, home: Path | None = None, max_retries: int = 2,
+    max_jobs: int | None = None, adapter_callable: Any | None = None, visual_qa_callable: Any | None = None,
+) -> dict[str, Any]:
+    """Execute distinct Jobs sequentially. No request ever uses n > 1."""
+    if not 0 <= max_retries <= 5: raise ValidationError("max_retries must be between 0 and 5")
+    if max_jobs is not None and not 1 <= max_jobs <= 24: raise ValidationError("max_jobs must be between 1 and 24")
+    project_root = project_root.expanduser().resolve(); home = (home or apsal_home()).resolve()
+    run = load_generation_run(run_id, project_root)
+    if run.get("mode") != "generate": raise ValidationError("only generate-mode runs can be executed")
+    if run.get("adapter") != "openai-image-api" and adapter_callable is None:
+        raise ValidationError("native 4K execution requires the openai-image-api adapter")
+    if run.get("output_contract", {}).get("provider_native") is True:
+        for key, value in NATIVE_4K_OUTPUT.items():
+            if run["output_contract"].get(key) != value: raise ValidationError(f"run output contract mismatch: {key}")
+    pending_visual = next((job for job in run["jobs"] if job.get("status") == "succeeded" and job.get("model_visual_qa") == "pending"), None)
+    if pending_visual and run.get("rendering_contract", {}).get("medium") == "live_action_photography" and visual_qa_callable is None:
+        raise ValidationError(f"record model visual QA for {pending_visual['shot_id']} before continuing")
+    session, theme = load_design_session(run["session_id"], project_root)
+    theme_root = Path(session["theme_artifact"]["path"]); compiled = load_json(theme_root / "compiled" / "image.json")
+    compiled_by_id = {shot["shot_id"]: shot for shot in compiled["shots"]}
+    local_manifest = load_json(theme_root / "references" / "reference_manifest.json") if (theme_root / "references" / "reference_manifest.json").is_file() else {"references": []}
+    reference_records = {item["reference_id"]: item for item in local_manifest.get("references", [])}
+    executed = 0; api_key = os.environ.get("OPENAI_API_KEY", "")
+    run_parameters = run.get("parameters") if isinstance(run.get("parameters"), dict) else {}
+    for job in run["jobs"]:
+        if job["status"] not in {"pending", "failed"}: continue
+        if max_jobs is not None and executed >= max_jobs: break
+        shot = compiled_by_id[job["shot_id"]]
+        reference_paths = [_vault_reference_path(reference_records[ref_id]["vault_uri"], home) for ref_id in job.get("reference_ids", [])]
+        identity_anchor = _run_dir(project_root, run_id) / "outputs" / "SHOT_01.png"
+        anchor_used = job["shot_id"] != "SHOT_01" and identity_anchor.is_file()
+        if anchor_used: reference_paths.append(identity_anchor)
+        runtime_reference_ids = [*job.get("reference_ids", [])]
+        if anchor_used: runtime_reference_ids.append("RUNTIME_IDENTITY_ANCHOR_SHOT_01")
+        anchor_instruction = (
+            " Use the SHOT_01 image only to preserve the fictional adult identity and facial continuity; do not inherit its pose, camera, background, wardrobe, action, or composition."
+            if anchor_used else ""
+        )
+        prompt = shot["positive_prompt"] + anchor_instruction + " Negative constraints: " + shot["negative_prompt"]
+        (_run_dir(project_root, run_id) / "prompts" / f"{job['shot_id']}.prompt.txt").write_text(prompt + "\n", encoding="utf-8")
+        request = {
+            "model": run.get("model") or "gpt-image-2", "prompt": prompt,
+            "size": run_parameters.get("size", run["output_contract"].get("size", "auto")),
+            "quality": run_parameters.get("quality", run["output_contract"].get("quality", "high")),
+            "output_format": run_parameters.get("output_format", run["output_contract"].get("format", "png")), "n": 1,
+            "shot_id": job["shot_id"], "reference_ids": job.get("reference_ids", []),
+            "runtime_reference_ids": runtime_reference_ids, "identity_anchor_used": anchor_used,
+        }
+        request_record = {key: value for key, value in request.items() if key != "prompt"}
+        request_record["prompt_digest"] = hashlib.sha256(prompt.encode()).hexdigest()
+        for attempt_index in range(max_retries + 1):
+            try:
+                response = adapter_callable(request, reference_paths) if adapter_callable else _openai_image_api_request(request, reference_paths, api_key)
+                data = response["image_bytes"]
+                dimensions = _validate_output_image(data, run.get("output_contract", {}))
+                if dimensions is None: raise ValidationError("generation run has no concrete image output contract")
+                width, height = dimensions
+                with tempfile.TemporaryDirectory() as temporary:
+                    candidate = Path(temporary) / f"{job['shot_id']}.png"; candidate.write_bytes(data)
+                    visual = visual_qa_callable(candidate, run["rendering_contract"], job["shot_id"]) if visual_qa_callable else {"status": "pending", "findings": []}
+                    if visual is False or isinstance(visual, dict) and visual.get("status") in {"failed", "fail"}:
+                        raise ValidationError("model visual QA rejected live-action human medium")
+                    provider = response.get("provider_metadata", "not_reported")
+                    if isinstance(provider, dict): provider.update({"request": request_record, "actual_width": width, "actual_height": height, "references": runtime_reference_ids, "identity_anchor_used": anchor_used})
+                    run = record_generation_result(run_id, job["shot_id"], "succeeded", project_root=project_root, output_path=candidate, provider_metadata=provider)
+                if visual_qa_callable:
+                    findings = visual.get("findings", []) if isinstance(visual, dict) else []
+                    run = record_model_visual_qa(run_id, job["shot_id"], "passed", project_root=project_root, findings=findings)
+                break
+            except Exception as exc:
+                run = record_generation_result(run_id, job["shot_id"], "failed", project_root=project_root, error=str(exc), provider_metadata={"request": request_record})
+                job = next(item for item in run["jobs"] if item["shot_id"] == request["shot_id"])
+                if attempt_index == max_retries: break
+        executed += 1
+        latest_job = next(item for item in run["jobs"] if item["shot_id"] == request["shot_id"])
+        if latest_job["status"] != "succeeded": break
+        if run.get("rendering_contract", {}).get("medium") == "live_action_photography" and visual_qa_callable is None:
+            break
+    return load_generation_run(run_id, project_root)
 
 
 def explain_theme_path(theme: dict[str, Any], dotted_path: str) -> dict[str, Any]:
@@ -1301,6 +1741,86 @@ def check_sync(root: Path) -> list[str]:
     return errors
 
 
+def _sanitize_reference_bytes(data: bytes, suffix: str) -> tuple[bytes, str]:
+    """Strip transport metadata without altering decoded pixels."""
+    suffix = suffix.lower()
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        output = bytearray(data[:8]); offset = 8
+        keep = {b"IHDR", b"PLTE", b"IDAT", b"IEND", b"tRNS", b"sRGB", b"gAMA", b"cHRM", b"iCCP"}
+        while offset + 12 <= len(data):
+            length = int.from_bytes(data[offset:offset + 4], "big"); end = offset + 12 + length
+            if end > len(data): raise ValidationError("reference PNG is truncated")
+            chunk_type = data[offset + 4:offset + 8]
+            if chunk_type in keep: output.extend(data[offset:end])
+            offset = end
+            if chunk_type == b"IEND": break
+        return bytes(output), ".png"
+    if data.startswith(b"\xff\xd8"):
+        output = bytearray(b"\xff\xd8"); offset = 2
+        while offset < len(data):
+            if data[offset] != 0xFF: raise ValidationError("reference JPEG marker is invalid")
+            marker = data[offset + 1]
+            if marker == 0xD9: output.extend(b"\xff\xd9"); break
+            if marker == 0xDA:
+                output.extend(data[offset:]); break
+            if offset + 4 > len(data): raise ValidationError("reference JPEG is truncated")
+            length = int.from_bytes(data[offset + 2:offset + 4], "big"); end = offset + 2 + length
+            if end > len(data): raise ValidationError("reference JPEG segment is truncated")
+            if marker not in {0xE1, 0xED, 0xFE}: output.extend(data[offset:end])
+            offset = end
+        return bytes(output), ".jpg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        chunks = bytearray(); offset = 12
+        while offset + 8 <= len(data):
+            name = data[offset:offset + 4]; length = int.from_bytes(data[offset + 4:offset + 8], "little")
+            end = offset + 8 + length + (length % 2)
+            if end > len(data): raise ValidationError("reference WebP is truncated")
+            if name not in {b"EXIF", b"XMP "}: chunks.extend(data[offset:end])
+            offset = end
+        return b"RIFF" + (len(chunks) + 4).to_bytes(4, "little") + b"WEBP" + bytes(chunks), ".webp"
+    raise ValidationError(f"unsupported reference image format: {suffix or 'unknown'}")
+
+
+def build_reference_manifest(
+    theme: dict[str, Any], reference_paths: dict[str, Path] | None = None,
+    *, distribution: str = "auto",
+) -> tuple[dict[str, Any], dict[str, bytes]]:
+    references = theme.get("references", [])
+    errors = validate_reference_metadata(references, theme)
+    if errors: raise ValidationError("\n".join(errors))
+    reference_paths = reference_paths or {}
+    if distribution not in {"auto", "private_only", "public"}: raise ValidationError("distribution must be auto, private_only, or public")
+    redistributable = all(_reference_rights_allow_public(ref) for ref in references)
+    resolved_distribution = "private_only" if distribution == "auto" and not redistributable else "public" if distribution == "auto" else distribution
+    if theme.get("distribution") == "private_only" and resolved_distribution == "public":
+        raise ValidationError("private-only theme cannot be exported for public redistribution")
+    if resolved_distribution == "public" and not redistributable:
+        raise ValidationError("public Skill export rejected: one or more references are not redistributable")
+    packaged: list[dict[str, Any]] = []; files: dict[str, bytes] = {}
+    for ref in references:
+        ref_id = ref["reference_id"]; source = reference_paths.get(ref_id)
+        if source is None: raise ValidationError(f"reference file is required for {ref_id}")
+        source = source.expanduser().resolve()
+        if not source.is_file(): raise ValidationError(f"reference file not found for {ref_id}: {source}")
+        original = source.read_bytes(); actual = hashlib.sha256(original).hexdigest()
+        if actual != ref["original_sha256"]: raise ValidationError(f"reference digest mismatch for {ref_id}")
+        sanitized, suffix = _sanitize_reference_bytes(original, source.suffix)
+        packaged_name = f"{ref_id.lower()}{suffix}"
+        packaged_ref = {key: value for key, value in ref.items() if key not in {"vault_uri", "path"}}
+        packaged_ref.update({
+            "packaged_file": f"assets/references/{packaged_name}",
+            "packaged_sha256": hashlib.sha256(sanitized).hexdigest(), "metadata_sanitized": True,
+        })
+        packaged.append(packaged_ref); files[packaged_name] = sanitized
+    manifest = {
+        "schema_version": "0.5.0", "theme_id": theme["id"], "theme_version": theme["version"],
+        "distribution": resolved_distribution, "private_media_included": bool(packaged) and resolved_distribution == "private_only",
+        "redistribution_allowed": redistributable, "reference_count": len(packaged), "references": packaged,
+    }
+    manifest["reference_manifest_digest"] = digest(manifest)
+    return manifest, files
+
+
 def _zip_bytes(files: dict[str, bytes]) -> bytes:
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -1313,17 +1833,35 @@ def _zip_bytes(files: dict[str, bytes]) -> bytes:
 
 def pack_theme(
     theme: dict[str, Any], output_dir: Path, source_yaml: bytes | None = None,
-    *, assets: list[dict[str, Any]] | None = None,
+    *, assets: list[dict[str, Any]] | None = None, reference_paths: dict[str, Path] | None = None,
+    distribution: str = "auto",
 ) -> tuple[Path, str]:
     compiled = compile_theme(theme, "image", assets)
     design = compile_theme(theme, "design", assets) if theme.get("schema_version") == "1.1.0" else None
     qa = compile_theme(theme, "qa", assets) if theme.get("schema_version") == "1.1.0" else None
+    reference_manifest, reference_files = build_reference_manifest(theme, reference_paths, distribution=distribution)
     slug = f"{theme['id'].lower()}-{theme['version'].replace('.', '-')}"
-    manifest = {"schema_version": "1.0.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
+    manifest = {"schema_version": "0.5.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
                 "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],
-                "credentials_included": False, "private_media_included": False}
+                "reference_manifest_digest": reference_manifest["reference_manifest_digest"],
+                "credentials_included": False, "private_media_included": reference_manifest["private_media_included"],
+                "distribution": reference_manifest["distribution"],
+                "redistribution_allowed": reference_manifest["redistribution_allowed"],
+                "output_contract": theme.get("output"), "rendering_contract_required": bool(theme.get("rendering_contract"))}
     if theme.get("semantic_contract_version"):
         manifest["semantic_contract_version"] = theme["semantic_contract_version"]
+    medium_instruction = (
+        "The adult subject must remain a real human in live-action photography. Handmade, crayon, painted, or illustrated styling may affect only the set and props. "
+        "Reject any illustrated, anime, painted, doll-like, wax, clay, mannequin, or 3D-rendered person."
+        if theme.get("rendering_contract") else
+        "This legacy theme does not declare a live-action rendering contract; do not claim that it guarantees a real-human photographic result."
+    )
+    output = theme.get("output", {})
+    execution_instruction = (
+        f"After one explicit confirmation, generate {output.get('count', len(theme['shots']))} Jobs sequentially with `scripts/generate_set.py --confirm`, one request and one independent {output['size']} {str(output['format']).upper()} per Job."
+        if output.get("provider_native") is True else
+        f"Generate {output.get('count', len(theme['shots']))} Jobs sequentially, one request and one independent image per Job. This legacy theme does not guarantee native 4K output dimensions."
+    )
     skill = f'''---
 name: {slug}
 description: Generate the fixed APSAL Open photography set “{theme['name']}” from its bundled, validated theme and compiled shot plan.
@@ -1331,7 +1869,11 @@ description: Generate the fixed APSAL Open photography set “{theme['name']}”
 
 # {theme['name']}
 
-Read `references/theme.json`, `references/design_context.json`, `references/compiled.json`, and `references/qa_checklist.json` when present. Use the semantic design context to understand why each scene exists, but send only the observable compiled image instructions to the image model. Generate each shot as one independent finished image in order. Preserve the locked adult identity and continuity. Never create a collage, grid, contact sheet, text, logo, or watermark. Static validation is not human visual QA.
+Read `references/theme.json`, `references/design_context.json`, `references/compiled.json`, `references/qa_checklist.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Pass every reference listed for a Job to the image model; never substitute its text summary for the actual image. Respect each reference's allowed and forbidden uses.
+
+{medium_instruction}
+
+{execution_instruction} The first `--confirm` is persisted for this run. For live-action themes the executor stops after each candidate: inspect it, record `--model-qa-shot SHOT_ID --model-qa-status pass|fail`, then invoke the executor again without asking the creator to reconfirm. Never use one `n=9` request, collage, grid, contact sheet, text, logo, or watermark. Use SHOT_01 only as a runtime identity anchor for later Jobs; never inherit its pose, camera, background, wardrobe, or composition. Record model visual QA separately from human visual QA. Resume failed Jobs without replacing successful outputs.
 '''
     prefix = f"{slug}/"
     files = {
@@ -1339,8 +1881,16 @@ Read `references/theme.json`, `references/design_context.json`, `references/comp
         prefix + "references/theme.json": (json.dumps(theme, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/compiled.json": (json.dumps(compiled, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/manifest.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(),
-        prefix + "LICENSE-CONTENT.md": b"Theme content is licensed CC BY 4.0. Attribution: APSAL Open contributors.\n",
+        prefix + "references/reference_manifest.json": (json.dumps(reference_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
+        prefix + "references/rendering_contract.json": (json.dumps(theme.get("rendering_contract", {"status": "not_declared_legacy"}), ensure_ascii=False, indent=2) + "\n").encode(),
+        prefix + "scripts/generate_set.py": (plugin_root() / "assets" / "templates" / "generate_set.py").read_bytes(),
+        prefix + "LICENSE-CONTENT.md": (
+            "Theme specification content is licensed CC BY 4.0. Attribution: APSAL Open contributors.\n"
+            "Bundled reference images retain the independent rights recorded in references/reference_manifest.json.\n"
+            f"Distribution: {reference_manifest['distribution']}; redistribution allowed: {str(reference_manifest['redistribution_allowed']).lower()}.\n"
+        ).encode(),
     }
+    for name, data in reference_files.items(): files[prefix + "assets/references/" + name] = data
     if design is not None and qa is not None:
         files[prefix + "references/design_context.json"] = (json.dumps(design, ensure_ascii=False, indent=2) + "\n").encode()
         files[prefix + "references/qa_checklist.json"] = (json.dumps(qa, ensure_ascii=False, indent=2) + "\n").encode()
@@ -1348,6 +1898,11 @@ Read `references/theme.json`, `references/design_context.json`, `references/comp
         files[prefix + "references/theme.apsal.yaml"] = source_yaml
     content = _zip_bytes(files); sha = hashlib.sha256(content).hexdigest()
     output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / f"{slug}.zip"; path.write_bytes(content)
-    path.with_suffix(".zip.sha256").write_text(f"{sha}  {path.name}\n", encoding="utf-8")
+    suffix = "-private" if reference_manifest["distribution"] == "private_only" else ""
+    path = output_dir / f"{slug}{suffix}.zip"; path.write_bytes(content)
+    checksum_path = path.with_suffix(".zip.sha256"); checksum_path.write_text(f"{sha}  {path.name}\n", encoding="utf-8")
+    if reference_manifest["distribution"] == "private_only":
+        for private_path in (path, checksum_path):
+            try: private_path.chmod(0o600)
+            except OSError: pass
     return path, sha

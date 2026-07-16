@@ -64,9 +64,9 @@ codex plugin add apsal-studio@apsal-open
 1. 自动拆解这句话，依次显示 Character、World、Scene、Photo DNA 卡片。
 2. 让你点击选择，也可以直接说“人物更成熟，但保留短发”或“重新设计第 4 镜”。
 3. 展示九镜头总览，等你确认后再执行。
-4. 逐张生成九张独立图片，或只保存 Prompt、导出可复现 Skill。
+4. 确认真人摄影契约与参考图用途后，逐张生成九张 9:16 图片，或只保存 Prompt、导出可复现 Skill。
 
-创作者不需要看见或手写 JSON/YAML。Protocol 0.3 把它们保留在本地资产层，用来复用、编辑、版本管理、编译和 QA。图片生成前必须明确确认一次；始终一 Job 一张图，单镜失败不会重做已经成功的镜头。
+创作者不需要看见或手写 JSON/YAML。Protocol 0.3 把它们保留在本地资产层，用来复用、编辑、版本管理、编译和 QA。Studio 0.5 会绑定真实参考图，并把“真人实拍摄影”契约放在场景修辞之前。图片生成前只需明确确认一次；始终一 Job 一张图，单镜失败不会重做已经成功的镜头。
 
 ### DNA 保存在哪里
 
@@ -76,7 +76,7 @@ codex plugin add apsal-studio@apsal-open
 | 个人 | `~/.apsal/` 或 `APSAL_HOME` | 跨项目复用的个人 DNA，以及私有参考图 Vault |
 | 项目 | `<project>/.apsal/` | 草稿、项目 DNA、主题、精确 Prompt、运行记录、图片与 QA |
 
-解析顺序是“项目 → 个人 → 官方”。确认后的草稿先成为项目 DNA；只有你明确选择“保存到我的 DNA”，才会复制到个人库。人物参考图只进入 `~/.apsal/vault/sha256/`，不会写入 DNA JSON、Git 或导出的 Skill。
+解析顺序是“项目 → 个人 → 官方”。确认后的草稿先成为项目 DNA；只有你明确选择“保存到我的 DNA”，才会复制到个人库。参考图原件进入 `~/.apsal/vault/sha256/`，不会写入 DNA JSON 或 Git。导出的本地 Skill 会包含清理后的副本和用途/权利清单，让图像模型真正看到图片；权利未解决时只能打包为 `private_only`，公开导出会失败。
 
 界面背后，最终主题与每次真实生成都会留下完整血缘：
 
@@ -84,6 +84,14 @@ codex plugin add apsal-studio@apsal-open
 .apsal/themes/<theme-id>/<version>/   创作源、规范资产、三类编译结果与 18 个 Prompt 文件
 .apsal/runs/<run-id>/                 实际 Prompt、九张输出、失败重试与逐镜 QA
 ```
+
+### 真人、真参考图、原生 4K
+
+Studio 新主题默认要求真实成年人的实拍摄影呈现，并输出九张独立的 9:16、2160×3840、高质量 PNG。布景和道具可以保留手绘、蜡笔、绘画或戏剧化语言，但人物不能变成插画、动漫、玩偶、人体模型、蜡像或 3D 角色。
+
+原生 4K 执行是可选能力：设置 `OPENAI_API_KEY`，选择 `openai-image-api` 与 `gpt-image-2`，APSAL 会顺序发出九次 `n: 1` 请求。有参考图的 Job 使用 Image Edits，没有参考图的使用 Generations；返回文件必须严格为 2160×3840。Codex ImageGen 不会被静默冒充为“保证原生 4K”的后备方案。GPT Image 2 支持该尺寸，但 2K 以上输出仍属于实验范围，详见 [OpenAI 官方说明](https://developers.openai.com/api/docs/guides/image-generation)。
+
+模型视觉检查会检查媒介、皮肤、眼睛、手部、人体结构、光学景深、光线和材质；人工视觉 QA 仍单独保持 pending。Schema 或 Prompt 通过，不能证明成片已经是真人摄影。
 
 ## 直接使用本地引擎
 
@@ -105,6 +113,8 @@ python3 plugins/apsal-studio/scripts/apsal.py pack examples/quiet-window/theme.a
 python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted-package
 ```
 
+原生 4K 本地流程还提供 `session finalize`、`run --confirm`、`run-execute` 与 `run-model-qa`；可用 `python3 plugins/apsal-studio/scripts/apsal.py --help` 查看。验证与打包本身仍可完全离线运行。
+
 ## 你可以怎样参与
 
 | 创作者 | 开发者 | 贡献者 |
@@ -113,7 +123,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 
 ## 开放不等于无授权
 
-协议与参考引擎采用 Apache-2.0；官方起步 DNA 和示例采用 CC BY 4.0。任何主题只有在明确声明许可证、署名、来源、版本血缘、校验和与 QA 状态后，才能作为开放内容发布。
+协议与参考引擎采用 Apache-2.0；官方起步 DNA 和示例采用 CC BY 4.0。任何主题只有在明确声明许可证、署名、来源、版本血缘、校验和与 QA 状态后，才能作为开放内容发布。参考图拥有独立许可与肖像授权记录，不会自动继承主题文字的 CC BY 4.0；私人或权利未明媒体不会进入本仓库和公开 Release。
 
 静态校验只能证明结构与可复现性，不能证明生成图片已经通过人工视觉 QA。
 
@@ -122,7 +132,8 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [《构建可见世界：APSAL 元素摄影法》](docs/monograph/README.md)
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
 - [本地 Registry 与对话创作 RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
-- [APSAL Studio 0.4 发布与安装说明](docs/releases/0.4.0.md)
+- [参考图绑定、真人摄影与原生 4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
+- [APSAL Studio 0.5 发布与安装说明](docs/releases/0.5.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

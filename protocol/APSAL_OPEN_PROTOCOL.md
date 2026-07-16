@@ -6,7 +6,7 @@ APSAL Open Protocol is a vendor-neutral format for portable, versioned photograp
 
 Protocol 0.3 adds the APSAL Semantic Contract and safe YAML authoring while preserving Protocol 0.2 JSON packages. The [0.2 compatibility specification](APSAL_OPEN_PROTOCOL_0.2.md) remains available.
 
-APSAL Studio 0.4 adds a natural-language authoring UX, layered local Registry, preview sidecars and generation-run lineage without changing Protocol 0.3. See [RFC-0002](RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md).
+APSAL Studio 0.4 adds a natural-language authoring UX, layered local Registry, preview sidecars and generation-run lineage. Studio 0.5 adds reference binding, a live-action Rendering Contract, private Skill media manifests, and sequential native-4K execution. Neither changes Protocol 0.3 canonical compatibility. See [RFC-0002](RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md) and [RFC-0003](RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md).
 
 ## Authoring and canonical formats
 
