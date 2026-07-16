@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0 - 2026-07-16
+
+- Added complete creator-facing Chinese (`zh-CN`) and English (`en`) interaction across session start/resume, thirteen-element cards, DNA cards, text fallback, starter prompts and usage documentation.
+- Made the current Codex conversation or user-message language the default. Clear Chinese or English starts immediately; only genuinely ambiguous input triggers the one-line choice “English or 中文?”.
+- Added `set_session_language` and persisted the choice locally in the resumable design session. Explicit switching is presentation-only and does not invalidate layers or change DNA, theme, canonical artifact or Prompt digests.
+- Removed mixed bilingual labels from individual UI cards. Each session now displays one consistent creator language while retaining stable machine identifiers underneath.
+- Added complete `PROMPT_GUIDE.en.md` and `PROMPT_GUIDE.zh-CN.md` files to new and migrated Prompt/Skill packages, with `PROMPT_GUIDE.md` as the language index.
+- Added the bilingual interaction RFC, language privacy disclosure, English starter prompts and regression tests for detection, ambiguity, resume, switching and digest invariance.
+- Kept Protocol and Semantic Contract at 0.3.0, session asset schema at compatible 0.7.0 and generation delivery unchanged: one Codex-built-in image Job per turn, no provider API key.
+
 ## 0.9.0 - 2026-07-16
 
 - Added direct takeover of legacy APSAL run directories and ZIPs: creators can attach a package instead of extracting it, inspecting `run.json`, repairing paths, or finding an API runner.

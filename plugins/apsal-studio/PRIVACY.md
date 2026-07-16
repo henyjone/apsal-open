@@ -1,6 +1,8 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.9 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.10 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+
+The selected creator-facing language (`zh-CN` or `en`) is stored inside the local design session. Detection uses only the current creator message or brief. APSAL Studio does not read or transmit an operating-system locale, Codex account preference, or remote profile.
 
 The plugin writes creator data only to the current project's `.apsal/` directory and to `~/.apsal/` (or `APSAL_HOME` when configured). Project drafts, generation runs, caches, and the private Vault are ignored by Git by default.
 

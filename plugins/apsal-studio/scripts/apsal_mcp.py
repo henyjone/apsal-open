@@ -13,6 +13,7 @@ from apsal_engine import (
     record_model_visual_qa, search_registry, start_design_session, start_generation_run,
     present_element_layer, recommend_dna, recommend_layer_dna, suggest_discovery_metadata, confirm_discovery_metadata,
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
+    resolve_interface_language, session_interface_language, set_session_language,
 )
 
 UI_URI = "ui://apsal/dna-cards.html"
@@ -33,7 +34,12 @@ REF_SCHEMA = _schema({
 TOOLS = [
     {
         "name": "start_design_session", "description": "Start a new APSAL design from one natural-language brief, or resume an existing local session.",
-        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}}, []),
+        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}}, []),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "set_session_language", "description": "Confirm or switch the creator-facing session language. This changes presentation only, never theme generation intent or Prompt digests.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "language": {"enum": ["zh-CN", "en"]}, "project_root": {"type": "string"}}, ["session_id", "language"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -66,7 +72,7 @@ TOOLS = [
     },
     {
         "name": "present_dna_cards", "description": "Present compact selectable DNA text cards with an equivalent numbered-text fallback.",
-        "inputSchema": _schema({"project_root": {"type": "string"}, "query": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}}, ["stage"]),
+        "inputSchema": _schema({"project_root": {"type": "string"}, "query": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}, "session_id": {"type": "string"}, "language": {"enum": ["auto", "zh-CN", "en"]}}, ["stage"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
         "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
     },
@@ -149,6 +155,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "theme_artifact": session.get("theme_artifact"), "invalidations": session.get("invalidations", []),
         "reference_count": len(session.get("private_references", [])),
         "memory_offers": session.get("memory_offers", []),
+        "language": session_interface_language(session),
     }
     if session.get("schema_version") == "0.7.0":
         value.update({"interaction_model": session["interaction_model"], "layers": session["layers"],
@@ -159,11 +166,33 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments.get("session_id"):
-        session, _ = load_design_session(arguments["session_id"], _root(arguments))
-        return {**_summary(session), "next_action": f"Resume at {session['state']}; present only the pending or invalidated layer."}
+        if arguments.get("language") and arguments.get("language") != "auto":
+            session = set_session_language(arguments["session_id"], arguments["language"], project_root=_root(arguments))
+        else: session, _ = load_design_session(arguments["session_id"], _root(arguments))
+        locale = session_interface_language(session)
+        next_action = (f"从 {session['state']} 恢复；只显示待确认或已失效的层。" if locale.get("code") == "zh-CN" else f"Resume at {session['state']}; present only the pending or invalidated layer.")
+        if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
+        return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
-    session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9))
-    return {**_summary(session), "next_action": "Present Direction and Emotion element cards, then confirm the first of five creative layers."}
+    session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9), language=arguments.get("language", "auto"))
+    locale = session_interface_language(session)
+    if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
+    elif locale["code"] == "zh-CN": next_action = "展示“创作命题与情绪”元素卡，确认五层中的第一层。"
+    else: next_action = "Present Direction and Emotion element cards, then confirm the first of five creative layers."
+    return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
+
+
+def _tool_set_language(arguments: dict[str, Any]) -> dict[str, Any]:
+    session = set_session_language(arguments["session_id"], arguments["language"], project_root=_root(arguments))
+    locale = session_interface_language(session)["code"]
+    return {**_summary(session), "message": "已切换为中文；创作内容与 Prompt 摘要未改变。" if locale == "zh-CN" else "Switched to English; theme content and Prompt digests are unchanged."}
+
+
+def _interaction_language(arguments: dict[str, Any], text: str = "") -> dict[str, Any]:
+    if arguments.get("session_id"):
+        session, _ = load_design_session(arguments["session_id"], _root(arguments))
+        return session_interface_language(session)
+    return resolve_interface_language(text, arguments.get("language", "auto"))
 
 
 def _records(arguments: dict[str, Any]) -> list[dict[str, Any]]:
@@ -181,7 +210,7 @@ def _tool_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
     for item in value["recommendations"]:
         card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
         recommendations.append(card)
-    return {**value, "recommendations": recommendations}
+    return {**value, "language": _interaction_language(arguments, arguments["brief"]).get("code") or "en", "recommendations": recommendations}
 
 
 def _tool_layer_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -193,7 +222,7 @@ def _tool_layer_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
             card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
             converted.append(card); cards.append(card)
         by_type[asset_type] = converted
-    return {**value, "by_type": by_type, "cards": cards, "stage": arguments["layer"]}
+    return {**value, "language": _interaction_language(arguments, arguments["brief"]).get("code") or "en", "by_type": by_type, "cards": cards, "stage": arguments["layer"]}
 
 
 def _tool_element_layer(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -207,7 +236,7 @@ def _tool_suggest(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
     cards = [dna_card(item) for item in _records(arguments)]
-    return {"stage": arguments["stage"], "cards": cards, "count": len(cards)}
+    return {"stage": arguments["stage"], "language": _interaction_language(arguments, arguments.get("query", "")).get("code") or "en", "cards": cards, "count": len(cards)}
 
 
 def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -267,7 +296,7 @@ def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
-    "start_design_session": _tool_start, "search_dna": _tool_search,
+    "start_design_session": _tool_start, "set_session_language": _tool_set_language, "search_dna": _tool_search,
     "recommend_dna": _tool_recommend, "recommend_layer_dna": _tool_layer_recommend,
     "present_element_layer": _tool_element_layer, "suggest_dna_tags": _tool_suggest,
     "present_dna_cards": _tool_cards, "commit_stage": _tool_commit, "commit_element_layer": _tool_commit_layer,
@@ -285,17 +314,19 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     value = HANDLERS[name](arguments)
     if name in {"present_dna_cards", "recommend_dna", "recommend_layer_dna"}:
         cards = value["cards"] if name in {"present_dna_cards", "recommend_layer_dna"} else value["recommendations"]
-        lines = [f"APSAL {value['stage']} DNA choices (text fallback):"]
+        zh = value.get("language") == "zh-CN"
+        lines = [f"APSAL {value['stage']} DNA 选择（文字回退）：" if zh else f"APSAL {value['stage']} DNA choices (text fallback):"]
         for number, card in enumerate(cards, 1):
             ref = card["ref"]
             attributes = "; ".join(card["core_attributes"])
-            reason = f" — Why: {'; '.join(card.get('reasons', []))}" if card.get("reasons") else ""
+            reason = f" — {'匹配原因' if zh else 'Why'}: {'; '.join(card.get('reasons', []))}" if card.get("reasons") else ""
             lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}{reason}")
         text = "\n".join(lines)
     elif name == "present_element_layer":
-        lines = [f"APSAL layer: {value['title']} / {value['title_en']}"]
+        lines = [(f"APSAL 层：{value['title']}" if value.get("language") == "zh-CN" else f"APSAL layer: {value['title']}")]
         for card in value["cards"]:
-            lines.append(f"- {card['title']} / {card['title_en']} [{card['source']}]: {card['intent']} Values: {json.dumps(card['values'], ensure_ascii=False)} Observable: {'; '.join(card['observable'])}")
+            labels = ("取值", "可观察结果") if value.get("language") == "zh-CN" else ("Values", "Observable")
+            lines.append(f"- {card['title']} [{card['source']}]: {card['intent']} {labels[0]}: {json.dumps(card['values'], ensure_ascii=False)} {labels[1]}: {'; '.join(card['observable'])}")
         text = "\n".join(lines)
     else:
         text = json.dumps(value, ensure_ascii=False, indent=2)
@@ -310,7 +341,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.9.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.10.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

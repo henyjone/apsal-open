@@ -7,6 +7,12 @@ description: Create, revise, resume, generate, or package an APSAL photography t
 
 Keep JSON and YAML in the local artifact layer. Never ask a creator to write or inspect them unless they explicitly request developer mode.
 
+## Match the creator's language
+
+Use the current Codex conversation or user-message language as the creator-facing language. Pass `language: zh-CN` or `language: en` to `start_design_session` whenever it is clear. Do not ask every creator to choose a language. If the message is too short, genuinely mixed, or otherwise ambiguous, let the session return `language_confirmation_required` and ask only: “English or 中文?” Then call `set_session_language` before showing element or DNA cards. An explicit request to switch language always wins and may be applied at any time.
+
+Language affects conversation, card labels, explanations, and user guides only. It must never alter DNA IDs, rights, theme generation intent, canonical JSON, provider-neutral image Prompts, checksums, or compiled Prompt digests. Read [references/LANGUAGE.md](references/LANGUAGE.md) for the complete policy and exact bilingual wording.
+
 ## Open an APSAL package without exposing internals
 
 When the creator attaches or points to an APSAL ZIP/directory containing `run.json`, call `import_apsal_package` before explaining the package. Do not answer that `run.json` is not executable, do not tell the creator to find an API runner, and never generate a screenshot of code, JSON, a terminal, or a programming interface.
@@ -17,7 +23,7 @@ If the creator already asked to generate the set, a ready import is sufficient t
 
 ## Create through five complete layers
 
-1. Call `start_design_session` with the creator's natural-language brief. Default to nine independent 9:16 high-quality image requests and a live-action photography Rendering Contract. Treat 2160×3840 as a requested delivery target only; Codex-managed generation does not guarantee returned pixel dimensions or format.
+1. Call `start_design_session` with the creator's natural-language brief and the clear current conversation language. Default to nine independent 9:16 high-quality image requests and a live-action photography Rendering Contract. Treat 2160×3840 as a requested delivery target only; Codex-managed generation does not guarantee returned pixel dimensions or format.
 2. For each layer, call `present_element_layer`. Never skip or hide a protocol role:
    - `direction`: Content + Emotion. Confirm the theme proposition, primary/secondary mood, valence, arousal, expression, energy, tension and nine-shot emotional arc. This layer uses no Registry DNA.
    - `worldbuilding`: Subject + World + Look. Call `recommend_layer_dna` for Character and Environment DNA; explicitly confirm identity, space, time, wardrobe, grooming, props and ownership.
@@ -30,7 +36,7 @@ If the creator already asked to generate the set, a ready import is sufficient t
 6. When confirmation returns a pending memory offer, ask exactly once: “保存到我的 DNA、仅保留在当前项目，还是稍后决定？” Call `resolve_dna_memory` with the answer. Do not ask for official, extension, or already-personal DNA.
 7. If an upstream choice changes, respect the returned invalidations and reconfirm every affected downstream layer. Never reuse stale Prompts.
 8. At `review_pending`, show all thirteen confirmed decisions plus a compact nine-shot overview.
-9. Call `finalize_theme` after the creator confirms the overview. It automatically creates one deterministic Codex Prompt/Skill ZIP containing all positive, negative and full Prompts, actual permitted references, QA, checksums and `PROMPT_GUIDE.md`. Show its path and SHA-256 to the creator. Treat it as the source of truth.
+9. Call `finalize_theme` after the creator confirms the overview. It automatically creates one deterministic Codex Prompt/Skill ZIP containing all positive, negative and full Prompts, actual permitted references, QA, checksums, and equally complete English and Chinese guides. Show its path and SHA-256 to the creator. Treat it as the source of truth.
 10. Offer exactly: “现在用 Codex 生成第一张” or “只交付 Prompt/Skill 使用包”. The package already exists in both paths.
 
 At every stage, confirm each supplied reference image's role (`style`, `world`, `prop`, `wardrobe`, `composition`, or `identity`), allowed and forbidden uses, applicable Jobs, rights/consent, attribution, and redistribution status. Pass these as `reference_bindings`; never replace the image itself with a prose analysis.

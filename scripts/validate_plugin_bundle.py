@@ -45,6 +45,8 @@ def main() -> int:
     if not text.startswith("---\nname: apsal-theme-creator\n"): errors.append("Skill: invalid or missing frontmatter")
     if "references/INTERACTION.md" not in text: errors.append("Skill: missing interaction reference link")
     if not (skill.parent / "references" / "INTERACTION.md").is_file(): errors.append("Skill: missing interaction reference")
+    if "references/LANGUAGE.md" not in text: errors.append("Skill: missing bilingual language policy link")
+    if not (skill.parent / "references" / "LANGUAGE.md").is_file(): errors.append("Skill: missing bilingual language policy")
 
     requests = (
         {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
@@ -61,9 +63,9 @@ def main() -> int:
         except json.JSONDecodeError as exc: errors.append(f"MCP smoke test returned invalid JSON: {exc}"); responses = []
         if len(responses) != 5: errors.append("MCP smoke test: expected five responses")
         elif responses[0].get("result", {}).get("serverInfo", {}).get("version") != manifest.get("version"): errors.append("MCP smoke test: server and manifest versions differ")
-        elif len(responses[1].get("result", {}).get("tools", [])) != 20: errors.append("MCP smoke test: expected twenty tools")
-        elif not {"recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
-            errors.append("MCP smoke test: 0.9 authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
+        elif len(responses[1].get("result", {}).get("tools", [])) != 21: errors.append("MCP smoke test: expected twenty-one tools")
+        elif not {"set_session_language", "recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
+            errors.append("MCP smoke test: 0.10 bilingual authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
         elif "execute_generation_run" in {tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}:
             errors.append("MCP smoke test: direct provider execution must not be exposed")
         elif len(responses[2].get("result", {}).get("resources", [])) != 2:
@@ -72,15 +74,15 @@ def main() -> int:
             errors.append("MCP smoke test: DNA card UI resource missing")
         elif "<img" in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA selection UI must be text-only")
-        elif "APSAL 十三元素" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
-            errors.append("MCP smoke test: thirteen-element card UI resource missing")
+        elif "APSAL Elements" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
+            errors.append("MCP smoke test: bilingual thirteen-element card UI resource missing")
         elif "<img" in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: element decision UI must be text-only")
 
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 20 MCP tools, two text-card resources")
+    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 21 MCP tools, two bilingual text-card resources")
     return 0
 
 

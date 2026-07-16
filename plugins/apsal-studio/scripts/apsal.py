@@ -13,6 +13,7 @@ from apsal_engine import (
     pack_theme, present_element_layer, project_root_from, promote_registry_asset, recommend_dna, recommend_layer_dna, registry_assets,
     record_dna_feedback, record_model_visual_qa, resolve_dna_memory_offer, search_registry,
     start_design_session, start_generation_run, suggest_discovery_metadata, confirm_discovery_metadata,
+    set_session_language,
     export_dna_pack, install_dna_pack, validate_dna_pack,
     validate_protocol_package, validate_theme, write_canonical_json,
 )
@@ -61,8 +62,9 @@ def main() -> int:
     validate_dna = registry_sub.add_parser("validate-pack"); validate_dna.add_argument("source")
     session = sub.add_parser("session"); session.add_argument("--project", type=Path, default=Path.cwd()); session.add_argument("--home", type=Path)
     session_sub = session.add_subparsers(dest="session_command", required=True)
-    start = session_sub.add_parser("start"); start.add_argument("brief"); start.add_argument("--id"); start.add_argument("--name"); start.add_argument("--shots", type=int, default=9)
+    start = session_sub.add_parser("start"); start.add_argument("brief"); start.add_argument("--id"); start.add_argument("--name"); start.add_argument("--shots", type=int, default=9); start.add_argument("--language", choices=("auto", "zh-CN", "en"), default="auto")
     show_session = session_sub.add_parser("show"); show_session.add_argument("session_id")
+    language = session_sub.add_parser("language"); language.add_argument("session_id"); language.add_argument("value", choices=("zh-CN", "en"))
     apply = session_sub.add_parser("apply"); apply.add_argument("session_id"); apply.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); apply.add_argument("--selection", type=Path, required=True)
     layer_show = session_sub.add_parser("layer-show"); layer_show.add_argument("session_id"); layer_show.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery"))
     layer_apply = session_sub.add_parser("layer-apply"); layer_apply.add_argument("session_id"); layer_apply.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery")); layer_apply.add_argument("--selection", type=Path, required=True)
@@ -147,9 +149,11 @@ def main() -> int:
         elif args.command == "session":
             project = _root(args.project)
             if args.session_command == "start":
-                value = start_design_session(args.brief, project_root=project, home=args.home, theme_id=args.id, name=args.name, shot_count=args.shots)
+                value = start_design_session(args.brief, project_root=project, home=args.home, theme_id=args.id, name=args.name, shot_count=args.shots, language=args.language)
             elif args.session_command == "show":
                 value, _ = load_design_session(args.session_id, project)
+            elif args.session_command == "language":
+                value = set_session_language(args.session_id, args.value, project_root=project)
             elif args.session_command == "apply":
                 selection = json.loads(args.selection.read_text(encoding="utf-8"))
                 value = commit_session_stage(args.session_id, args.stage, selection.get("refs", []), project_root=project, home=args.home, shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, reference_bindings=selection.get("reference_bindings"), draft_assets=selection.get("draft_assets"))

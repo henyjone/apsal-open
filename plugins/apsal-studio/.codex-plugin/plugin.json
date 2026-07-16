@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.9.0",
-  "description": "Build live-action AI photography or open a legacy APSAL run, recover its references, package every Prompt, and generate each shot directly with Codex—no image API key required.",
+  "version": "0.10.0",
+  "description": "Build live-action AI photography in Chinese or English, or open a legacy APSAL run, recover its references, package every Prompt, and generate each shot directly with Codex—no image API key required.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -14,8 +14,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "确认十三元素，打包 Prompt，再由 Codex 逐张生成",
-    "longDescription": "APSAL Studio turns one natural-language idea into five text-card layers covering all thirteen protocol roles, or takes over a legacy APSAL run ZIP by recovering Prompts and references. It automatically exports a documented Prompt/Skill ZIP and hands each independent shot to Codex built-in image generation without calling an image API or requiring an API key.",
+    "shortDescription": "Bilingual thirteen-element AI photography workflow",
+    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five text-card layers covering all thirteen protocol roles. It can also take over a legacy APSAL run ZIP by recovering Prompts and references. It exports a bilingual Prompt/Skill ZIP and hands each independent shot to Codex built-in image generation without calling an image API or requiring an API key.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
@@ -23,8 +23,8 @@
     "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
     "defaultPrompt": [
       "创建九张真人摄影主题，确认十三元素并打包全部 Prompt。",
-      "设计欢喜但克制的主题，用 Codex 内置能力逐张生成。",
-      "打开这个旧 APSAL ZIP，恢复参考图并直接用 Codex 生成。"
+      "Create a nine-image live-action photography theme, confirm all thirteen elements, and package every Prompt.",
+      "Open this legacy APSAL ZIP, recover its references, and generate the first image directly with Codex."
     ],
     "brandColor": "#84A99C"
   }

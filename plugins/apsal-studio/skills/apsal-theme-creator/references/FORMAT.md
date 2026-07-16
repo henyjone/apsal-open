@@ -6,7 +6,7 @@ Every shot requires a unique ID, title, framing, action, hands, gaze, compositio
 
 Studio 0.7 stores a creator-confirmed `element_decisions` object containing exactly the thirteen protocol roles. It records the five-layer conversation position, intent, structured values, observable image effects, invariants, QA expectations, source, DNA references and confirmation state. The five layers are authoring UX; they do not change Protocol or Semantic Contract 0.3.
 
-Studio 0.8 packages every Job as `.prompt.txt`, `.negative.txt` and `.full.txt` inside a deterministic Codex Prompt/Skill ZIP. `PROMPT_GUIDE.md` is the creator-facing entry point. `references/manifest.json` must declare `generation_surface: codex_imagegen`, `direct_api_calls: false`, `api_key_required: false` and `returned_dimensions_guaranteed: false`.
+Studio packages every Job as `.prompt.txt`, `.negative.txt` and `.full.txt` inside a deterministic Codex Prompt/Skill ZIP. `PROMPT_GUIDE.md` is the language index; `PROMPT_GUIDE.en.md` and `PROMPT_GUIDE.zh-CN.md` are equally complete creator-facing instructions. `references/manifest.json` must declare `generation_surface: codex_imagegen`, `direct_api_calls: false`, `api_key_required: false` and `returned_dimensions_guaranteed: false`.
 
 Protocol 0.3 authoring uses safe `.apsal.yaml`. Each meaningful element has a Semantic Contract: bilingual purpose, affected paths, non-target locks, allowed variation, observable expected effects, evidence-based QA expectations, controlled tags, and priority. Each creative shot field also explains its instance-level purpose, affected paths, expected effect, and QA check.
 

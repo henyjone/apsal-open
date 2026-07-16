@@ -1,4 +1,4 @@
-# APSAL Studio 0.9 Complete Usage Guide
+# APSAL Studio 0.10 Complete Usage Guide
 
 [中文](USAGE_GUIDE.zh-CN.md) · [Documentation hub](README.md) · [Project home](../README.md)
 
@@ -25,7 +25,7 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 Install the pinned stable release:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.9.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.10.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -35,14 +35,14 @@ Restart Codex or open a new task, then verify:
 codex plugin list
 ```
 
-You should see `apsal-studio@apsal-open`, enabled at version `0.9.0`.
+You should see `apsal-studio@apsal-open`, enabled at version `0.10.0`.
 
 To replace an older pinned installation:
 
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.9.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.10.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -69,6 +69,16 @@ Reference role: identity only; do not copy pose, background or composition.
 ```
 
 Unspecified decisions can remain open; Studio proposes them in the appropriate layer.
+
+### How interface language works
+
+APSAL Studio follows the current Codex conversation rather than showing a mandatory first-run language screen. An English brief creates an English session; a Chinese brief creates a Chinese session. Card titles, questions, buttons, explanations and text fallback use that one language instead of showing both at once.
+
+If the first usable message is genuinely ambiguous—such as only “APSAL”—Studio asks once:
+
+> English or 中文?
+
+Answer normally; Studio stores the choice in the local design session. To switch later, say “switch to Chinese” or “use English.” Switching changes presentation only. It does not restart the session, invalidate confirmed elements, or change DNA references, theme generation intent, canonical artifacts or Prompt digests.
 
 ## 4. Confirm five layers and all thirteen roles
 
@@ -132,6 +142,8 @@ The ZIP contains:
 ```text
 SKILL.md
 PROMPT_GUIDE.md
+PROMPT_GUIDE.en.md
+PROMPT_GUIDE.zh-CN.md
 prompts/SHOT_01..09.prompt.txt
 prompts/SHOT_01..09.negative.txt
 prompts/SHOT_01..09.full.txt
@@ -229,7 +241,9 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Symptom | Action |
 |---|---|
 | Studio does not trigger | Restart Codex/open a new task and explicitly say “Use APSAL Studio” |
-| Codex explains `run.json` instead of using the package | Confirm version 0.9.0 and say “Open this APSAL package and generate the first image” |
+| Codex explains `run.json` instead of using the package | Confirm version 0.10.0 and say “Open this APSAL package and generate the first image” |
+| English input still shows Chinese cards | Open a new task after upgrading to 0.10.0, or say “use English”; the session should report language `en` |
+| Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |
 | A programming interface or code image appears | Reject the current image as visual-QA failure and retry that Job; it is never a valid photographic output |
 | The human looks illustrated, doll-like or 3D | Fail live-action medium QA and retry only that Job with the Rendering Contract preserved |
 | Only one image appears | Expected; inspect it and say “continue” |

@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.9.0"
+ENGINE_VERSION = "0.10.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -66,6 +66,7 @@ SESSION_STATES = (
     "direction_pending", "worldbuilding_pending", "narrative_pending", "image_pending", "delivery_pending",
     "review_pending", "ready", "generating", "completed", "partial",
 )
+SUPPORTED_INTERFACE_LANGUAGES = ("zh-CN", "en")
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SAFE_ID = re.compile(r"^[A-Z][A-Z0-9-]*$")
 SAFE_ASSET_ID = re.compile(r"^[A-Z][A-Z0-9_]*$")
@@ -105,6 +106,52 @@ DISCOVERY_STOPWORDS = {"and", "the", "with", "from", "into", "across", "every", 
 
 class ValidationError(ValueError):
     pass
+
+
+def normalize_interface_language(value: str | None) -> str:
+    """Normalize an explicit creator-facing locale without guessing a host locale."""
+    raw = str(value or "auto").strip().casefold().replace("_", "-")
+    if raw in {"", "auto"}: return "auto"
+    if raw in {"zh", "zh-cn", "zh-hans", "chinese", "中文", "简体中文"}: return "zh-CN"
+    if raw in {"en", "en-us", "en-gb", "english", "英文", "英语"}: return "en"
+    raise ValidationError("language must be auto, zh-CN, or en")
+
+
+def resolve_interface_language(text: str, requested: str | None = "auto") -> dict[str, Any]:
+    """Resolve UI language from an explicit choice or the current creator message.
+
+    This intentionally does not inspect an operating-system locale: local MCP plugins
+    are not guaranteed to receive one from every Codex surface.
+    """
+    explicit = normalize_interface_language(requested)
+    if explicit != "auto":
+        return {"code": explicit, "status": "confirmed", "source": "creator_explicit", "supported": list(SUPPORTED_INTERFACE_LANGUAGES)}
+    value = str(text or "").strip()
+    if re.search(r"(?:please\s+)?(?:reply|respond|continue|use|switch)\s+(?:in|to)\s+english\b", value, re.I) or re.search(r"(?:请)?(?:用|使用|切换到)(?:英文|英语)(?:回答|交流|界面)?", value):
+        return {"code": "en", "status": "confirmed", "source": "message_explicit", "supported": list(SUPPORTED_INTERFACE_LANGUAGES)}
+    if re.search(r"(?:please\s+)?(?:reply|respond|continue|use|switch)\s+(?:in|to)\s+(?:simplified\s+)?chinese\b", value, re.I) or re.search(r"(?:请)?(?:用|使用|切换到)(?:中文|简体中文)(?:回答|交流|界面)?", value):
+        return {"code": "zh-CN", "status": "confirmed", "source": "message_explicit", "supported": list(SUPPORTED_INTERFACE_LANGUAGES)}
+    cjk_count = len(re.findall(r"[\u3400-\u9fff]", value))
+    latin_words = len(re.findall(r"[A-Za-z]+(?:[-'][A-Za-z]+)*", value))
+    detected: str | None = None
+    if cjk_count >= 2 and cjk_count >= latin_words: detected = "zh-CN"
+    elif latin_words >= 2 and latin_words > cjk_count: detected = "en"
+    return {
+        "code": detected, "status": "confirmed" if detected else "pending",
+        "source": "message_detected" if detected else "ambiguous",
+        "supported": list(SUPPORTED_INTERFACE_LANGUAGES),
+    }
+
+
+def session_interface_language(session: dict[str, Any]) -> dict[str, Any]:
+    """Read the persisted language contract, with a compatible legacy fallback."""
+    value = session.get("language")
+    if isinstance(value, dict) and value.get("status") in {"confirmed", "pending"}:
+        return value
+    inferred = resolve_interface_language(str(session.get("brief", "")))
+    if inferred["status"] == "pending":
+        inferred = {"code": "en", "status": "confirmed", "source": "legacy_fallback", "supported": list(SUPPORTED_INTERFACE_LANGUAGES)}
+    return inferred
 
 
 def canonical_json(value: Any) -> str:
@@ -1638,7 +1685,7 @@ def _new_theme_id() -> str:
 
 def start_design_session(
     brief: str, *, project_root: Path, theme_id: str | None = None, name: str | None = None,
-    shot_count: int = 9, home: Path | None = None,
+    shot_count: int = 9, home: Path | None = None, language: str | None = "auto",
 ) -> dict[str, Any]:
     """Start a resumable five-layer, thirteen-element natural-language design session."""
     brief = brief.strip()
@@ -1655,6 +1702,7 @@ def start_design_session(
         "schema_version": "0.7.0", "interaction_model": "five_layer_thirteen_element",
         "session_id": session_id, "brief": brief,
         "project_root": str(project_root), "state": "direction_pending", "shot_count": shot_count,
+        "language": resolve_interface_language(brief, language),
         "layers": {
             layer: {"status": "pending", "roles": list(LAYER_ROLES[layer]), "selection": [], "confirmed_at": None}
             for layer in CREATIVE_LAYERS
@@ -1666,24 +1714,42 @@ def start_design_session(
     return session
 
 
+def set_session_language(session_id: str, language: str, *, project_root: Path) -> dict[str, Any]:
+    """Set creator-facing language without changing photographic generation intent."""
+    project_root = project_root.expanduser().resolve()
+    session, theme = load_design_session(session_id, project_root)
+    session["language"] = resolve_interface_language("", language)
+    _write_session(session, theme, project_root)
+    return session
+
+
 def present_element_layer(session_id: str, layer: str, *, project_root: Path) -> dict[str, Any]:
     """Return creator-facing text cards for one layer without exposing YAML or JSON."""
     if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
     session, theme = load_design_session(session_id, project_root.resolve())
     if session.get("schema_version") != "0.7.0": raise ValidationError("element layers require an APSAL Studio 0.7 session")
+    language = session_interface_language(session)
+    if language["status"] != "confirmed":
+        raise ValidationError("Choose English or Chinese before continuing / 请先选择 English 或中文")
+    locale = language["code"]
     layer_spec = next(item for item in load_creative_layers()["layers"] if item["id"] == layer)
     cards = []
     for role in LAYER_ROLES[layer]:
         role_meta = load_semantic_registry()["roles"][role]; decision = theme["element_decisions"][role]
         cards.append({
-            "role": role, "title": role_meta["zh"], "title_en": role_meta["en"],
-            "question": role_meta["question_zh"], "status": decision["status"], "source": decision["source"],
+            "role": role, "title": role_meta["en"] if locale == "en" else role_meta["zh"],
+            "title_en": role_meta["en"], "title_zh": role_meta["zh"],
+            "question": role_meta["question_en"] if locale == "en" else role_meta["question_zh"],
+            "question_en": role_meta["question_en"], "question_zh": role_meta["question_zh"],
+            "status": decision["status"], "source": decision["source"],
             "intent": decision["intent"], "values": decision["values"], "observable": decision["observable"],
             "must_preserve": decision["must_preserve"], "qa_expectations": decision["qa_expectations"],
             "basis": decision["basis"], "dna_refs": decision.get("dna_refs", []),
         })
     result = {
-        "session_id": session_id, "layer": layer, "title": layer_spec["zh"], "title_en": layer_spec["en"],
+        "session_id": session_id, "layer": layer, "language": locale,
+        "title": layer_spec["en"] if locale == "en" else layer_spec["zh"],
+        "title_en": layer_spec["en"], "title_zh": layer_spec["zh"],
         "roles": list(LAYER_ROLES[layer]), "required_dna_types": list(LAYER_TYPES[layer]),
         "cards": cards, "status": session["layers"][layer]["status"],
     }
@@ -1810,6 +1876,7 @@ def commit_element_layer(
     if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
     project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
     if session.get("schema_version") != "0.7.0": raise ValidationError("five-layer confirmation requires an APSAL Studio 0.7 session")
+    if session_interface_language(session)["status"] != "confirmed": raise ValidationError("confirm the session language before confirming creative layers")
     if session["state"] in {"ready", "generating", "completed", "partial"}: raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
     layer_index = CREATIVE_LAYERS.index(layer)
     for prior in CREATIVE_LAYERS[:layer_index]:
@@ -2375,7 +2442,7 @@ def _imported_prompt_package(run: dict[str, Any], run_root: Path) -> tuple[Path,
         "schema_version": "0.9.0", "distribution": "private_only", "redistribution_allowed": False,
         "reference_count": len(packaged_references), "references": packaged_references,
     }
-    guide = f"""# {theme_id} — Codex 直接使用说明
+    guide_zh = f"""# {theme_id} — Codex 直接使用说明
 
 这是由 APSAL Studio 从旧版 `run.json` 自动迁移的私人 Codex Prompt/Skill 包。旧包中的 `openai-image-api`、模型名和 API 参数只作为历史血缘保留；本包不会调用图像 API，也不需要 API Key。
 
@@ -2390,6 +2457,28 @@ def _imported_prompt_package(run: dict[str, Any], run_root: Path) -> tuple[Path,
 
 运行 `python3 scripts/validate_prompt_pack.py --list` 可以离线核对文件并列出全部镜头；它不会生成图片或访问网络。
 """
+    guide_en = f"""# {theme_id} — Direct use in Codex
+
+APSAL Studio migrated this private Codex Prompt/Skill package from a legacy `run.json`. Any previous `openai-image-api`, model name, or API parameters are preserved only as historical lineage. This package does not call an image API and does not require an API key.
+
+## Fastest workflow
+
+1. Provide this Skill folder to Codex and say: “Use `{slug}-codex-import` to generate the first image.”
+2. Codex reads `prompts/SHOT_01.full.txt`, passes the actual declared files from `assets/references/`, and uses Codex built-in image generation for one live-action photograph.
+3. After reviewing it, say “continue.” Codex advances through the remaining unfinished shots. It creates one image per turn—never a programming screen, grid, collage, text, logo, or watermark.
+4. If you only need a Prompt, open any `prompts/SHOT_XX.full.txt` file directly.
+
+The requested aspect ratio is {run['output_contract'].get('aspect_ratio', 'not_reported')}. The requested {run['output_contract'].get('requested_size', 'not_reported')} delivery size is a creative target and is not a guaranteed returned pixel dimension.
+
+Run `python3 scripts/validate_prompt_pack.py --list` to verify files and list all shots offline. The validator does not generate images or access the network.
+"""
+    guide_index = f"""# {theme_id} — Prompt/Skill package
+
+- [English instructions](PROMPT_GUIDE.en.md)
+- [中文使用说明](PROMPT_GUIDE.zh-CN.md)
+
+Codex should open the guide that matches the current conversation language. The frozen image Prompts are identical in both workflows.
+"""
     skill = f"""---
 name: {slug}-codex-import
 description: Generate or continue the imported APSAL set {theme_id} in Codex using its frozen Prompts and restored private references. Use when the creator asks to generate, continue, inspect, or reuse this migrated legacy run without an image API.
@@ -2397,7 +2486,7 @@ description: Generate or continue the imported APSAL set {theme_id} in Codex usi
 
 # {theme_id}
 
-Read `PROMPT_GUIDE.md`, `references/manifest.json`, and `references/reference_manifest.json`. For the next unfinished Job, use its `prompts/SHOT_XX.full.txt` and pass every declared real reference image from `assets/references/` to Codex built-in image generation.
+Read `PROMPT_GUIDE.en.md` for English creators or `PROMPT_GUIDE.zh-CN.md` for Chinese creators, plus `references/manifest.json` and `references/reference_manifest.json`. For the next unfinished Job, use its `prompts/SHOT_XX.full.txt` and pass every declared real reference image from `assets/references/` to Codex built-in image generation.
 
 Generate exactly one live-action photograph per turn. Never render a programming interface, JSON, terminal, prompt sheet, grid, collage, text, logo or watermark. After emitting one image, stop. On “continue”, advance to the next unfinished Job. A reference's forbidden uses outrank its declared uses. Preserve identity only when identity use is explicitly allowed; never inherit pose, camera, background or composition from a continuity anchor.
 
@@ -2410,7 +2499,8 @@ Do not call an image API, request an API key, or claim guaranteed returned dimen
         "migration_note": "Historical provider settings are not executable in this Codex-native package.",
     }
     files.update({
-        prefix + "SKILL.md": skill.encode(), prefix + "PROMPT_GUIDE.md": guide.encode(),
+        prefix + "SKILL.md": skill.encode(), prefix + "PROMPT_GUIDE.md": guide_index.encode(),
+        prefix + "PROMPT_GUIDE.en.md": guide_en.encode(), prefix + "PROMPT_GUIDE.zh-CN.md": guide_zh.encode(),
         prefix + "references/manifest.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/reference_manifest.json": (json.dumps(reference_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/source_run_summary.json": (json.dumps(summary, ensure_ascii=False, indent=2) + "\n").encode(),
@@ -3127,7 +3217,7 @@ description: Generate the fixed APSAL Open photography set “{theme['name']}”
 
 # {theme['name']}
 
-Read `PROMPT_GUIDE.md`, `references/theme.json`, `references/compiled.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Also read `references/design_context.json` and `references/qa_checklist.json` when present. For a specific Job, use `prompts/SHOT_XX.full.txt` as the exact provider-neutral Prompt and pass every listed reference image from `assets/references/`; never replace the actual image with its text summary. Respect each reference's allowed and forbidden uses.
+Read `PROMPT_GUIDE.en.md` for English creators or `PROMPT_GUIDE.zh-CN.md` for Chinese creators, plus `references/theme.json`, `references/compiled.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Also read `references/design_context.json` and `references/qa_checklist.json` when present. For a specific Job, use `prompts/SHOT_XX.full.txt` as the exact provider-neutral Prompt and pass every listed reference image from `assets/references/`; never replace the actual image with its text summary. Respect each reference's allowed and forbidden uses.
 
 {medium_instruction}
 
@@ -3156,7 +3246,7 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         "rendering_contract_required": bool(theme.get("rendering_contract")), "prompt_files": prompt_checksums,
     }
     if theme.get("semantic_contract_version"): manifest["semantic_contract_version"] = theme["semantic_contract_version"]
-    guide = f'''# {theme['name']} — Codex Prompt 使用包
+    guide_zh = f'''# {theme['name']} — Codex Prompt 使用包
 
 这个 ZIP 同时是可安装的 Codex Skill 和可独立阅读的 Prompt 包。它不会调用图像 API，也不需要 `OPENAI_API_KEY`。
 
@@ -3176,15 +3266,42 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
 - `assets/references/` 中的图片必须按用途、禁止用途与权利清单实际传入；文字分析不能替代图片。
 - 后续镜头若使用上一张图保持人物身份，只继承身份，不继承姿势、机位、背景、动作、服装或构图。
 
-## English quick use
+Run `python3 scripts/validate_prompt_pack.py --list` to verify checksums and list every Job without making a network request.
+'''
+    guide_en = f'''# {theme['name']} — Codex Prompt package
 
-Install or open the `{slug}` folder in Codex, ask it to use `${slug}` for SHOT_01, and then say “continue” for each next Job. Codex must call its built-in image-generation capability directly, one image at a time. No image API key is required. The requested aspect ratio and delivery size are creative targets, not guaranteed returned pixel dimensions.
+This ZIP is both an installable Codex Skill and a directly readable Prompt package. It does not call an image API and does not require `OPENAI_API_KEY`.
+
+## Use it in Codex
+
+1. Unzip the package and place the `{slug}` folder in your Codex Skills directory, or provide the directory directly to Codex.
+2. Start a new task and say: “Use `${slug}` to generate the first image.”
+3. Codex reads `prompts/SHOT_01.full.txt`, attaches the real reference files declared for that shot in `references/reference_manifest.json`, and calls Codex built-in image generation.
+4. Generate one image at a time. After reviewing it, say “continue to the next image.” Codex advances from SHOT_02 through the final shot.
+5. To copy a Prompt without generating, open any `prompts/SHOT_XX.full.txt`. The `.prompt.txt` and `.negative.txt` files contain the positive and negative parts separately.
+
+## Important constraints
+
+- Requested aspect ratio: {output.get('aspect_ratio', 'not_reported')}; requested delivery size: {requested_size}.
+- Codex manages the actual image model, format, and pixel dimensions. Unless returned metadata explicitly reports them, they remain `not_reported`. This package does not promise native 4K.
+- One call creates one Job. Never create a grid, collage, contact sheet, text, logo, or watermark.
+- Images under `assets/references/` must be passed according to their allowed uses, forbidden uses, and rights manifest. A prose analysis cannot replace the actual image.
+- A prior accepted shot may preserve identity only. It must not transfer pose, camera, background, action, wardrobe, or composition.
 
 Run `python3 scripts/validate_prompt_pack.py --list` to verify checksums and list every Job without making a network request.
 '''
+    guide_index = f'''# {theme['name']} — Prompt/Skill package
+
+- [English instructions](PROMPT_GUIDE.en.md)
+- [中文使用说明](PROMPT_GUIDE.zh-CN.md)
+
+Codex should open the guide that matches the current conversation language. The frozen image Prompts are identical in both workflows.
+'''
     files = {
         prefix + "SKILL.md": skill.encode(),
-        prefix + "PROMPT_GUIDE.md": guide.encode(),
+        prefix + "PROMPT_GUIDE.md": guide_index.encode(),
+        prefix + "PROMPT_GUIDE.en.md": guide_en.encode(),
+        prefix + "PROMPT_GUIDE.zh-CN.md": guide_zh.encode(),
         prefix + "references/theme.json": (json.dumps(theme, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/compiled.json": (json.dumps(compiled, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/manifest.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(),

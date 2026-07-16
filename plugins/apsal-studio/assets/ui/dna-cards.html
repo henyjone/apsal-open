@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -101,7 +101,7 @@
 <body>
 <main>
   <header>
-    <div><h1>APSAL DNA Registry</h1><p>用文字确认世界构建元素；图片、JSON 与 YAML 留在后台。</p></div>
+    <div><h1>APSAL DNA Registry</h1><p id="subtitle"></p></div>
     <div class="stage" id="stage"></div>
   </header>
   <div id="cards"></div>
@@ -110,6 +110,16 @@
   const output = window.openai?.toolOutput || {};
   const cards = output.cards || output.recommendations || [];
   const stage = output.stage || "DNA";
+  const zh = output.language === "zh-CN";
+  document.documentElement.lang = zh ? "zh-CN" : "en";
+  const labels = zh ? {
+    subtitle:"用文字确认世界构建元素；图片、JSON 与 YAML 留在后台。", empty:"没有找到匹配的 DNA。请换一种自然语言描述。",
+    constraints:"核心约束", why:"匹配原因", choose:"选择此 DNA", chosen:"已选择"
+  } : {
+    subtitle:"Confirm world-building elements with text; images, JSON, and YAML stay in the background.", empty:"No matching DNA was found. Try another natural-language description.",
+    constraints:"Core constraints", why:"Why it fits", choose:"Choose this DNA", chosen:"Selected"
+  };
+  document.querySelector("#subtitle").textContent = labels.subtitle;
   document.querySelector("#stage").textContent = stage;
   const host = document.querySelector("#cards");
 
@@ -123,7 +133,7 @@
   };
 
   if (!cards.length) {
-    appendText(host, "empty", "没有找到匹配的 DNA。请换一种自然语言描述。");
+    appendText(host, "empty", labels.empty);
   }
 
   cards.forEach((card, index) => {
@@ -144,14 +154,14 @@
 
     const attributes = document.createElement("div");
     attributes.className = "section";
-    appendText(attributes, "label", "Core constraints");
+    appendText(attributes, "label", labels.constraints);
     appendText(attributes, "attributes", (card.core_attributes || []).map(text).join(" · "));
     item.appendChild(attributes);
 
     if (card.reasons?.length) {
       const reason = document.createElement("div");
       reason.className = "section";
-      appendText(reason, "label", "Why it fits");
+      appendText(reason, "label", labels.why);
       appendText(reason, "why", card.reasons.join("；"));
       const values = [...(card.matched_tags || []), ...(card.matched_facets || [])];
       if (values.length) {
@@ -170,20 +180,20 @@
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-pressed", "false");
-    button.textContent = "选择此 DNA";
+    button.textContent = labels.choose;
     button.addEventListener("click", () => {
       document.querySelectorAll("article.selected").forEach(node => {
         node.classList.remove("selected");
         const otherButton = node.querySelector("button");
         if (otherButton) {
-          otherButton.textContent = "选择此 DNA";
+          otherButton.textContent = labels.choose;
           otherButton.setAttribute("aria-pressed", "false");
         }
       });
       item.classList.add("selected");
-      button.textContent = "已选择";
+      button.textContent = labels.chosen;
       button.setAttribute("aria-pressed", "true");
-      const prompt = `我选择 ${text(ref.namespace)}/${text(ref.id)}@${text(ref.version)}（${text(ref.type)}，摘要 ${text(ref.content_digest)}）用于 ${stage} 阶段，请继续。`;
+      const prompt = zh ? `我选择 ${text(ref.namespace)}/${text(ref.id)}@${text(ref.version)}（${text(ref.type)}，摘要 ${text(ref.content_digest)}）用于 ${stage} 阶段，请继续。` : `I choose ${text(ref.namespace)}/${text(ref.id)}@${text(ref.version)} (${text(ref.type)}, digest ${text(ref.content_digest)}) for the ${stage} stage. Continue.`;
       if (window.openai?.sendFollowUpMessage) window.openai.sendFollowUpMessage({prompt});
     });
     footer.appendChild(button);

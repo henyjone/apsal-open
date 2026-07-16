@@ -66,6 +66,8 @@ codex plugin add apsal-studio@apsal-open
 
 安装后重新启动 Codex，或打开一个新任务。也可以从[最新 Release](https://github.com/henyjone/apsal-open/releases/latest)下载固定版本插件 ZIP。
 
+APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示中文卡片和说明，英文输入显示英文卡片和说明；安装时不会强制弹出语言选择。只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时说“切换到英文”或“switch to Chinese”；语言只保存在本地会话，不改变主题、DNA 或 Prompt 摘要。
+
 ## 30 秒开始使用
 
 直接告诉 Codex：
@@ -80,7 +82,7 @@ codex plugin add apsal-studio@apsal-open
 4. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 5. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、参考图和使用说明。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
-创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.9 保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法与 Codex 原生交付，并能直接接管旧 APSAL 运行包。APSAL 不调用图像 API；主题确认后一定生成可复现的 Codex Prompt/Skill ZIP，由 Codex 自己逐张生成。
+创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.10 增加完整中英文交互，同时保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法、Codex 原生交付和旧 APSAL 运行包接管。APSAL 不调用图像 API；主题确认后一定生成同时带有完整中英文说明的 Codex Prompt/Skill ZIP，由 Codex 自己逐张生成。
 
 从安装、五层对话、DNA 与参考图，到逐张生成、安装主题 Skill 和排查问题，请直接按照 [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md) 操作。
 
@@ -180,7 +182,8 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [五层创作与十三元素 RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
 - [Codex 原生生图与 Prompt 交付 RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
 - [旧运行包自动接管 RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
-- [APSAL Studio 0.9.0 发布与安装说明](docs/releases/0.9.0.md)
+- [中英文交互 RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
+- [APSAL Studio 0.10.0 发布与安装说明](docs/releases/0.10.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

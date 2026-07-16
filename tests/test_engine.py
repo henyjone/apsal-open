@@ -220,6 +220,37 @@ class EngineTests(unittest.TestCase):
             self.assertIn("hope", mixed["secondary_tones"])
             self.assertEqual(mixed["valence"], "mixed")
 
+    def test_bilingual_session_auto_detection_ambiguity_and_switch_are_presentation_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            english = engine.start_design_session(
+                "Create a restrained live-action portrait story beside a window",
+                project_root=project, home=home, theme_id="TEST-LANGUAGE-EN",
+            )
+            self.assertEqual(english["language"]["code"], "en")
+            layer = engine.present_element_layer(english["session_id"], "direction", project_root=project)
+            self.assertEqual(layer["language"], "en")
+            self.assertEqual(layer["title"], "Direction and Emotion")
+            self.assertEqual(layer["cards"][0]["title"], "Content")
+
+            ambiguous = engine.start_design_session("APSAL", project_root=project, home=home, theme_id="TEST-LANGUAGE-PENDING")
+            self.assertEqual(ambiguous["language"]["status"], "pending")
+            with self.assertRaisesRegex(engine.ValidationError, "English or Chinese|English 或中文"):
+                engine.present_element_layer(ambiguous["session_id"], "direction", project_root=project)
+            selected = engine.set_session_language(ambiguous["session_id"], "zh-CN", project_root=project)
+            self.assertEqual(selected["language"]["code"], "zh-CN")
+            self.assertEqual(engine.present_element_layer(ambiguous["session_id"], "direction", project_root=project)["title"], "创作命题与情绪")
+
+            confirmed = self._start_and_confirm(project, home, theme_id="TEST-LANGUAGE-DIGEST")
+            before_session, before_theme = engine.load_design_session(confirmed["session_id"], project)
+            before_compiled = engine.compile_theme(before_theme, "image")
+            switched = engine.set_session_language(confirmed["session_id"], "en", project_root=project)
+            after_session, after_theme = engine.load_design_session(confirmed["session_id"], project)
+            after_compiled = engine.compile_theme(after_theme, "image")
+            self.assertEqual(before_session["theme_digest"], switched["theme_digest"])
+            self.assertEqual(before_session["theme_digest"], after_session["theme_digest"])
+            self.assertEqual(before_compiled["compiled_digest"], after_compiled["compiled_digest"])
+
     def test_cannot_skip_layers_and_each_layer_recommends_its_required_dna_types(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
@@ -529,7 +560,7 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_twenty_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_twenty_one_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
@@ -546,9 +577,10 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.9.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 20)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.10.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 21)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
+            self.assertIn("set_session_language", names)
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)
             self.assertIn("bind_import_reference", names)
@@ -756,9 +788,14 @@ class EngineTests(unittest.TestCase):
             self.assertFalse(manifest["direct_api_calls"])
             self.assertFalse(manifest["api_key_required"])
             self.assertFalse(manifest["returned_dimensions_guaranteed"])
-            guide = (skill_root / "PROMPT_GUIDE.md").read_text(encoding="utf-8")
-            self.assertIn("继续下一张", guide)
-            self.assertIn("不需要 `OPENAI_API_KEY`", guide)
+            guide_index = (skill_root / "PROMPT_GUIDE.md").read_text(encoding="utf-8")
+            guide_zh = (skill_root / "PROMPT_GUIDE.zh-CN.md").read_text(encoding="utf-8")
+            guide_en = (skill_root / "PROMPT_GUIDE.en.md").read_text(encoding="utf-8")
+            self.assertIn("PROMPT_GUIDE.en.md", guide_index)
+            self.assertIn("继续下一张", guide_zh)
+            self.assertIn("不需要 `OPENAI_API_KEY`", guide_zh)
+            self.assertIn("continue to the next image", guide_en)
+            self.assertIn("does not require `OPENAI_API_KEY`", guide_en)
 
     @staticmethod
     def _legacy_run_zip(root: Path, reference: Path, *, include_reference: bool = False) -> tuple[Path, str]:
@@ -811,6 +848,8 @@ class EngineTests(unittest.TestCase):
             skill_zip = Path(run["prompt_package"]["path"]); self.assertTrue(skill_zip.is_file())
             with zipfile.ZipFile(skill_zip) as package:
                 self.assertTrue(any(name.endswith("PROMPT_GUIDE.md") for name in package.namelist()))
+                self.assertTrue(any(name.endswith("PROMPT_GUIDE.en.md") for name in package.namelist()))
+                self.assertTrue(any(name.endswith("PROMPT_GUIDE.zh-CN.md") for name in package.namelist()))
                 self.assertTrue(any("assets/references/REF_LEGACY_001" in name for name in package.namelist()))
                 self.assertFalse(any(name.endswith("generate_set.py") for name in package.namelist()))
                 package.extractall(root / "skill")

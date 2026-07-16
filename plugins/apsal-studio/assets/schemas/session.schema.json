@@ -12,6 +12,17 @@
     "project_root": {"type": "string", "minLength": 1},
     "state": {"enum": ["character_pending", "world_pending", "scene_pending", "photo_pending", "direction_pending", "worldbuilding_pending", "narrative_pending", "image_pending", "delivery_pending", "review_pending", "ready", "generating", "completed", "partial"]},
     "shot_count": {"type": "integer", "minimum": 1, "maximum": 24},
+    "language": {
+      "type": "object",
+      "required": ["code", "status", "source", "supported"],
+      "properties": {
+        "code": {"type": ["string", "null"], "enum": ["zh-CN", "en", null]},
+        "status": {"enum": ["confirmed", "pending"]},
+        "source": {"enum": ["creator_explicit", "message_explicit", "message_detected", "ambiguous", "legacy_fallback"]},
+        "supported": {"const": ["zh-CN", "en"]}
+      },
+      "additionalProperties": false
+    },
     "stages": {"type": "object", "required": ["character", "world", "scene", "photo"]},
     "layers": {"type": "object", "required": ["direction", "worldbuilding", "narrative", "image", "delivery"]},
     "private_references": {"type": "array"},

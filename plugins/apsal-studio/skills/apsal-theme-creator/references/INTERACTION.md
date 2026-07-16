@@ -1,4 +1,8 @@
-# APSAL Studio 0.9 interaction and delivery contract
+# APSAL Studio 0.10 interaction and delivery contract
+
+## Language before creative decisions
+
+Follow the current Codex conversation language automatically when it is clearly Chinese or English. Do not insert a mandatory language screen at installation or first use. If the first usable message is genuinely ambiguous, ask the one-line bilingual question “English or 中文?” and persist the answer with `set_session_language`. Switching language later changes presentation only and does not invalidate confirmed layers or recompile the theme.
 
 ## Legacy package takeover
 
@@ -46,6 +50,7 @@ Use this order:
 
 ```text
 brief
+→ language auto-detected, or one concise choice if ambiguous
 → direction_pending
 → worldbuilding_pending
 → narrative_pending
@@ -93,7 +98,7 @@ Private references go to `~/.apsal/vault/sha256/`. Retain only their Vault URI, 
 
 After the nine-shot overview, offer:
 
-Finalization always creates and displays a reproducible Codex Prompt/Skill ZIP plus SHA-256. It contains `PROMPT_GUIDE.md`, three Prompt files per Job, reference media allowed for local use, rights metadata, QA and checksums. Private references force `private_only`; public export fails unless redistribution rights are explicit.
+Finalization always creates and displays a reproducible Codex Prompt/Skill ZIP plus SHA-256. It contains a language index plus complete English and Chinese guides, three Prompt files per Job, reference media allowed for local use, rights metadata, QA and checksums. Private references force `private_only`; public export fails unless redistribution rights are explicit.
 
 After the package is ready, offer exactly:
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -37,36 +37,47 @@
 </head>
 <body>
 <main>
-  <header><div><h1 id="title">APSAL 十三元素</h1><p>逐层确认创作含义、可观察结果与不可改变项。</p></div><div class="progress" id="progress"></div></header>
+  <header><div><h1 id="title">APSAL Elements</h1><p id="subtitle"></p></div><div class="progress" id="progress"></div></header>
   <div id="cards"></div>
-  <button id="confirm" type="button">确认本层全部元素</button>
+  <button id="confirm" type="button"></button>
 </main>
 <script>
   const output = window.openai?.toolOutput || {};
   const cards = output.cards || [];
+  const zh = output.language === "zh-CN";
+  document.documentElement.lang = zh ? "zh-CN" : "en";
+  const labels = zh ? {
+    subtitle:"逐层确认创作含义、可观察结果与不可改变项。", elements:"个元素", values:"确认取值",
+    observable:"可观察结果", preserve:"必须保持", revise:"用自然语言修改此元素", confirm:"确认本层全部元素"
+  } : {
+    subtitle:"Confirm creative meaning, observable results, and invariants layer by layer.", elements:"elements", values:"Confirmed values",
+    observable:"Observable result", preserve:"Must preserve", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer"
+  };
   const safe = value => value == null ? "" : typeof value === "object" ? JSON.stringify(value, null, 0) : String(value);
   const add = (parent, tag, className, value) => { const node=document.createElement(tag); if(className)node.className=className; node.textContent=safe(value); parent.appendChild(node); return node; };
-  document.querySelector("#title").textContent = `${safe(output.title)} · ${safe(output.title_en)}`;
-  document.querySelector("#progress").textContent = `${safe(output.layer)} · ${cards.length} elements`;
+  document.querySelector("#title").textContent = safe(output.title);
+  document.querySelector("#subtitle").textContent = labels.subtitle;
+  document.querySelector("#progress").textContent = `${safe(output.layer)} · ${cards.length} ${labels.elements}`;
+  document.querySelector("#confirm").textContent = labels.confirm;
   const host=document.querySelector("#cards");
   cards.forEach(card => {
     const article=document.createElement("article");
     add(article,"div","role",card.role);
-    add(article,"h2","",`${safe(card.title)} / ${safe(card.title_en)}`);
+    add(article,"h2","",safe(card.title));
     add(article,"div","question",card.question);
     add(article,"span","source",`${safe(card.source)} · ${safe(card.status)}`);
     add(article,"div","intent",card.intent);
-    const values=document.createElement("section"); add(values,"div","label","Confirmed values");
+    const values=document.createElement("section"); add(values,"div","label",labels.values);
     const dl=document.createElement("dl"); Object.entries(card.values || {}).forEach(([key,value])=>{add(dl,"dt","",key);add(dl,"dd","",safe(value));}); values.appendChild(dl); article.appendChild(values);
-    const observable=document.createElement("section"); add(observable,"div","label","Observable result");
+    const observable=document.createElement("section"); add(observable,"div","label",labels.observable);
     const ul=document.createElement("ul"); (card.observable||[]).forEach(value=>add(ul,"li","",value)); observable.appendChild(ul); article.appendChild(observable);
-    const preserve=document.createElement("section"); add(preserve,"div","label","Must preserve"); add(preserve,"div","question",(card.must_preserve||[]).join(" · ")); article.appendChild(preserve);
+    const preserve=document.createElement("section"); add(preserve,"div","label",labels.preserve); add(preserve,"div","question",(card.must_preserve||[]).join(" · ")); article.appendChild(preserve);
     const actions=document.createElement("div"); actions.className="actions";
-    const revise=add(actions,"button","","用自然语言修改此元素"); revise.type="button";
-    revise.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:`请修改 ${card.role} 元素，先询问我希望改变什么，并说明会影响哪些下游元素。`}));
+    const revise=add(actions,"button","",labels.revise); revise.type="button";
+    revise.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `请修改 ${card.role} 元素，先询问我希望改变什么，并说明会影响哪些下游元素。` : `Revise the ${card.role} element. First ask what I want to change, then explain which downstream elements will be affected.`}));
     article.appendChild(actions); host.appendChild(article);
   });
-  document.querySelector("#confirm").addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:`我确认 ${output.layer} 层的全部元素，请使用当前卡片值提交，并继续下一层。`}));
+  document.querySelector("#confirm").addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `我确认 ${output.layer} 层的全部元素，请使用当前卡片值提交，并继续下一层。` : `I confirm every element in the ${output.layer} layer. Commit the current card values and continue to the next layer.`}));
 </script>
 </body>
 </html>
