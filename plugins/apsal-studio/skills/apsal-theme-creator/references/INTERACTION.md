@@ -1,4 +1,8 @@
-# APSAL Studio 0.8 interaction and delivery contract
+# APSAL Studio 0.9 interaction and delivery contract
+
+## Legacy package takeover
+
+An attached APSAL ZIP or directory with `run.json` is a creator artifact, not a programming assignment. Import it before describing it. APSAL restores Prompts and references, discards provider execution assumptions, creates a private Codex Prompt/Skill package, and returns the next image Job. Never respond with “this JSON cannot be executed” or direct the creator to install an API runner. If SHA-256 recovery fails, name only the missing reference images and bind them after the creator reattaches them.
 
 ## What creators see
 

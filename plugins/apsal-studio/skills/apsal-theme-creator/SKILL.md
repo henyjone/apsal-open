@@ -7,6 +7,14 @@ description: Create, revise, resume, generate, or package an APSAL photography t
 
 Keep JSON and YAML in the local artifact layer. Never ask a creator to write or inspect them unless they explicitly request developer mode.
 
+## Open an APSAL package without exposing internals
+
+When the creator attaches or points to an APSAL ZIP/directory containing `run.json`, call `import_apsal_package` before explaining the package. Do not answer that `run.json` is not executable, do not tell the creator to find an API runner, and never generate a screenshot of code, JSON, a terminal, or a programming interface.
+
+The importer treats old provider/model/API fields as historical lineage only, recovers all Prompt files, searches the package and local private Vault for each reference by SHA-256, converts the Jobs to Codex-native generation, and creates a documented private Prompt/Skill ZIP. If `ready_for_codex` is true, summarize the theme and shot count in creator language, show the new package path, and offer or perform the returned `next_job` according to the creator's existing generation confirmation. If it is false, ask only for the images in `missing_references`; do not ask the creator to repair paths or edit JSON. Use `bind_import_reference` for each reattached file, then continue directly.
+
+If the creator already asked to generate the set, a ready import is sufficient to generate SHOT_01 immediately through Codex built-in image generation. Otherwise ask once: “现在生成第一张吗？”
+
 ## Create through five complete layers
 
 1. Call `start_design_session` with the creator's natural-language brief. Default to nine independent 9:16 high-quality image requests and a live-action photography Rendering Contract. Treat 2160×3840 as a requested delivery target only; Codex-managed generation does not guarantee returned pixel dimensions or format.

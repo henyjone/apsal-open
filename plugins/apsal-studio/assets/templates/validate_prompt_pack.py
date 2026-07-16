@@ -30,24 +30,31 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def validate() -> tuple[dict, list[dict]]:
-    theme = read_json(REFERENCES / "theme.json")
-    compiled = read_json(REFERENCES / "compiled.json")
+def validate() -> tuple[str, list[dict]]:
     manifest = read_json(REFERENCES / "manifest.json")
     references = read_json(REFERENCES / "reference_manifest.json")
     if manifest.get("direct_api_calls") is not False or manifest.get("generation_surface") != "codex_imagegen":
         raise RuntimeError("this package is not a Codex-native, no-direct-API Prompt Skill")
     claimed = references.pop("reference_manifest_digest", None)
-    if claimed != digest(references): raise RuntimeError("reference manifest digest mismatch")
-    references["reference_manifest_digest"] = claimed
+    if claimed is not None:
+        if claimed != digest(references): raise RuntimeError("reference manifest digest mismatch")
+        references["reference_manifest_digest"] = claimed
     for item in references.get("references", []):
         path = ROOT / item["packaged_file"]
         if not path.is_file(): raise RuntimeError(f"missing reference image: {item['reference_id']}")
         if sha256(path) != item["packaged_sha256"]: raise RuntimeError(f"reference digest mismatch: {item['reference_id']}")
+    if manifest.get("source_kind") == "legacy_run_import":
+        label = f"{manifest.get('theme_id', 'APSAL-IMPORTED-RUN')}@{manifest.get('theme_version', 'legacy')}"
+        source_jobs = manifest.get("jobs", [])
+    else:
+        theme = read_json(REFERENCES / "theme.json")
+        compiled = read_json(REFERENCES / "compiled.json")
+        label = f"{theme['id']}@{theme['version']}"
+        source_jobs = [{"shot_id": shot["shot_id"], "reference_ids": shot.get("reference_ids", []), "compiled": shot} for shot in compiled.get("shots", [])]
     rows = []
     expected_files = manifest.get("prompt_files", {})
-    for shot in compiled.get("shots", []):
-        shot_id = shot["shot_id"]
+    for source_job in source_jobs:
+        shot_id = source_job["shot_id"]
         positive = PROMPTS / f"{shot_id}.prompt.txt"
         negative = PROMPTS / f"{shot_id}.negative.txt"
         full = PROMPTS / f"{shot_id}.full.txt"
@@ -55,24 +62,26 @@ def validate() -> tuple[dict, list[dict]]:
             relative = str(path.relative_to(ROOT))
             if not path.is_file(): raise RuntimeError(f"missing Prompt file: {relative}")
             if expected_files.get(relative) != sha256(path): raise RuntimeError(f"Prompt checksum mismatch: {relative}")
-        expected_full = shot["positive_prompt"] + "\n\nNegative constraints:\n" + shot["negative_prompt"] + "\n"
-        if positive.read_text(encoding="utf-8") != shot["positive_prompt"] + "\n": raise RuntimeError(f"positive Prompt differs: {shot_id}")
-        if negative.read_text(encoding="utf-8") != shot["negative_prompt"] + "\n": raise RuntimeError(f"negative Prompt differs: {shot_id}")
-        if full.read_text(encoding="utf-8") != expected_full: raise RuntimeError(f"full Prompt differs: {shot_id}")
-        rows.append({"shot_id": shot_id, "full_prompt": str(full.relative_to(ROOT)), "reference_ids": shot.get("reference_ids", [])})
-    if len(rows) != theme.get("output", {}).get("count"): raise RuntimeError("Prompt count differs from theme output count")
-    return theme, rows
+        compiled_shot = source_job.get("compiled")
+        if compiled_shot:
+            expected_full = compiled_shot["positive_prompt"] + "\n\nNegative constraints:\n" + compiled_shot["negative_prompt"] + "\n"
+            if positive.read_text(encoding="utf-8") != compiled_shot["positive_prompt"] + "\n": raise RuntimeError(f"positive Prompt differs: {shot_id}")
+            if negative.read_text(encoding="utf-8") != compiled_shot["negative_prompt"] + "\n": raise RuntimeError(f"negative Prompt differs: {shot_id}")
+            if full.read_text(encoding="utf-8") != expected_full: raise RuntimeError(f"full Prompt differs: {shot_id}")
+        rows.append({"shot_id": shot_id, "full_prompt": str(full.relative_to(ROOT)), "reference_ids": source_job.get("reference_ids", [])})
+    if len(rows) != len(source_jobs): raise RuntimeError("Prompt count differs from Job count")
+    return label, rows
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate an APSAL Codex Prompt Skill")
     parser.add_argument("--list", action="store_true", help="List Jobs, full Prompt files and reference IDs")
     args = parser.parse_args()
-    theme, rows = validate()
+    label, rows = validate()
     if args.list:
-        print(json.dumps({"theme": f"{theme['id']}@{theme['version']}", "jobs": rows}, ensure_ascii=False, indent=2))
+        print(json.dumps({"theme": label, "jobs": rows}, ensure_ascii=False, indent=2))
     else:
-        print(f"valid Codex Prompt Skill: {theme['id']}@{theme['version']}, {len(rows)} independent Jobs, no direct API calls")
+        print(f"valid Codex Prompt Skill: {label}, {len(rows)} independent Jobs, no direct API calls")
     return 0
 
 

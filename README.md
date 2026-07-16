@@ -91,7 +91,15 @@ APSAL Studio will:
 4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
 5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, reference and usage guide. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.8 keeps the complete five-layer, thirteen-role authoring method and changes delivery: APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image. One failed image does not force successful images to run again.
+Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.9 keeps the complete five-layer, thirteen-role authoring method and Codex-native delivery, and can now take over old APSAL run packages. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
+
+### Already have an old APSAL ZIP?
+
+Attach it to Codex and say:
+
+> Open this APSAL package and generate the first image.
+
+Studio detects `run.json`, preserves its lineage but ignores historical API/model execution fields, recovers all Prompts, searches the ZIP and your private Vault for reference images by SHA-256, creates a new private Codex Prompt/Skill package, and returns SHOT_01 ready for Codex image generation. You do not need to extract the ZIP, inspect JSON, repair old absolute paths, or install an API runner. If a reference cannot be recovered, Studio asks only for that missing image and verifies it against the recorded digest.
 
 ### Where your DNA lives
 
@@ -137,6 +145,7 @@ No account, hosted API, or model key is required for validation and packaging.
 
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py init
+python3 plugins/apsal-studio/scripts/apsal.py import-run path/to/legacy-run.zip
 python3 plugins/apsal-studio/scripts/apsal.py session start "Create a nine-shot Eastern-minimalist window portrait series"
 python3 plugins/apsal-studio/scripts/apsal.py registry recommend-layer "quiet Eastern-minimalist window portrait" --layer worldbuilding
 python3 plugins/apsal-studio/scripts/apsal.py session layer-show SESSION-ID --layer direction
@@ -176,7 +185,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [DNA recommendation, memory and exchange RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
 - [Five-layer, thirteen-element authoring RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
 - [Codex-native generation and Prompt delivery RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
-- [APSAL Studio 0.8.0 release and installation notes](docs/releases/0.8.0.md)
+- [Legacy run takeover RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
+- [APSAL Studio 0.9.0 release and installation notes](docs/releases/0.9.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

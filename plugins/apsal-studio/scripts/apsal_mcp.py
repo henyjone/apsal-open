@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from apsal_engine import (
-    ValidationError, commit_element_layer, commit_session_stage, dna_card, finalize_design_session,
+    ValidationError, bind_import_reference, commit_element_layer, commit_session_stage, dna_card, finalize_design_session,
     get_next_codex_job, load_design_session, project_root_from, record_generation_result,
+    import_apsal_package,
     record_model_visual_qa, search_registry, start_design_session, start_generation_run,
     present_element_layer, recommend_dna, recommend_layer_dna, suggest_discovery_metadata, confirm_discovery_metadata,
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
@@ -102,6 +103,16 @@ TOOLS = [
     {
         "name": "finalize_theme", "description": "Freeze five confirmed creative layers and all thirteen protocol elements into local YAML, canonical JSON, compiled targets and per-shot prompts; legacy four-stage sessions remain readable.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}}, ["session_id"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "import_apsal_package", "description": "Open an attached legacy APSAL run directory or ZIP, recover its Prompts and references by SHA-256, remove executable provider assumptions, and prepare the first Codex image Job plus a private Prompt/Skill package.",
+        "inputSchema": _schema({"source": {"type": "string"}, "project_root": {"type": "string"}}, ["source"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "bind_import_reference", "description": "Attach one reference image that a legacy APSAL package omitted, verify its declared SHA-256, and complete the Codex-ready private Prompt/Skill package when all references are restored.",
+        "inputSchema": _schema({"run_id": {"type": "string"}, "reference_id": {"type": "string"}, "source": {"type": "string"}, "project_root": {"type": "string"}}, ["run_id", "reference_id", "source"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -230,6 +241,14 @@ def _tool_finalize(arguments: dict[str, Any]) -> dict[str, Any]:
     return _summary(finalize_design_session(arguments["session_id"], project_root=_root(arguments)))
 
 
+def _tool_import_package(arguments: dict[str, Any]) -> dict[str, Any]:
+    return import_apsal_package(Path(arguments["source"]), project_root=_root(arguments))
+
+
+def _tool_bind_import_reference(arguments: dict[str, Any]) -> dict[str, Any]:
+    return bind_import_reference(arguments["run_id"], arguments["reference_id"], Path(arguments["source"]), project_root=_root(arguments))
+
+
 def _tool_run(arguments: dict[str, Any]) -> dict[str, Any]:
     run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], resume_run_id=arguments.get("resume_run_id"))
     return run
@@ -254,7 +273,8 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "present_dna_cards": _tool_cards, "commit_stage": _tool_commit, "commit_element_layer": _tool_commit_layer,
     "resolve_dna_memory": _tool_memory, "record_dna_feedback": _tool_feedback,
     "export_dna_pack": _tool_export, "install_dna_pack": _tool_install,
-    "finalize_theme": _tool_finalize, "start_generation_run": _tool_run,
+    "finalize_theme": _tool_finalize, "import_apsal_package": _tool_import_package,
+    "bind_import_reference": _tool_bind_import_reference, "start_generation_run": _tool_run,
     "get_next_codex_job": _tool_next_codex_job, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
 }
@@ -290,7 +310,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.8.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.9.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

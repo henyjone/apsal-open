@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.8.0",
-  "description": "Build live-action AI photography through five complete APSAL layers, then receive a reusable Prompt/Skill package and generate each shot with Codex built-in image generation—no image API key required.",
+  "version": "0.9.0",
+  "description": "Build live-action AI photography or open a legacy APSAL run, recover its references, package every Prompt, and generate each shot directly with Codex—no image API key required.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -15,7 +15,7 @@
   "interface": {
     "displayName": "APSAL Studio",
     "shortDescription": "确认十三元素，打包 Prompt，再由 Codex 逐张生成",
-    "longDescription": "APSAL Studio turns one natural-language idea into five text-card layers covering all thirteen protocol roles, recommends reusable DNA, binds real references, automatically exports a documented Prompt/Skill ZIP, and hands each independent shot to Codex built-in image generation without calling an image API or requiring an API key.",
+    "longDescription": "APSAL Studio turns one natural-language idea into five text-card layers covering all thirteen protocol roles, or takes over a legacy APSAL run ZIP by recovering Prompts and references. It automatically exports a documented Prompt/Skill ZIP and hands each independent shot to Codex built-in image generation without calling an image API or requiring an API key.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
@@ -24,7 +24,7 @@
     "defaultPrompt": [
       "创建九张真人摄影主题，确认十三元素并打包全部 Prompt。",
       "设计欢喜但克制的主题，用 Codex 内置能力逐张生成。",
-      "检查 Prompt/Skill 使用包，并告诉我如何安装和继续下一张。"
+      "打开这个旧 APSAL ZIP，恢复参考图并直接用 Codex 生成。"
     ],
     "brandColor": "#84A99C"
   }

@@ -1,6 +1,6 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.8 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.9 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
 
 The plugin writes creator data only to the current project's `.apsal/` directory and to `~/.apsal/` (or `APSAL_HOME` when configured). Project drafts, generation runs, caches, and the private Vault are ignored by Git by default.
 
@@ -13,6 +13,8 @@ Installed community packs live under `~/.apsal/extensions/` as read-only Registr
 Private references are copied into the content-addressed local Vault at `~/.apsal/vault/sha256/`. They are not embedded in DNA JSON, public releases, or Git commits. The creator is responsible for copyright, portrait consent, attribution, and permitted uses.
 
 A locally exported Codex Prompt/Skill package includes sanitized copies of its bound references so Codex built-in image generation can receive the actual images. The package records every image's SHA-256, purpose, allowed and forbidden uses, rights state, attribution, and redistribution permission. Any unresolved or non-redistributable reference forces `distribution: private_only`; the public packager and release checks reject it. Reference media does not inherit the theme text's CC BY 4.0 license.
+
+When importing a legacy run ZIP or directory, Studio reads only the contained run manifest, Prompt text and candidate image files after path, size, symlink and archive-safety checks. It may search the local private Vault by the run's declared SHA-256 to restore an omitted reference. Imported references and the reconstructed run remain inside the current project's ignored `.apsal/` directory. Imported packages are always `private_only`; historical absolute paths are removed from the new Prompt/Skill package.
 
 Image generation is optional. APSAL Studio does not call an image API and does not request or read `OPENAI_API_KEY`. When a creator explicitly confirms generation, Codex itself sends the current Job's frozen Prompt and permitted references through its built-in image-generation capability under the applicable Codex product terms. APSAL records only metadata actually exposed to the task and marks unavailable model, format, dimensions and provider values as `not_reported`. Requested 9:16, high quality and 2160×3840 are creative targets, not guaranteed returned properties.
 

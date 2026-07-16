@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 - 2026-07-16
+
+- Added direct takeover of legacy APSAL run directories and ZIPs: creators can attach a package instead of extracting it, inspecting `run.json`, repairing paths, or finding an API runner.
+- Added safe archive inspection with traversal, symlink, duplicate-path, depth and expanded-size safeguards.
+- Added automatic Prompt recovery and SHA-256 reference restoration from bundled media, declared valid local paths, or the private APSAL Vault.
+- Added `import_apsal_package` and `bind_import_reference` MCP tools plus `import-run` and `run-bind-reference` CLI commands.
+- Converted historical provider, model and API fields to non-executable lineage metadata; imported runs always use Codex built-in image generation and honest non-guaranteed output dimensions.
+- Added automatic private Codex Prompt/Skill repackaging for imported runs, including positive/negative/full Prompts, restored reference media, rights metadata, checksums, offline validation and a plain-language guide.
+- Added a high-priority imported-run instruction to generate the finished photograph itself and reject code, JSON, terminals, programming interfaces and Prompt sheets as image content.
+- Added missing-reference recovery that asks only for the exact omitted image and verifies its original digest before continuing.
+
 ## 0.8.0 - 2026-07-16
 
 - Removed direct image-provider/API execution from APSAL Studio and its exported Skills; the plugin no longer reads an image API key or exposes an HTTP generation executor.

@@ -529,23 +529,29 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_eighteen_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_twenty_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
+            reference = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            engine.store_private_reference(reference, home=home)
+            legacy_archive, _ = self._legacy_run_zip(Path(tmp), reference)
             requests = [
                 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
                 {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "present_dna_cards", "arguments": {"project_root": str(project), "stage": "character"}}},
                 {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "present_element_layer", "arguments": {"project_root": str(project), "session_id": session["session_id"], "layer": "direction"}}},
+                {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "import_apsal_package", "arguments": {"project_root": str(project), "source": str(legacy_archive)}}},
             ]
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.8.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 18)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.9.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 20)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("get_next_codex_job", names)
+            self.assertIn("import_apsal_package", names)
+            self.assertIn("bind_import_reference", names)
             self.assertNotIn("execute_generation_run", names)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
@@ -556,6 +562,9 @@ class EngineTests(unittest.TestCase):
             self.assertEqual([card["role"] for card in elements], ["content", "emotion"])
             self.assertTrue(all("values" in card and "observable" in card and "qa_expectations" in card for card in elements))
             self.assertNotIn("preview", json.dumps(elements))
+            imported = responses[4]["result"]["structuredContent"]
+            self.assertTrue(imported["ready_for_codex"])
+            self.assertEqual(imported["next_job"]["shot_id"], "SHOT_01")
 
     def test_path_components_reject_traversal(self):
         with self.assertRaises(engine.ValidationError): engine._safe_part("../escape", "test")
@@ -750,5 +759,89 @@ class EngineTests(unittest.TestCase):
             guide = (skill_root / "PROMPT_GUIDE.md").read_text(encoding="utf-8")
             self.assertIn("继续下一张", guide)
             self.assertIn("不需要 `OPENAI_API_KEY`", guide)
+
+    @staticmethod
+    def _legacy_run_zip(root: Path, reference: Path, *, include_reference: bool = False) -> tuple[Path, str]:
+        reference_data = reference.read_bytes(); reference_sha = hashlib.sha256(reference_data).hexdigest()
+        run = {
+            "schema_version": "0.5.0", "run_id": "RUN-LEGACY-001", "session_id": "SESSION-LEGACY-001",
+            "mode": "prompts", "status": "completed",
+            "theme": {"path": "/private/old-machine/theme", "theme_id": "APSAL-LEGACY-GARDEN", "version": "1.0.0", "distribution": "private_only"},
+            "dna": [], "engine_version": "0.6.0", "adapter": "openai-image-api", "model": "gpt-image-2",
+            "parameters": {"size": "2160x3840", "quality": "high", "output_format": "png", "n": 1},
+            "output_contract": {"count": 2, "aspect_ratio": "9:16", "size": "2160x3840", "quality": "high", "format": "png", "provider_native": True, "independent_images": True, "forbid": ["grid", "text"]},
+            "rendering_contract": engine.live_action_rendering_contract(),
+            "reference_manifest": {"references": [{
+                "reference_id": "REF_LEGACY_001", "original_sha256": reference_sha, "sha256": reference_sha,
+                "original_filename": reference.name, "uses": ["style"], "allowed_uses": ["palette", "material"],
+                "forbidden_uses": ["identity", "pose", "exact composition"], "applies_to": ["*"],
+                "rights": {"license": "unconfirmed", "redistribution_allowed": False},
+            }]},
+            "jobs": [
+                {"shot_id": shot_id, "status": "saved", "prompt_digest": "0" * 64, "reference_ids": ["REF_LEGACY_001"], "attempts": [], "output": None, "error": None, "model_visual_qa": "pending", "human_visual_qa": "pending"}
+                for shot_id in ("SHOT_01", "SHOT_02")
+            ],
+        }
+        archive = root / "legacy-run.zip"
+        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as package:
+            package.writestr("run.json", json.dumps(run, ensure_ascii=False))
+            for shot_id in ("SHOT_01", "SHOT_02"):
+                package.writestr(f"prompts/{shot_id}.prompt.txt", f"Live-action finished photograph for {shot_id}.\n")
+                package.writestr(f"prompts/{shot_id}.negative.txt", "no illustration, no grid, no text\n")
+            if include_reference: package.writestr(f"assets/references/{reference.name}", reference_data)
+        return archive, reference_sha
+
+    def test_legacy_run_zip_recovers_vault_reference_and_becomes_codex_skill(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project, home = root / "project", root / "home"; project.mkdir()
+            reference = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            stored = engine.store_private_reference(reference, home=home)
+            archive, expected_sha = self._legacy_run_zip(root, reference)
+            self.assertEqual(stored["sha256"], expected_sha)
+            result = engine.import_apsal_package(archive, project_root=project, home=home)
+            run = result["run"]
+            self.assertTrue(result["ready_for_codex"])
+            self.assertEqual(run["adapter"], "codex-imagegen")
+            self.assertEqual(run["source"]["historical_adapter"], "openai-image-api")
+            self.assertFalse(run["output_contract"]["provider_native"])
+            self.assertEqual(run["reference_manifest"]["references"][0]["recovered_from"], "local_vault")
+            self.assertEqual(result["next_job"]["shot_id"], "SHOT_01")
+            self.assertIn("referenced_image_paths", result["next_job"]["codex_tool_arguments"])
+            self.assertIn("Do not show code, JSON, a terminal", result["next_job"]["prompt"])
+            skill_zip = Path(run["prompt_package"]["path"]); self.assertTrue(skill_zip.is_file())
+            with zipfile.ZipFile(skill_zip) as package:
+                self.assertTrue(any(name.endswith("PROMPT_GUIDE.md") for name in package.namelist()))
+                self.assertTrue(any("assets/references/REF_LEGACY_001" in name for name in package.namelist()))
+                self.assertFalse(any(name.endswith("generate_set.py") for name in package.namelist()))
+                package.extractall(root / "skill")
+            skill_root = next((root / "skill").iterdir())
+            validation = subprocess.run([sys.executable, "scripts/validate_prompt_pack.py", "--list"], cwd=skill_root, text=True, capture_output=True)
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            self.assertEqual(len(json.loads(validation.stdout)["jobs"]), 2)
+
+    def test_legacy_run_import_asks_only_for_missing_reference_then_binds_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project, home = root / "project", root / "empty-home"; project.mkdir()
+            reference = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            archive, _ = self._legacy_run_zip(root, reference)
+            result = engine.import_apsal_package(archive, project_root=project, home=home)
+            self.assertFalse(result["ready_for_codex"])
+            self.assertEqual([item["reference_id"] for item in result["missing_references"]], ["REF_LEGACY_001"])
+            run_id = result["run"]["run_id"]
+            with self.assertRaisesRegex(engine.ValidationError, "reattach missing reference"):
+                engine.get_next_codex_job(run_id, project_root=project, home=home)
+            rebound = engine.bind_import_reference(run_id, "REF_LEGACY_001", reference, project_root=project)
+            self.assertTrue(rebound["ready_for_codex"])
+            self.assertEqual(rebound["next_job"]["shot_id"], "SHOT_01")
+            self.assertTrue(Path(rebound["run"]["prompt_package"]["path"]).is_file())
+
+    def test_legacy_run_import_rejects_archive_traversal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project = root / "project"; project.mkdir(); archive = root / "unsafe.zip"
+            with zipfile.ZipFile(archive, "w") as package:
+                package.writestr("run.json", "{}")
+                package.writestr("../escape.txt", "unsafe")
+            with self.assertRaisesRegex(engine.ValidationError, "unsafe APSAL package path"):
+                engine.import_apsal_package(archive, project_root=project, home=root / "home")
 
 if __name__ == "__main__": unittest.main()

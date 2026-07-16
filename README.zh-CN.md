@@ -80,7 +80,15 @@ codex plugin add apsal-studio@apsal-open
 4. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 5. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、参考图和使用说明。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
-创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.8 保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法，并重做最终交付：APSAL 不再调用图像 API。主题确认后一定生成可复现的 Codex Prompt/Skill ZIP；你只需确认一次，由 Codex 自己逐张生成。每个 Codex 回合只生成一个 Job，看完说“继续”即可进入下一张。
+创作者不需要看见或手写 JSON/YAML。Protocol 与 Semantic Contract 仍为 0.3；Studio/Engine 0.9 保留“命题情绪 → 人物世界 → 事件序列 → 摄影成像 → 执行验证”五层十三元素方法与 Codex 原生交付，并能直接接管旧 APSAL 运行包。APSAL 不调用图像 API；主题确认后一定生成可复现的 Codex Prompt/Skill ZIP，由 Codex 自己逐张生成。
+
+### 已经有旧版 APSAL ZIP？
+
+把 ZIP 直接交给 Codex，然后说：
+
+> 打开这个 APSAL 包并生成第一张图。
+
+Studio 会自动识别 `run.json`：保留原始血缘，但不再执行旧的 API、模型和供应商字段；恢复全部 Prompt；按 SHA-256 从 ZIP 和你的私人 Vault 中寻找参考图；重新生成私人 Codex Prompt/Skill 包，并把 SHOT_01 直接准备给 Codex。你不需要解压、阅读 JSON、修复旧电脑绝对路径或寻找 API 运行器。只有确实无法恢复的参考图，Studio 才会请你重新提供，并用原摘要核对。
 
 ### DNA 保存在哪里
 
@@ -126,6 +134,7 @@ python3 plugins/apsal-studio/scripts/apsal.py registry install 'github:owner/rep
 
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py init
+python3 plugins/apsal-studio/scripts/apsal.py import-run path/to/legacy-run.zip
 python3 plugins/apsal-studio/scripts/apsal.py session start "创建一套九张东方极简窗边人像主题"
 python3 plugins/apsal-studio/scripts/apsal.py registry recommend-layer "安静的东方极简窗边人像" --layer worldbuilding
 python3 plugins/apsal-studio/scripts/apsal.py session layer-show SESSION-ID --layer direction
@@ -165,7 +174,8 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [DNA 推荐、记忆与交换 RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
 - [五层创作与十三元素 RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
 - [Codex 原生生图与 Prompt 交付 RFC](protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
-- [APSAL Studio 0.8.0 发布与安装说明](docs/releases/0.8.0.md)
+- [旧运行包自动接管 RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
+- [APSAL Studio 0.9.0 发布与安装说明](docs/releases/0.9.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 
 from apsal_engine import (
-    COMPILE_TARGETS, ValidationError, YamlError, check_sync, compile_theme,
+    COMPILE_TARGETS, ValidationError, YamlError, bind_import_reference, check_sync, compile_theme,
     commit_element_layer, commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
-    get_next_codex_job, init_workspace, load_catalog, load_design_session, load_document,
+    get_next_codex_job, import_apsal_package, init_workspace, load_catalog, load_design_session, load_document,
     load_generation_run, load_layered_registry, new_semantic_theme, new_theme,
     pack_theme, present_element_layer, project_root_from, promote_registry_asset, recommend_dna, recommend_layer_dna, registry_assets,
     record_dna_feedback, record_model_visual_qa, resolve_dna_memory_offer, search_registry,
@@ -69,6 +69,8 @@ def main() -> int:
     memory = session_sub.add_parser("memory"); memory.add_argument("session_id"); memory.add_argument("offer_id"); memory.add_argument("--action", required=True, choices=("save_personal", "project_only", "not_now"))
     finalize = session_sub.add_parser("finalize"); finalize.add_argument("session_id")
     run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--resume")
+    import_run = sub.add_parser("import-run"); import_run.add_argument("source", type=Path); import_run.add_argument("--project", type=Path, default=Path.cwd()); import_run.add_argument("--home", type=Path)
+    bind_run_ref = sub.add_parser("run-bind-reference"); bind_run_ref.add_argument("run_id"); bind_run_ref.add_argument("reference_id"); bind_run_ref.add_argument("source", type=Path); bind_run_ref.add_argument("--project", type=Path, default=Path.cwd())
     next_job = sub.add_parser("run-next"); next_job.add_argument("run_id"); next_job.add_argument("--project", type=Path, default=Path.cwd()); next_job.add_argument("--home", type=Path)
     model_qa = sub.add_parser("run-model-qa"); model_qa.add_argument("run_id"); model_qa.add_argument("shot_id"); model_qa.add_argument("--status", choices=("passed", "failed"), required=True); model_qa.add_argument("--finding", action="append", default=[]); model_qa.add_argument("--project", type=Path, default=Path.cwd())
     run_show = sub.add_parser("run-show"); run_show.add_argument("run_id"); run_show.add_argument("--project", type=Path, default=Path.cwd())
@@ -165,6 +167,10 @@ def main() -> int:
             project = _root(args.project)
             value = start_generation_run(args.session, project_root=project, home=args.home, confirmed=args.confirm, mode=args.mode, resume_run_id=args.resume)
             print(json.dumps(value, ensure_ascii=False, indent=2))
+        elif args.command == "import-run":
+            print(json.dumps(import_apsal_package(args.source, project_root=_root(args.project), home=args.home), ensure_ascii=False, indent=2))
+        elif args.command == "run-bind-reference":
+            print(json.dumps(bind_import_reference(args.run_id, args.reference_id, args.source, project_root=_root(args.project)), ensure_ascii=False, indent=2))
         elif args.command == "run-next":
             print(json.dumps(get_next_codex_job(args.run_id, project_root=_root(args.project), home=args.home), ensure_ascii=False, indent=2))
         elif args.command == "run-model-qa":

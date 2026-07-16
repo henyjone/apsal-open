@@ -10,4 +10,6 @@ Studio 0.7 adds a five-layer authoring interaction without changing Protocol 0.3
 
 Studio 0.8 removes direct image-provider execution from the Codex plugin. Finalization creates a complete Codex Prompt/Skill ZIP with one positive, negative and full Prompt per Job, bundled permitted references, checksums and a usage guide. Codex then generates one image per turn through its built-in image-generation capability. Requested delivery dimensions are not treated as guaranteed returned dimensions.
 
+Studio 0.9 safely takes over legacy run directories and ZIPs. Historical API/model fields remain non-executable lineage only. The importer restores Prompts, locates omitted references by SHA-256 in the package or private Vault, asks only for truly missing media, and creates a private Codex Prompt/Skill package ready for one-image-per-turn generation.
+
 Protocol 0.3 preserves 0.2 JSON and adds Semantic Contract authoring. Creators edit safe `.apsal.yaml`; the engine normalizes `.apsal.json`, explains field intent, and compiles separate `design`, `image`, and `qa` targets. Run `apsal.py check-sync <directory>` before publishing YAML/JSON pairs.
