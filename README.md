@@ -2,6 +2,11 @@
   <img src="assets/brand/apsal-readme-banner.jpg" alt="APSAL 元素摄影法 — Chinese fashion photographer" width="100%">
 </p>
 
+<p align="center">
+  <strong>CONTACT</strong><br>
+  Email: <a href="mailto:henyjone@gmail.com">henyjone@gmail.com</a> &nbsp;·&nbsp; WeChat: <strong>vip888666</strong>
+</p>
+
 <h1 align="center">APSAL — Open Photography Protocol</h1>
 
 <p align="center">

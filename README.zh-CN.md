@@ -2,6 +2,11 @@
   <img src="assets/brand/apsal-readme-banner.jpg" alt="APSAL 元素摄影法 — 中国时尚摄影师" width="100%">
 </p>
 
+<p align="center">
+  <strong>联系方式</strong><br>
+  Email：<a href="mailto:henyjone@gmail.com">henyjone@gmail.com</a> &nbsp;·&nbsp; WeChat：<strong>vip888666</strong>
+</p>
+
 <h1 align="center">APSAL — 开放摄影生成协议</h1>
 
 <p align="center"><strong>结构元素，构建世界。</strong><br>把创作意图转译为可组合、可验证、可复现的摄影世界。</p>
