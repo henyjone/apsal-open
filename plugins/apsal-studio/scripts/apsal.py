@@ -10,8 +10,10 @@ from apsal_engine import (
     commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
     execute_generation_run, init_workspace, load_catalog, load_design_session, load_document,
     load_generation_run, load_layered_registry, new_semantic_theme, new_theme,
-    pack_theme, project_root_from, promote_registry_asset, registry_assets,
-    record_model_visual_qa, search_registry, start_design_session, start_generation_run,
+    pack_theme, project_root_from, promote_registry_asset, recommend_dna, registry_assets,
+    record_dna_feedback, record_model_visual_qa, resolve_dna_memory_offer, search_registry,
+    start_design_session, start_generation_run, suggest_discovery_metadata, confirm_discovery_metadata,
+    export_dna_pack, install_dna_pack, validate_dna_pack,
     validate_protocol_package, validate_theme, write_canonical_json,
 )
 
@@ -48,13 +50,20 @@ def main() -> int:
     registry_sub = registry.add_subparsers(dest="registry_command", required=True)
     registry_sub.add_parser("list")
     search = registry_sub.add_parser("search"); search.add_argument("query", nargs="?", default=""); search.add_argument("--stage", choices=("character", "world", "scene", "photo")); search.add_argument("--limit", type=int, default=12)
+    recommend = registry_sub.add_parser("recommend"); recommend.add_argument("brief"); recommend.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); recommend.add_argument("--session"); recommend.add_argument("--limit", type=int, default=6)
+    suggest = registry_sub.add_parser("suggest-tags"); suggest.add_argument("asset", type=Path); suggest.add_argument("--brief", default=""); suggest.add_argument("--confirm", action="store_true")
     show = registry_sub.add_parser("show"); _ref_args(show)
     promote = registry_sub.add_parser("promote"); _ref_args(promote)
+    feedback = registry_sub.add_parser("feedback"); _ref_args(feedback); feedback.add_argument("--outcome", required=True, choices=("accepted", "rejected", "successful", "failed")); feedback.add_argument("--context", default=""); feedback.add_argument("--note", default="")
+    export = registry_sub.add_parser("export"); export.add_argument("--refs", type=Path, required=True); export.add_argument("--pack-id", required=True); export.add_argument("--namespace", required=True); export.add_argument("--version", required=True); export.add_argument("--name", required=True); export.add_argument("--description", required=True); export.add_argument("-o", "--output", type=Path, required=True); export.add_argument("--distribution", choices=("auto", "private_only", "public"), default="auto")
+    install = registry_sub.add_parser("install"); install.add_argument("source")
+    validate_dna = registry_sub.add_parser("validate-pack"); validate_dna.add_argument("source")
     session = sub.add_parser("session"); session.add_argument("--project", type=Path, default=Path.cwd()); session.add_argument("--home", type=Path)
     session_sub = session.add_subparsers(dest="session_command", required=True)
     start = session_sub.add_parser("start"); start.add_argument("brief"); start.add_argument("--id"); start.add_argument("--name"); start.add_argument("--shots", type=int, default=9)
     show_session = session_sub.add_parser("show"); show_session.add_argument("session_id")
     apply = session_sub.add_parser("apply"); apply.add_argument("session_id"); apply.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); apply.add_argument("--selection", type=Path, required=True)
+    memory = session_sub.add_parser("memory"); memory.add_argument("session_id"); memory.add_argument("offer_id"); memory.add_argument("--action", required=True, choices=("save_personal", "project_only", "not_now"))
     finalize = session_sub.add_parser("finalize"); finalize.add_argument("session_id")
     run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--adapter", default="openai-image-api"); run.add_argument("--model", default="gpt-image-2"); run.add_argument("--resume")
     execute = sub.add_parser("run-execute"); execute.add_argument("run_id"); execute.add_argument("--project", type=Path, default=Path.cwd()); execute.add_argument("--home", type=Path); execute.add_argument("--max-jobs", type=int, default=1); execute.add_argument("--max-retries", type=int, default=2)
@@ -111,6 +120,21 @@ def main() -> int:
                 print(json.dumps(match, ensure_ascii=False, indent=2))
             elif args.registry_command == "promote":
                 print(json.dumps(promote_registry_asset(_ref_from_args(args), project_root=project, home=args.home), ensure_ascii=False, indent=2))
+            elif args.registry_command == "recommend":
+                value = recommend_dna(args.brief, args.stage, project_root=project, home=args.home, session_id=args.session, limit=args.limit)
+                safe = {**value, "recommendations": [{key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")} | {"scope": item["record"]["scope"], "asset": item["record"]["asset"]} for item in value["recommendations"]]}
+                print(json.dumps(safe, ensure_ascii=False, indent=2))
+            elif args.registry_command == "suggest-tags":
+                value = suggest_discovery_metadata(load_document(args.asset), args.brief)
+                print(json.dumps(confirm_discovery_metadata(value) if args.confirm else value, ensure_ascii=False, indent=2))
+            elif args.registry_command == "feedback":
+                print(json.dumps(record_dna_feedback(_ref_from_args(args), args.outcome, project_root=project, home=args.home, context=args.context, note=args.note), ensure_ascii=False, indent=2))
+            elif args.registry_command == "export":
+                refs = json.loads(args.refs.read_text(encoding="utf-8")); path, sha = export_dna_pack(refs, pack_id=args.pack_id, namespace=args.namespace, version=args.version, name=args.name, description=args.description, project_root=project, home=args.home, output_dir=args.output, distribution=args.distribution); print(f"{path}\nsha256 {sha}")
+            elif args.registry_command == "install":
+                print(json.dumps(install_dna_pack(args.source, project_root=project, home=args.home), ensure_ascii=False, indent=2))
+            elif args.registry_command == "validate-pack":
+                print(json.dumps(validate_dna_pack(args.source), ensure_ascii=False, indent=2))
         elif args.command == "session":
             project = _root(args.project)
             if args.session_command == "start":
@@ -120,6 +144,8 @@ def main() -> int:
             elif args.session_command == "apply":
                 selection = json.loads(args.selection.read_text(encoding="utf-8"))
                 value = commit_session_stage(args.session_id, args.stage, selection.get("refs", []), project_root=project, home=args.home, shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, reference_bindings=selection.get("reference_bindings"), draft_assets=selection.get("draft_assets"))
+            elif args.session_command == "memory":
+                value = resolve_dna_memory_offer(args.session_id, args.offer_id, args.action, project_root=project, home=args.home)
             else:
                 value = finalize_design_session(args.session_id, project_root=project, home=args.home)
             print(json.dumps(value, ensure_ascii=False, indent=2))

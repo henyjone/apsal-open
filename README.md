@@ -51,7 +51,7 @@ flowchart LR
 
 ## The open system behind the idea
 
-The protocol defines 13 composable module roles. The DNA Registry stores reusable visual elements. The engine resolves versions and dependencies, validates identity and continuity, and packages the result without requiring a hosted service.
+The protocol defines 13 composable module roles. The DNA Registry stores reusable visual elements. The engine explains which DNA fits the scene, remembers only creator-approved personal knowledge, resolves versions and dependencies, validates identity and continuity, and packages themes or standalone DNA without requiring a hosted service.
 
 ## Install the Codex plugin
 
@@ -72,12 +72,13 @@ Ask Codex:
 
 APSAL Studio will:
 
-1. Decompose the sentence and present Character, World, Scene, and Photo DNA cards.
+1. Interpret the scene and recommend Character, World, Scene, and Photo DNA with concrete reasons.
 2. Let you choose, revise in natural language, or redesign one scene without hand-writing data files.
-3. Show the nine-shot overview and wait for your confirmation.
-4. Confirm the live-action contract and reference uses, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
+3. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
+4. Show the nine-shot overview and wait for confirmation.
+5. Confirm the live-action contract and reference uses, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
 
-Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Studio 0.5 binds actual reference images and places a live-action photography contract before scene style. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
+Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Studio 0.6 adds explainable scene-aware recommendation, explicit personal memory and shareable DNA Extension Packs while retaining 0.5 reference binding and live-action execution. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
 
 ### Where your DNA lives
 
@@ -85,9 +86,10 @@ Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local ar
 |---|---|---|
 | Official | inside the installed plugin | read-only, rights-cleared starter DNA and previews |
 | Personal | `~/.apsal/` or `APSAL_HOME` | reusable DNA and the private content-addressed reference Vault |
+| Extension | `~/.apsal/extensions/` | installed, immutable community DNA Packs |
 | Project | `<project>/.apsal/` | drafts, project DNA, frozen themes, exact Prompts, runs, outputs and QA |
 
-Resolution is project → personal → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Original references stay in `~/.apsal/vault/sha256/` and never enter DNA JSON or Git. A local exported Skill contains sanitized copies plus a purpose-and-rights manifest so the image model can actually see them. If redistribution rights are unresolved, the Skill is `private_only` and public export fails.
+Resolution is project → personal → extension → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Selection and outcome memory stays locally under `~/.apsal/usage/`; raw briefs are not stored. Original references stay in `~/.apsal/vault/sha256/` and never enter DNA JSON or Git. A local exported Skill contains sanitized copies plus a purpose-and-rights manifest so the image model can actually see them. If redistribution rights are unresolved, the Skill is `private_only` and public export fails.
 
 Behind the interface, a finalized theme and each real run retain complete lineage:
 
@@ -104,6 +106,18 @@ Provider-native 4K execution is optional: set `OPENAI_API_KEY`, select `openai-i
 
 Model visual QA checks the generated medium, skin, eyes, hands, anatomy, optics, light, and material response. Human visual QA remains a separate pending decision; passing schemas or Prompts never proves photographic quality.
 
+### A Registry that learns—with permission
+
+Recommendations combine controlled semantic tags, scene facets, explicit dependencies, QA, rights, Registry scope and private outcome history. Every card explains why it matches. New or revised project DNA triggers one explicit memory choice; APSAL never silently adds it to the personal Registry.
+
+Reusable DNA can be exported independently from a theme as a deterministic Extension Pack. Public packs require one namespace, confirmed tags, rights-cleared DNA and previews, attribution, resolved dependencies and SHA-256. Install a pinned GitHub Release pack with:
+
+```bash
+python3 plugins/apsal-studio/scripts/apsal.py registry install 'github:owner/repo@v1.0.0#my-pack-v1.0.0.zip'
+```
+
+Installed packs are read-only and cannot override official or existing ID/version pairs.
+
 ## Use the engine directly
 
 No account, hosted API, or model key is required for validation and packaging.
@@ -111,6 +125,7 @@ No account, hosted API, or model key is required for validation and packaging.
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py init
 python3 plugins/apsal-studio/scripts/apsal.py session start "Create a nine-shot Eastern-minimalist window portrait series"
+python3 plugins/apsal-studio/scripts/apsal.py registry recommend "quiet Eastern-minimalist window portrait" --stage world
 python3 plugins/apsal-studio/scripts/apsal.py registry search --stage character
 python3 plugins/apsal-studio/scripts/apsal.py catalog
 python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.apsal.yaml
@@ -144,7 +159,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Semantic Contract RFC](protocol/RFC-0001-SEMANTIC-CONTRACT.md)
 - [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
 - [Reference binding, live-action and native-4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
-- [APSAL Studio 0.5 release and installation notes](docs/releases/0.5.0.md)
+- [DNA recommendation, memory and exchange RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
+- [APSAL Studio 0.6 release and installation notes](docs/releases/0.6.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/discovery.schema.json",
+  "title": "APSAL DNA Discovery Metadata 0.6",
+  "type": "object",
+  "required": ["schema_version", "semantic_tags", "facets", "keywords", "source", "source_brief_digest"],
+  "properties": {
+    "schema_version": {"const": "0.6.0"},
+    "semantic_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+    "facets": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "string", "minLength": 1},
+          {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        ]
+      }
+    },
+    "keywords": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "source": {"enum": ["auto", "creator_confirmed"]},
+    "source_brief_digest": {"oneOf": [{"const": "not_reported"}, {"type": "string", "pattern": "^[a-f0-9]{64}$"}]}
+  },
+  "additionalProperties": false
+}

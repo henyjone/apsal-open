@@ -1,10 +1,24 @@
-# APSAL Studio 0.5 interaction contract
+# APSAL Studio 0.6 interaction contract
 
 ## What creators see
 
 The creator sees natural language, preview cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
 
-Each DNA card must display its preview, title, core attributes, scope (`project`, `personal`, or `official`), version, rights license, attribution, and QA state. A semantic card is a design aid, not evidence of final image quality. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
+Each DNA card must display its preview, title, core attributes, scope (`project`, `personal`, `extension`, or `official`), version, rights license, attribution, QA state, recommendation reason, matched tags and relevant scene facets. A semantic card is a design aid, not evidence of final image quality. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
+
+## Recommendation and memory
+
+Recommend from the complete scene requirement, not from the DNA type alone. Ranking order is identity/rights/medium, scene intent, explicit dependency compatibility, photographic language, local creator memory, QA and Registry scope. Always explain why an asset matches; never present a hidden score as taste authority.
+
+For new or revised DNA, show suggested controlled tags and facets before stage confirmation. The creator may edit them. Stable identity, version, dependencies, locks and rights remain authoritative; tags aid retrieval and never replace them.
+
+After confirmation, ask whether project DNA should move to “My DNA.” Offer exactly:
+
+1. Save to My DNA — copy the immutable version to the personal Registry.
+2. Current project only — keep it under `<project>/.apsal/registry/`.
+3. Decide later — leave the memory offer pending.
+
+Do not ask for bundled official DNA, installed extension DNA, or a version already in the personal Registry. Record successful/failed/rejected usage as private scoring memory without storing the raw brief.
 
 ## Four creator-facing DNA groups
 
@@ -58,7 +72,10 @@ The image is stored in the private Vault by SHA-256. Theme DNA stores only purpo
 
 - Bundled official Registry: read-only and shipped with the plugin.
 - `~/.apsal/` or `APSAL_HOME`: reusable personal DNA and private Vault.
+- `~/.apsal/extensions/`: installed, immutable community Extension Packs.
 - `<project>/.apsal/`: drafts, project DNA, frozen themes, prompts, runs, outputs, and QA.
+
+Resolution order is project → personal → extension → official. A pack may add a new namespace but cannot override an existing or official ID/version.
 
 Store provider-neutral theme prompts under the frozen theme version. Store exact effective prompts again under every run. Chat history is never the only lineage record.
 
@@ -75,3 +92,7 @@ After the nine-shot overview, offer:
 Native 4K execution uses `gpt-image-2` through the optional OpenAI Image API adapter. Run nine independent `n: 1` Jobs sequentially, not one `n: 9` call. References are attached through Image Edits; jobs without references use Generations. `SHOT_01` becomes an identity-only runtime anchor after it passes model visual QA. Every output must parse as exactly 2160×3840 or the Job fails. For partial runs, show successful, failed, and pending Jobs separately and resume only failed or pending Jobs.
 
 Keep model visual QA and human visual QA separate. Prompt validation never proves that the result is a real human photograph.
+
+## DNA Extension Packs
+
+Use an Extension Pack to share reusable DNA independently from a theme Skill. A public pack contains `apsal-dna-pack.json`, canonical DNA, preview sidecars, license/attribution, README and a deterministic checksum ledger. It contains no private Vault media. Any unresolved license, attribution, tag confirmation or dependency forces a private pack or blocks public export.

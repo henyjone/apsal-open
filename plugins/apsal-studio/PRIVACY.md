@@ -1,8 +1,12 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.5 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.6 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
 
 The plugin writes creator data only to the current project's `.apsal/` directory and to `~/.apsal/` (or `APSAL_HOME` when configured). Project drafts, generation runs, caches, and the private Vault are ignored by Git by default.
+
+Recommendation memory is stored locally under `~/.apsal/usage/events.jsonl`. It contains stable DNA references, detected controlled tags/facets, outcomes, timestamps, and an optional short note. The raw creative brief is not stored. “Save to My DNA” is always an explicit creator action; selecting a DNA for one project does not silently promote it to the personal Registry.
+
+Installed community packs live under `~/.apsal/extensions/` as read-only Registry layers. Installing a public GitHub pack performs an explicit download from a pinned GitHub Release URL; APSAL does not search, publish, push, or upload to GitHub automatically.
 
 Private references are copied into the content-addressed local Vault at `~/.apsal/vault/sha256/`. They are not embedded in DNA JSON, public releases, or Git commits. The creator is responsible for copyright, portrait consent, attribution, and permitted uses.
 

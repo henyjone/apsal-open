@@ -1,10 +1,11 @@
 {
-  "generated_at": "2026-07-16T12:00:00Z",
+  "generated_at": "2026-07-16T14:00:00Z",
   "project": "APSAL Open",
   "protocol": {"id": "apsal-open", "version": "0.3.0", "license": "Apache-2.0", "compatibility": ["0.2.0"]},
   "semantic_contract": {"version": "0.3.0", "status": "pilot_validated"},
-  "reference_engine": {"version": "0.5.0", "license": "Apache-2.0"},
-  "plugin": {"id": "apsal-studio", "version": "0.5.0", "authoring_compatibility": ["0.3.0"], "runtime_compatibility": ["0.4.0"]},
+  "reference_engine": {"version": "0.6.0", "license": "Apache-2.0"},
+  "plugin": {"id": "apsal-studio", "version": "0.6.0", "authoring_compatibility": ["0.3.0"], "runtime_compatibility": ["0.4.0", "0.5.0"]},
+  "registry_exchange": {"version": "0.6.0", "recommendation": "explainable_local", "memory": "explicit_personal_promotion", "extension_pack": "0.6.0"},
   "catalog": {"version": "0.1.0", "status": "unchanged starter catalog", "content_license": "CC-BY-4.0"},
   "preview_catalog": {"version": "0.1.0", "count": 7, "kind": "rights-cleared semantic cards", "generation_intent": false},
   "pilots": {

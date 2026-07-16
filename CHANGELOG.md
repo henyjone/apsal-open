@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 - 2026-07-16
+
+- Added scene-aware DNA recommendations with controlled semantic tags, retrieval facets, explicit upstream compatibility, QA/rights checks, Registry scope and local outcome memory.
+- Every recommendation now explains matched tags, facets, source, QA, rights and personal-history contribution instead of presenting an opaque ranking.
+- Added deterministic tag/facet suggestions for new or revised DNA and creator confirmation before public sharing.
+- Added one post-confirmation memory offer for new/revised project DNA: Save to My DNA, current project only, or decide later. Official, extension and already-personal DNA do not trigger the question.
+- Added private usage feedback at `~/.apsal/usage/events.jsonl`; raw creative briefs are excluded.
+- Added deterministic DNA Extension Pack export with one namespace, canonical DNA, previews, licenses, dependencies and SHA-256 ledger.
+- Added local ZIP and pinned GitHub Release installation into the read-only `extension` Registry layer, with collision, path, symlink, checksum, dependency and decompression safety checks.
+- Expanded the local MCP from 9 to 15 tools and updated visual cards to show recommendation reasons.
+- Kept Protocol and Semantic Contract at 0.3.0 and preserved all 0.4/0.5 theme, Registry, Skill and run compatibility.
+
 ## 0.5.0 - 2026-07-16
 
 - Added typed, rights-aware reference binding. Local Skills now contain sanitized reference images, per-image SHA-256, permitted/forbidden uses, Job scope, attribution, and independent redistribution state.

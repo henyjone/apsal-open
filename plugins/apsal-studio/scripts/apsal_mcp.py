@@ -10,6 +10,8 @@ from apsal_engine import (
     ValidationError, commit_session_stage, dna_card, finalize_design_session,
     execute_generation_run, load_design_session, project_root_from, record_generation_result,
     record_model_visual_qa, search_registry, start_design_session, start_generation_run,
+    recommend_dna, suggest_discovery_metadata, confirm_discovery_metadata,
+    resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
 )
 
 UI_URI = "ui://apsal/dna-cards.html"
@@ -37,6 +39,17 @@ TOOLS = [
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
     },
     {
+        "name": "recommend_dna", "description": "Recommend stage-compatible DNA from the scene brief with controlled tags, explainable scoring, upstream compatibility, QA, rights, and private usage memory.",
+        "inputSchema": _schema({"brief": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}}, ["brief", "stage"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+        "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
+    },
+    {
+        "name": "suggest_dna_tags", "description": "Suggest controlled semantic tags and scene facets for a new or revised DNA before the creator confirms it.",
+        "inputSchema": _schema({"asset": {"type": "object"}, "brief": {"type": "string"}, "confirmed": {"type": "boolean"}}, ["asset"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
         "name": "present_dna_cards", "description": "Present selectable DNA preview cards with an equivalent numbered-text fallback.",
         "inputSchema": _schema({"project_root": {"type": "string"}, "query": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}}, ["stage"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
@@ -46,6 +59,26 @@ TOOLS = [
         "name": "commit_stage", "description": "Confirm one DNA stage and invalidate affected downstream selections when an upstream choice changes.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "stage"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "resolve_dna_memory", "description": "Resolve the post-confirmation offer to save new/revised project DNA to My DNA, keep it project-only, or decide later.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "offer_id": {"type": "string"}, "action": {"enum": ["save_personal", "project_only", "not_now"]}, "project_root": {"type": "string"}}, ["session_id", "offer_id", "action"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "record_dna_feedback", "description": "Record accepted, rejected, successful, or failed DNA usage as private recommendation memory without saving the raw brief.",
+        "inputSchema": _schema({"ref": REF_SCHEMA, "outcome": {"enum": ["accepted", "rejected", "successful", "failed"]}, "context": {"type": "string"}, "note": {"type": "string"}, "project_root": {"type": "string"}}, ["ref", "outcome"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "export_dna_pack", "description": "Export selected rights-cleared, tagged DNA and previews as a deterministic standalone Extension Pack for GitHub sharing.",
+        "inputSchema": _schema({"refs": {"type": "array", "items": REF_SCHEMA, "minItems": 1}, "pack_id": {"type": "string"}, "namespace": {"type": "string"}, "version": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "output_dir": {"type": "string"}, "distribution": {"enum": ["auto", "private_only", "public"]}, "project_root": {"type": "string"}}, ["refs", "pack_id", "namespace", "version", "name", "description", "output_dir"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "install_dna_pack", "description": "Validate and install a local ZIP or pinned public GitHub Release DNA Pack as a read-only extension Registry layer.",
+        "inputSchema": _schema({"source": {"type": "string"}, "project_root": {"type": "string"}}, ["source"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True},
     },
     {
         "name": "finalize_theme", "description": "Freeze the four confirmed stages into local YAML, canonical JSON, compiled targets and per-shot prompts.",
@@ -85,6 +118,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "shot_count": session["shot_count"], "stages": session["stages"],
         "theme_artifact": session.get("theme_artifact"), "invalidations": session.get("invalidations", []),
         "reference_count": len(session.get("private_references", [])),
+        "memory_offers": session.get("memory_offers", []),
     }
 
 
@@ -106,6 +140,20 @@ def _tool_search(arguments: dict[str, Any]) -> dict[str, Any]:
     return {"count": len(records), "results": [{"scope": item["scope"], "asset": item["asset"], "preview_metadata": item["preview"]} for item in records]}
 
 
+def _tool_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
+    value = recommend_dna(arguments["brief"], arguments["stage"], project_root=_root(arguments), session_id=arguments.get("session_id"), limit=arguments.get("limit", 6))
+    recommendations = []
+    for item in value["recommendations"]:
+        card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+        recommendations.append(card)
+    return {**value, "recommendations": recommendations}
+
+
+def _tool_suggest(arguments: dict[str, Any]) -> dict[str, Any]:
+    value = suggest_discovery_metadata(arguments["asset"], arguments.get("brief", ""))
+    return confirm_discovery_metadata(value) if arguments.get("confirmed") is True else value
+
+
 def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
     cards = [dna_card(item) for item in _records(arguments)]
     return {"stage": arguments["stage"], "cards": cards, "count": len(cards)}
@@ -114,6 +162,23 @@ def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
 def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
     session = commit_session_stage(arguments["session_id"], arguments["stage"], arguments.get("refs", []), project_root=_root(arguments), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, reference_bindings=arguments.get("reference_bindings"), draft_assets=arguments.get("draft_assets"))
     return _summary(session)
+
+
+def _tool_memory(arguments: dict[str, Any]) -> dict[str, Any]:
+    return resolve_dna_memory_offer(arguments["session_id"], arguments["offer_id"], arguments["action"], project_root=_root(arguments))
+
+
+def _tool_feedback(arguments: dict[str, Any]) -> dict[str, Any]:
+    return record_dna_feedback(arguments["ref"], arguments["outcome"], project_root=_root(arguments), context=arguments.get("context", ""), note=arguments.get("note", ""))
+
+
+def _tool_export(arguments: dict[str, Any]) -> dict[str, Any]:
+    path, sha = export_dna_pack(arguments["refs"], pack_id=arguments["pack_id"], namespace=arguments["namespace"], version=arguments["version"], name=arguments["name"], description=arguments["description"], project_root=_root(arguments), output_dir=Path(arguments["output_dir"]), distribution=arguments.get("distribution", "auto"))
+    return {"path": str(path), "sha256": sha}
+
+
+def _tool_install(arguments: dict[str, Any]) -> dict[str, Any]:
+    return install_dna_pack(arguments["source"], project_root=_root(arguments))
 
 
 def _tool_finalize(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -139,7 +204,10 @@ def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
 
 HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "start_design_session": _tool_start, "search_dna": _tool_search,
+    "recommend_dna": _tool_recommend, "suggest_dna_tags": _tool_suggest,
     "present_dna_cards": _tool_cards, "commit_stage": _tool_commit,
+    "resolve_dna_memory": _tool_memory, "record_dna_feedback": _tool_feedback,
+    "export_dna_pack": _tool_export, "install_dna_pack": _tool_install,
     "finalize_theme": _tool_finalize, "start_generation_run": _tool_run,
     "execute_generation_run": _tool_execute, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
@@ -149,17 +217,19 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
 def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name not in HANDLERS: raise ValidationError(f"unknown MCP tool: {name}")
     value = HANDLERS[name](arguments)
-    if name == "present_dna_cards":
+    if name in {"present_dna_cards", "recommend_dna"}:
+        cards = value["cards"] if name == "present_dna_cards" else value["recommendations"]
         lines = [f"APSAL {value['stage']} DNA choices (text fallback):"]
-        for number, card in enumerate(value["cards"], 1):
+        for number, card in enumerate(cards, 1):
             ref = card["ref"]
             attributes = "; ".join(card["core_attributes"])
-            lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}")
+            reason = f" — Why: {'; '.join(card.get('reasons', []))}" if card.get("reasons") else ""
+            lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}{reason}")
         text = "\n".join(lines)
     else:
         text = json.dumps(value, ensure_ascii=False, indent=2)
     result = {"content": [{"type": "text", "text": text}], "structuredContent": value, "isError": False}
-    if name == "present_dna_cards": result["_meta"] = {"openai/outputTemplate": UI_URI}
+    if name in {"present_dna_cards", "recommend_dna"}: result["_meta"] = {"openai/outputTemplate": UI_URI}
     return result
 
 
@@ -168,7 +238,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.5.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.6.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [{"uri": UI_URI, "name": "APSAL DNA Cards", "mimeType": "text/html;profile=mcp-app"}]}
     elif method == "resources/read":

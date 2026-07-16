@@ -4,4 +4,6 @@ The protocol, reference engine, and content licenses are separate layers. A publ
 
 Every package and module declares stable identity, semantic version, parent, changed fields, rights, content license, dependencies, QA state, and SHA-256 integrity. Provider parameters and private references are outside the canonical core. Run `apsal.py validate-package <directory>` before importing or publishing any package.
 
+Studio 0.6 adds a Registry exchange layer without changing Protocol 0.3. Discovery tags/facets aid explained recommendation but never replace IDs, dependencies or rights. Standalone DNA Extension Packs contain immutable canonical DNA plus preview sidecars and checksums; installed packs are read-only and cannot override official or existing ID/version pairs.
+
 Protocol 0.3 preserves 0.2 JSON and adds Semantic Contract authoring. Creators edit safe `.apsal.yaml`; the engine normalizes `.apsal.json`, explains field intent, and compiles separate `design`, `image`, and `qa` targets. Run `apsal.py check-sync <directory>` before publishing YAML/JSON pairs.

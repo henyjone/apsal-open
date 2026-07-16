@@ -5,3 +5,5 @@ Report vulnerabilities privately through GitHub Security Advisories. Do not open
 Validation, Registry, compilation, and packaging are offline. The optional `openai-image-api` adapter makes a network call only after explicit generation confirmation and reads its credential only from `OPENAI_API_KEY`; packages and run records never contain environment variables or credentials.
 
 Local `private_only` Skill packages may deliberately contain sanitized reference images plus a SHA-256 purpose-and-rights manifest. They must never be committed, uploaded, or released. Public packaging rejects non-redistributable references, and path checks prevent files outside the selected theme/Vault bindings from being added implicitly.
+
+DNA Extension Pack installation accepts local ZIPs or pinned public GitHub Release URLs only. The validator rejects path traversal, symlinks, duplicate paths, checksum drift, oversized expanded content, unresolved dependencies, and any attempt to override an official or installed ID/version. Installation never executes code from a pack; only canonical DNA JSON and validated WebP preview sidecars enter the read-only extension Registry.

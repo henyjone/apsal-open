@@ -242,9 +242,104 @@ class EngineTests(unittest.TestCase):
             draft = self._custom_asset(namespace="mine")
             session = engine.commit_session_stage(session["session_id"], "character", [], project_root=project, home=home, draft_assets=[draft])
             self.assertEqual(session["state"], "world_pending")
-            self.assertEqual(session["stages"]["character"]["selection"], [engine.asset_ref(draft)])
+            self.assertEqual(session["stages"]["character"]["selection"][0]["id"], draft["id"])
             self.assertTrue(list((project / ".apsal/registry").rglob("asset.apsal.json")))
             self.assertFalse(list((home / "registry").rglob("asset.apsal.json")))
+            self.assertEqual(len(session["memory_offers"]), 1)
+            self.assertTrue(session["memory_offers"][0]["discovery"]["semantic_tags"])
+
+    def test_scene_recommendation_is_explained_and_feedback_affects_memory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            value = engine.recommend_dna("创建九张东方极简窗边安静人像", "world", project_root=project, home=home)
+            self.assertEqual(value["count"], 1)
+            item = value["recommendations"][0]
+            self.assertEqual(item["record"]["asset"]["id"], "OPEN_ENV_WINDOW_001")
+            self.assertIn("world.space.coherent", item["matched_tags"])
+            self.assertTrue(any("scene facets" in reason for reason in item["reasons"]))
+            ref = engine.asset_ref(item["record"]["asset"])
+            feedback = engine.record_dna_feedback(ref, "successful", project_root=project, home=home, context="东方极简窗边人像")
+            self.assertGreater(feedback["preference_weight"], 0)
+            again = engine.recommend_dna("东方极简窗边人像", "world", project_root=project, home=home)
+            self.assertTrue(any("personal usage memory" in reason for reason in again["recommendations"][0]["reasons"]))
+            self.assertNotIn("东方极简窗边人像", (home / "usage/events.jsonl").read_text(encoding="utf-8"))
+
+    def test_discovery_metadata_rejects_tags_and_facets_from_another_dna_type(self):
+        asset = self._custom_asset(namespace="maker")
+        asset["discovery"] = {
+            "schema_version": "0.6.0", "source": "creator_confirmed",
+            "semantic_tags": ["world.space.coherent"],
+            "facets": {"world.feature": ["window"]}, "keywords": ["window"],
+        }
+        errors = engine.validate_registry_asset(asset)
+        self.assertTrue(any("tags incompatible with character" in error for error in errors))
+        self.assertTrue(any("facets incompatible with character" in error for error in errors))
+
+    def test_new_dna_memory_offer_promotes_only_after_explicit_choice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("安静窗边成年人物", project_root=project, home=home, theme_id="TEST-MEMORY")
+            draft = self._custom_asset(namespace="maker")
+            discovery = engine.suggest_discovery_metadata(draft, session["brief"])
+            draft["discovery"] = engine.confirm_discovery_metadata(discovery)
+            session = engine.commit_session_stage(session["session_id"], "character", [], project_root=project, home=home, draft_assets=[draft])
+            offer = session["memory_offers"][0]
+            self.assertFalse(offer["tag_confirmation_required"])
+            self.assertFalse(list((home / "registry").rglob("asset.apsal.json")))
+            result = engine.resolve_dna_memory_offer(session["session_id"], offer["offer_id"], "save_personal", project_root=project, home=home)
+            self.assertEqual(result["offer"]["status"], "saved")
+            personal = list((home / "registry").rglob("asset.apsal.json"))
+            self.assertEqual(len(personal), 1)
+            stored = json.loads(personal[0].read_text(encoding="utf-8"))
+            self.assertEqual(stored["discovery"]["source"], "creator_confirmed")
+            self.assertTrue((home / "usage/events.jsonl").is_file())
+
+    def test_dna_pack_is_reproducible_installable_and_recommendable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project_a, home_a = root / "project-a", root / "home-a"; project_a.mkdir()
+            asset = self._custom_asset(namespace="maker")
+            asset["rights"] = {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Test creator", "reference_images_included": False}
+            asset["discovery"] = engine.confirm_discovery_metadata(engine.suggest_discovery_metadata(asset, "安静真人摄影人物"))
+            saved = engine.save_registry_asset(asset, scope="project", project_root=project_a, home=home_a)
+            refs = [saved["ref"]]
+            first, sha1 = engine.export_dna_pack(refs, pack_id="quiet-portrait", namespace="maker", version="1.0.0", name="Quiet Portrait DNA", description="Original quiet portrait character DNA.", project_root=project_a, home=home_a, output_dir=root / "one", distribution="public")
+            second, sha2 = engine.export_dna_pack(refs, pack_id="quiet-portrait", namespace="maker", version="1.0.0", name="Quiet Portrait DNA", description="Original quiet portrait character DNA.", project_root=project_a, home=home_a, output_dir=root / "two", distribution="public")
+            self.assertEqual(sha1, sha2)
+            self.assertEqual(engine.validate_dna_pack(first)["asset_count"], 1)
+            project_b, home_b = root / "project-b", root / "home-b"; project_b.mkdir()
+            installed = engine.install_dna_pack(first, project_root=project_b, home=home_b)
+            self.assertTrue(installed["installed"])
+            self.assertFalse(engine.install_dna_pack(first, project_root=project_b, home=home_b)["installed"])
+            records = engine.load_layered_registry(project_b, home_b)
+            extension = next(item for item in records if item["asset"]["namespace"] == "maker")
+            self.assertEqual(extension["scope"], "extension")
+            self.assertTrue(any(item["scope"] == "extension" for item in engine.search_registry(project_b, "MY_CHAR", "character", home_b)))
+            recommendation = engine.recommend_dna("安静真人摄影人物", "character", project_root=project_b, home=home_b)
+            self.assertTrue(any(item["record"]["asset"]["namespace"] == "maker" for item in recommendation["recommendations"]))
+
+    def test_contributor_dna_pack_cannot_claim_official_namespace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project, home = root / "project", root / "home"; project.mkdir()
+            with self.assertRaisesRegex(engine.ValidationError, "contributor-owned namespace"):
+                engine.export_dna_pack([], pack_id="fake-official", namespace="official", version="1.0.0", name="Fake", description="Must be rejected.", project_root=project, home=home, output_dir=root)
+
+    def test_public_dna_pack_requires_confirmed_tags_and_tampering_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); project, home = root / "project", root / "home"; project.mkdir()
+            asset = self._custom_asset(namespace="maker")
+            asset["rights"] = {"license": "CC-BY-4.0", "status": "original_open_content", "attribution": "Test creator", "reference_images_included": False}
+            asset["discovery"] = engine.suggest_discovery_metadata(asset, "人像")
+            saved = engine.save_registry_asset(asset, scope="project", project_root=project, home=home)
+            with self.assertRaisesRegex(engine.ValidationError, "public"):
+                engine.export_dna_pack([saved["ref"]], pack_id="test-pack", namespace="maker", version="1.0.0", name="Test", description="Test DNA pack.", project_root=project, home=home, output_dir=root, distribution="public")
+            asset_v2 = deepcopy(asset); asset_v2["version"] = "1.0.1"; asset_v2["parent_version"] = "1.0.0"; asset_v2["changed_fields"] = ["discovery.source"]; asset_v2["discovery"] = engine.confirm_discovery_metadata(asset_v2["discovery"])
+            saved_v2 = engine.save_registry_asset(asset_v2, scope="project", project_root=project, home=home)
+            path, _ = engine.export_dna_pack([saved_v2["ref"]], pack_id="test-pack", namespace="maker", version="1.0.1", name="Test", description="Test DNA pack.", project_root=project, home=home, output_dir=root, distribution="public")
+            with zipfile.ZipFile(path) as archive: files = {name: archive.read(name) for name in archive.namelist()}
+            target = next(name for name in files if name.endswith("asset.apsal.json")); files[target] += b"\n"
+            tampered = root / "tampered.zip"; tampered.write_bytes(engine._zip_bytes(files))
+            with self.assertRaisesRegex(engine.ValidationError, "checksum mismatch"):
+                engine.validate_dna_pack(tampered)
 
     def test_scene_content_change_invalidates_confirmed_photo_stage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -320,7 +415,7 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_nine_tools_and_returns_visual_and_text_card_data(self):
+    def test_mcp_lists_fifteen_tools_and_returns_visual_and_text_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             requests = [
@@ -331,8 +426,8 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.5.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 9)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.6.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 15)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
             self.assertTrue(cards[0]["preview"].startswith("data:image/webp;base64,"))

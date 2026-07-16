@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/henyjone/apsal-open/schemas/session.schema.json",
-  "title": "APSAL Studio Design Session 0.5",
+  "title": "APSAL Studio Design Session 0.6",
   "type": "object",
   "required": ["schema_version", "session_id", "brief", "project_root", "state", "shot_count", "stages", "private_references", "invalidations", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"enum": ["0.4.0", "0.5.0"]},
+    "schema_version": {"enum": ["0.4.0", "0.5.0", "0.6.0"]},
     "session_id": {"type": "string", "pattern": "^SESSION-[A-Za-z0-9-]+$"},
     "brief": {"type": "string", "minLength": 1},
     "project_root": {"type": "string", "minLength": 1},
@@ -13,6 +13,7 @@
     "shot_count": {"type": "integer", "minimum": 1, "maximum": 24},
     "stages": {"type": "object", "required": ["character", "world", "scene", "photo"]},
     "private_references": {"type": "array"},
+    "memory_offers": {"type": "array", "items": {"type": "object"}},
     "invalidations": {"type": "array"},
     "theme_artifact": {"type": ["object", "null"]}
   },

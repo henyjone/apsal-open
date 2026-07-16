@@ -13,6 +13,7 @@ import struct
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 import zipfile
@@ -32,8 +33,9 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.5.0"
+ENGINE_VERSION = "0.6.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
+DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
 PROTOCOL_TYPES = ("subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job")
 CREATIVE_FIELDS = ("framing", "action", "hands", "gaze", "composition")
@@ -63,6 +65,22 @@ NATIVE_4K_OUTPUT = {
     "aspect_ratio": "9:16", "size": "2160x3840", "quality": "high",
     "format": "png", "provider_native": True,
 }
+DISCOVERY_FACETS = {
+    "subject.age", "subject.presentation", "subject.temperament", "subject.identity_mode",
+    "world.space", "world.feature", "world.cultural_language", "world.material",
+    "lighting.source", "lighting.direction", "lighting.contrast", "lighting.time",
+    "style.genre", "style.texture", "style.palette", "style.tempo",
+    "narrative.mood", "narrative.function", "camera.coverage",
+    "output.aspect_ratio", "output.medium",
+}
+DISCOVERY_FACET_PREFIXES = {
+    "character": ("subject.", "output.medium"), "environment": ("world.",),
+    "lighting": ("lighting.",), "style": ("style.", "output.medium"),
+    "composition": ("camera.", "narrative.", "output.aspect_ratio"),
+    "shot": ("narrative.", "camera."), "qa": ("output.",),
+}
+FEEDBACK_OUTCOMES = {"accepted", "rejected", "successful", "failed"}
+DISCOVERY_STOPWORDS = {"and", "the", "with", "from", "into", "across", "every", "one", "without", "changing", "consistent", "original", "test"}
 
 
 class ValidationError(ValueError):
@@ -109,6 +127,10 @@ def write_canonical_json(value: dict[str, Any], path: Path) -> None:
 
 def load_semantic_registry() -> dict[str, Any]:
     return load_json(plugin_root() / "assets" / "semantics" / "registry.json")
+
+
+def load_recommendation_registry() -> dict[str, Any]:
+    return load_json(plugin_root() / "assets" / "semantics" / "recommendation.json")
 
 
 def allowed_semantic_tags() -> set[str]:
@@ -177,7 +199,7 @@ def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, st
     project_root = project_root.expanduser().resolve()
     home = (home or apsal_home()).expanduser().resolve()
     _mkdir_private(home)
-    for relative in ("registry", "vault", "vault/sha256", "cache"):
+    for relative in ("registry", "extensions", "usage", "vault", "vault/sha256", "cache"):
         _mkdir_private(_inside(home, home / relative))
     workspace = project_root / ".apsal"
     _mkdir_private(workspace)
@@ -186,7 +208,7 @@ def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, st
     project_file = workspace / "project.json"
     if not project_file.exists():
         _write_private_json({
-            "schema_version": "0.5.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
+            "schema_version": "0.6.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
             "created_at": _utc_now(), "storage": "local_first",
         }, project_file)
     ignore = workspace / ".gitignore"
@@ -279,7 +301,11 @@ def validate_official_previews() -> list[str]:
 
 
 def _registry_asset_dirs(project_root: Path, home: Path) -> list[tuple[str, Path]]:
-    return [("project", project_root / ".apsal" / "registry"), ("personal", home / "registry")]
+    roots = [("project", project_root / ".apsal" / "registry"), ("personal", home / "registry")]
+    extensions = home / "extensions"
+    if extensions.is_dir():
+        roots.extend(("extension", path) for path in sorted(extensions.glob("*/*/*/registry")) if path.is_dir())
+    return roots
 
 
 def _iter_registry_assets(root: Path) -> list[Path]:
@@ -305,7 +331,82 @@ def validate_registry_asset(asset: dict[str, Any]) -> list[str]:
     rights = asset.get("rights", {})
     for key in ("license", "status", "attribution"):
         if not rights.get(key): errors.append(f"DNA asset: missing rights.{key}")
+    if "discovery" in asset:
+        errors.extend(validate_discovery_metadata(asset["discovery"]))
+        semantic_registry = load_semantic_registry(); mapped_roles = set(semantic_registry.get("dna_to_protocol", {}).get(asset.get("type"), []))
+        tag_roles = {item["id"]: set(item.get("roles", [])) for item in semantic_registry.get("tags", [])}
+        incompatible = [tag for tag in asset["discovery"].get("semantic_tags", []) if not (tag_roles.get(tag, set()) & mapped_roles)] if isinstance(asset["discovery"], dict) else []
+        if incompatible: errors.append(f"DNA discovery: tags incompatible with {asset.get('type')} DNA {sorted(incompatible)}")
+        allowed_prefixes = DISCOVERY_FACET_PREFIXES.get(asset.get("type"), ())
+        incompatible_facets = [key for key in asset["discovery"].get("facets", {}) if not any(key.startswith(prefix) for prefix in allowed_prefixes)] if isinstance(asset["discovery"], dict) and isinstance(asset["discovery"].get("facets"), dict) else []
+        if incompatible_facets: errors.append(f"DNA discovery: facets incompatible with {asset.get('type')} DNA {sorted(incompatible_facets)}")
     return errors
+
+
+def validate_discovery_metadata(value: Any) -> list[str]:
+    if not isinstance(value, dict): return ["DNA discovery: must be an object"]
+    errors: list[str] = []
+    tags = value.get("semantic_tags")
+    if not isinstance(tags, list) or not tags or any(not isinstance(tag, str) for tag in tags):
+        errors.append("DNA discovery: semantic_tags must be a non-empty string array")
+    else:
+        if len(tags) != len(set(tags)): errors.append("DNA discovery: semantic_tags must be unique")
+        unknown = set(tags) - allowed_semantic_tags()
+        if unknown: errors.append(f"DNA discovery: unknown semantic_tags {sorted(unknown)}")
+    facets = value.get("facets")
+    if not isinstance(facets, dict):
+        errors.append("DNA discovery: facets must be an object")
+    else:
+        unknown_facets = set(facets) - DISCOVERY_FACETS
+        if unknown_facets: errors.append(f"DNA discovery: unknown facets {sorted(unknown_facets)}")
+        for key, facet_value in facets.items():
+            values = facet_value if isinstance(facet_value, list) else [facet_value]
+            if not values or any(not isinstance(item, str) or not item.strip() for item in values):
+                errors.append(f"DNA discovery: facet {key} must contain non-empty strings")
+    keywords = value.get("keywords", [])
+    if not isinstance(keywords, list) or len(keywords) > 32 or any(not isinstance(item, str) or not item.strip() for item in keywords):
+        errors.append("DNA discovery: keywords must be an array of at most 32 non-empty strings")
+    if value.get("source") not in {"auto", "creator_confirmed"}:
+        errors.append("DNA discovery: source must be auto or creator_confirmed")
+    return errors
+
+
+def _detect_recommendation_context(text: str) -> dict[str, Any]:
+    folded = text.casefold(); tags: set[str] = set(); facets: dict[str, set[str]] = {}; signals: list[str] = []
+    for signal in load_recommendation_registry().get("signals", []):
+        if any(str(term).casefold() in folded for term in signal.get("terms", [])):
+            signals.append(signal["id"]); tags.update(signal.get("tags", []))
+            for key, value in signal.get("facets", {}).items():
+                facets.setdefault(key, set()).add(str(value))
+    return {
+        "signals": signals, "semantic_tags": sorted(tags),
+        "facets": {key: sorted(values) if len(values) > 1 else next(iter(values)) for key, values in sorted(facets.items())},
+    }
+
+
+def suggest_discovery_metadata(asset: dict[str, Any], brief: str = "") -> dict[str, Any]:
+    """Suggest deterministic controlled tags; creators confirm or edit before formal save."""
+    text = " ".join(str(asset.get(key, "")) for key in ("id", "type", "change_summary", "prompt_fragment", "negative_fragment"))
+    context = _detect_recommendation_context(f"{brief} {text}")
+    defaults = load_recommendation_registry().get("default_tags", {}).get(asset.get("type"), [])
+    semantic_registry = load_semantic_registry(); mapped_roles = set(semantic_registry.get("dna_to_protocol", {}).get(asset.get("type"), []))
+    tag_roles = {item["id"]: set(item.get("roles", [])) for item in semantic_registry.get("tags", [])}
+    tags = sorted(tag for tag in set(defaults) | set(context["semantic_tags"]) if tag_roles.get(tag, set()) & mapped_roles)
+    words = re.findall(r"[A-Za-z][A-Za-z0-9-]{2,}", text.casefold())
+    keywords = sorted(dict.fromkeys(word for word in words if word not in DISCOVERY_STOPWORDS))[:16]
+    facet_prefixes = DISCOVERY_FACET_PREFIXES.get(asset.get("type"), ())
+    facets = {key: value for key, value in context["facets"].items() if any(key.startswith(prefix) for prefix in facet_prefixes)}
+    return {
+        "schema_version": "0.6.0", "semantic_tags": tags, "facets": facets,
+        "keywords": keywords, "source": "auto", "source_brief_digest": hashlib.sha256(brief.encode()).hexdigest() if brief else "not_reported",
+    }
+
+
+def confirm_discovery_metadata(value: dict[str, Any]) -> dict[str, Any]:
+    confirmed = json.loads(json.dumps(value)); confirmed["source"] = "creator_confirmed"
+    errors = validate_discovery_metadata(confirmed)
+    if errors: raise ValidationError("\n".join(errors))
+    return confirmed
 
 
 def _registry_asset_path(root: Path, asset: dict[str, Any]) -> Path:
@@ -341,7 +442,7 @@ def save_registry_asset(
         current = load_json(target)
         if digest(current) != digest(asset):
             raise ValidationError(f"immutable DNA conflict for {_ref_label(_asset_key(asset))}")
-        return {"scope": scope, "path": str(target), "ref": asset_ref(current)}
+        return {"scope": scope, "path": str(target), "ref": asset_ref(current), "created": False}
     _mkdir_private(target.parent)
     _write_private_json(asset, target)
     source, fallback = (preview_path, preview_metadata) if preview_path else _fallback_preview(asset["type"])
@@ -365,7 +466,7 @@ def save_registry_asset(
         target.unlink(missing_ok=True); preview_target.unlink(missing_ok=True)
         raise ValidationError("\n".join(preview_errors))
     _write_private_json(metadata, target.parent / "preview.json")
-    return {"scope": scope, "path": str(target), "ref": asset_ref(asset)}
+    return {"scope": scope, "path": str(target), "ref": asset_ref(asset), "created": True}
 
 
 def load_layered_registry(project_root: Path, home: Path | None = None) -> list[dict[str, Any]]:
@@ -415,16 +516,110 @@ def search_registry(project_root: Path, query: str = "", stage: str | None = Non
     terms = [term.casefold() for term in query.split() if term]
     allowed = set(STAGE_TYPES[stage]) if stage else set(CATEGORIES)
     scored: list[tuple[int, int, dict[str, Any]]] = []
-    scope_rank = {"project": 0, "personal": 1, "official": 2}
+    scope_rank = {"project": 0, "personal": 1, "extension": 2, "official": 3}
     for record in load_layered_registry(project_root, home):
         asset = record["asset"]
         if asset["type"] not in allowed: continue
-        haystack = " ".join(str(asset.get(key, "")) for key in ("id", "type", "change_summary", "prompt_fragment")).casefold()
+        haystack = (" ".join(str(asset.get(key, "")) for key in ("id", "type", "change_summary", "prompt_fragment")) + " " + canonical_json(asset.get("discovery", {}))).casefold()
         if terms and not all(term in haystack for term in terms): continue
         score = sum(haystack.count(term) for term in terms)
         scored.append((-score, scope_rank[record["scope"]], record))
     scored.sort(key=lambda item: (item[0], item[1], item[2]["asset"]["type"], item[2]["asset"]["id"]))
     return [record for _, _, record in scored[:max(1, min(limit, 50))]]
+
+
+def _usage_events_path(home: Path) -> Path:
+    return _inside(home, home / "usage" / "events.jsonl")
+
+
+def _append_usage_event(event: dict[str, Any], home: Path) -> None:
+    path = _usage_events_path(home); _mkdir_private(path.parent)
+    value = {"schema_version": "0.6.0", "recorded_at": _utc_now(), **event}
+    with path.open("a", encoding="utf-8") as stream: stream.write(canonical_json(value) + "\n")
+    try: path.chmod(0o600)
+    except OSError: pass
+
+
+def _usage_weights(home: Path) -> dict[tuple[str, str, str, str], int]:
+    path = _usage_events_path(home); weights: dict[tuple[str, str, str, str], int] = {}
+    if not path.is_file(): return weights
+    values = {"accepted": 2, "rejected": -6, "successful": 6, "failed": -3, "selected": 1, "remembered": 3}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try: event = json.loads(line)
+        except json.JSONDecodeError: continue
+        ref = event.get("ref", {}); key = tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version"))
+        if all(key): weights[key] = weights.get(key, 0) + values.get(event.get("outcome"), 0)
+    return weights
+
+
+def record_dna_feedback(
+    ref: dict[str, str], outcome: str, *, project_root: Path, home: Path | None = None,
+    context: str = "", note: str = "",
+) -> dict[str, Any]:
+    if outcome not in FEEDBACK_OUTCOMES: raise ValidationError(f"feedback outcome must be one of {sorted(FEEDBACK_OUTCOMES)}")
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve(); init_workspace(project_root, home)
+    key = tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version"))
+    record = next((item for item in load_layered_registry(project_root, home) if _asset_key(item["asset"]) == key), None)
+    if not record: raise ValidationError(f"unresolved DNA reference {_ref_label(key)}")
+    detected = _detect_recommendation_context(context)
+    event = {
+        "event": "dna_feedback", "outcome": outcome, "ref": asset_ref(record["asset"]),
+        "context": detected, "context_digest": hashlib.sha256(context.encode()).hexdigest() if context else "not_reported",
+        "note": note[:240],
+    }
+    _append_usage_event(event, home)
+    return {"recorded": True, "outcome": outcome, "ref": event["ref"], "preference_weight": _usage_weights(home).get(key, 0)}
+
+
+def recommend_dna(
+    brief: str, stage: str, *, project_root: Path, home: Path | None = None,
+    session_id: str | None = None, limit: int = 6,
+) -> dict[str, Any]:
+    """Rank DNA for one scene stage and explain every recommendation."""
+    if not brief.strip(): raise ValidationError("recommendation brief cannot be empty")
+    if stage not in INTERACTION_STAGES: raise ValidationError(f"unknown interaction stage: {stage}")
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve()
+    context = _detect_recommendation_context(brief); context_tags = set(context["semantic_tags"])
+    context_facets = {key: set(value if isinstance(value, list) else [value]) for key, value in context["facets"].items()}
+    selected_refs: list[dict[str, str]] = []
+    if session_id:
+        session, _ = load_design_session(session_id, project_root)
+        for prior in INTERACTION_STAGES[:INTERACTION_STAGES.index(stage)]: selected_refs.extend(session["stages"][prior].get("selection", []))
+    selected_keys = {tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version")) for ref in selected_refs}
+    weights = _usage_weights(home); scope_bonus = {"project": 3, "personal": 2, "extension": 1, "official": 0}
+    brief_terms = {term for term in re.findall(r"[a-z0-9-]{2,}", brief.casefold())}
+    recommendations: list[tuple[int, int, str, dict[str, Any]]] = []
+    for record in load_layered_registry(project_root, home):
+        asset = record["asset"]
+        if asset["type"] not in STAGE_TYPES[stage]: continue
+        discovery = asset.get("discovery") or suggest_discovery_metadata(asset)
+        tags = set(discovery.get("semantic_tags", [])); matched_tags = sorted(tags & context_tags)
+        facets = discovery.get("facets", {}); matched_facets = []
+        for key, wanted in context_facets.items():
+            actual_value = facets.get(key); actual = set(actual_value if isinstance(actual_value, list) else [actual_value]) if actual_value is not None else set()
+            if actual & wanted: matched_facets.append(key)
+        text = " ".join(str(asset.get(key, "")) for key in ("id", "change_summary", "prompt_fragment")).casefold()
+        matched_terms = sorted(term for term in brief_terms if term in text)
+        key = _asset_key(asset); score = scope_bonus[record["scope"]] + len(matched_tags) * 8 + len(matched_facets) * 5 + len(matched_terms) * 2
+        preference = max(-10, min(10, weights.get(key, 0))); score += preference
+        reasons = []
+        if matched_tags: reasons.append(f"semantic match: {', '.join(matched_tags)}")
+        if matched_facets: reasons.append(f"scene facets: {', '.join(matched_facets)}")
+        if matched_terms: reasons.append(f"brief terms: {', '.join(matched_terms[:5])}")
+        dependencies = {tuple(str(dep.get(name, "")) for name in ("namespace", "id", "type", "version")) for dep in asset.get("dependencies", []) if isinstance(dep, dict)}
+        if dependencies & selected_keys: score += 10; reasons.append("explicitly compatible with confirmed upstream DNA")
+        if preference: reasons.append(f"personal usage memory: {preference:+d}")
+        reasons.append(f"{record['scope']} Registry; {asset['qa_status']} QA; rights {asset['rights']['status']}")
+        recommendations.append((-score, {"project": 0, "personal": 1, "extension": 2, "official": 3}[record["scope"]], asset["id"], {
+            "score": score, "reasons": reasons, "matched_tags": matched_tags, "matched_facets": matched_facets,
+            "record": record, "discovery": discovery,
+        }))
+    recommendations.sort(key=lambda item: item[:3]); selected = [item[3] for item in recommendations[:max(1, min(limit, 12))]]
+    return {
+        "stage": stage, "context": context, "selected_upstream_refs": selected_refs,
+        "recommendations": selected, "count": len(selected),
+        "ranking_policy": ["identity_rights_medium", "scene_intent", "dependency_compatibility", "photo_language", "personal_memory", "qa_scope"],
+    }
 
 
 def dna_card(record: dict[str, Any]) -> dict[str, Any]:
@@ -1126,10 +1321,10 @@ def start_design_session(
     theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=True, live_action=True)
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
     session = {
-        "schema_version": "0.5.0", "session_id": session_id, "brief": brief,
+        "schema_version": "0.6.0", "session_id": session_id, "brief": brief,
         "project_root": str(project_root), "state": "character_pending", "shot_count": shot_count,
         "stages": {stage: {"status": "pending", "selection": [], "confirmed_at": None} for stage in INTERACTION_STAGES},
-        "private_references": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
+        "private_references": [], "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
         "theme_artifact": None,
     }
     _write_session(session, theme, project_root)
@@ -1232,10 +1427,11 @@ def commit_session_stage(
     project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
     if session["state"] in {"ready", "generating", "completed", "partial"}:
         raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
-    proposed_assets = draft_assets or []
+    proposed_assets = [json.loads(json.dumps(asset)) for asset in (draft_assets or [])]
     for asset in proposed_assets:
         if asset.get("type") not in STAGE_TYPES[stage]:
             raise ValidationError(f"draft DNA type {asset.get('type')} does not belong to {stage}")
+        if "discovery" not in asset: asset["discovery"] = suggest_discovery_metadata(asset, session["brief"])
         errors = validate_registry_asset(asset)
         if errors: raise ValidationError("\n".join(errors))
         target = _registry_asset_path(project_root / ".apsal" / "registry", asset)
@@ -1247,6 +1443,7 @@ def commit_session_stage(
     if not refs and proposed_assets:
         refs = [asset_ref(asset) for asset in proposed_assets]
     records = _resolve_refs(refs, stage, project_root, home)
+    resolved_home = (home or apsal_home()).resolve()
     stage_index = INTERACTION_STAGES.index(stage)
     for later in INTERACTION_STAGES[:stage_index]:
         if session["stages"][later]["status"] != "confirmed":
@@ -1291,6 +1488,21 @@ def commit_session_stage(
         "confirmed_at": _utc_now(), "created_project_assets": created_assets,
         "reference_ids": [item["reference_id"] for item in bound_references],
     }
+    for record in records:
+        _append_usage_event({"event": "dna_selection", "outcome": "selected", "stage": stage, "ref": asset_ref(record["asset"]), "context": _detect_recommendation_context(session["brief"])}, resolved_home)
+    existing_offer_keys = {tuple(item.get("ref", {}).get(name, "") for name in ("namespace", "id", "type", "version")) for item in session.get("memory_offers", [])}
+    for record in records:
+        key = _asset_key(record["asset"])
+        if record["scope"] != "project" or _registry_asset_path(resolved_home / "registry", record["asset"]).is_file() or key in existing_offer_keys: continue
+        offer = {
+            "offer_id": f"MEMORY-{uuid.uuid4().hex[:10].upper()}", "status": "pending", "stage": stage,
+            "ref": asset_ref(record["asset"]), "title": record["asset"]["id"],
+            "reason": "New or revised project DNA can be reused and recommended across future projects.",
+            "discovery": record["asset"].get("discovery"),
+            "tag_confirmation_required": record["asset"].get("discovery", {}).get("source") != "creator_confirmed",
+            "options": ["save_personal", "project_only", "not_now"],
+        }
+        session["memory_offers"].append(offer)
     if changed:
         for later in INTERACTION_STAGES[stage_index + 1:]:
             previous = session["stages"][later]["status"]
@@ -1302,6 +1514,25 @@ def commit_session_stage(
     session["state"] = f"{pending}_pending" if pending else "review_pending"
     _write_session(session, theme, project_root)
     return session
+
+
+def resolve_dna_memory_offer(
+    session_id: str, offer_id: str, action: str, *, project_root: Path, home: Path | None = None,
+) -> dict[str, Any]:
+    if action not in {"save_personal", "project_only", "not_now"}:
+        raise ValidationError("memory action must be save_personal, project_only, or not_now")
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve()
+    session, theme = load_design_session(session_id, project_root)
+    offer = next((item for item in session.get("memory_offers", []) if item.get("offer_id") == offer_id), None)
+    if not offer: raise ValidationError(f"unknown DNA memory offer: {offer_id}")
+    if offer.get("status") != "pending": raise ValidationError(f"DNA memory offer is already resolved: {offer_id}")
+    result = None
+    if action == "save_personal":
+        result = promote_registry_asset(offer["ref"], project_root=project_root, home=home)
+        _append_usage_event({"event": "dna_memory", "outcome": "remembered", "ref": offer["ref"], "session_id": session_id}, home)
+    offer.update({"status": "saved" if action == "save_personal" else action, "resolved_at": _utc_now()})
+    _write_session(session, theme, project_root)
+    return {"offer": offer, "personal_asset": result, "next_action": "Continue the current design session; future recommendations now include this preference." if action == "save_personal" else "Keep the DNA in the current project only."}
 
 
 def _theme_dir(project_root: Path, theme: dict[str, Any]) -> Path:
@@ -1829,6 +2060,200 @@ def _zip_bytes(files: dict[str, bytes]) -> bytes:
             info.external_attr = 0o644 << 16
             archive.writestr(info, files[name])
     return stream.getvalue()
+
+
+def _dna_rights_allow_public(asset: dict[str, Any], preview: dict[str, Any]) -> bool:
+    private_tokens = ("private", "unverified", "unknown", "unresolved", "pending", "all-rights-reserved")
+    for rights in (asset.get("rights", {}), preview.get("rights", {})):
+        license_name = str(rights.get("license", "")).lower(); status = str(rights.get("status", "")).lower()
+        if not license_name or not status or any(token in f"{license_name} {status}" for token in private_tokens): return False
+        if not str(rights.get("attribution", "")).strip(): return False
+    return True
+
+
+def export_dna_pack(
+    refs: list[dict[str, str]], *, pack_id: str, namespace: str, version: str, name: str,
+    description: str, project_root: Path, output_dir: Path, home: Path | None = None,
+    distribution: str = "auto",
+) -> tuple[Path, str]:
+    """Export selected immutable DNA as a deterministic standalone Extension Pack."""
+    if not SAFE_NAMESPACE.fullmatch(pack_id): raise ValidationError("DNA pack id must use lower-case letters, digits, and hyphens")
+    if not SAFE_NAMESPACE.fullmatch(namespace): raise ValidationError("DNA pack namespace is invalid")
+    if namespace == "official": raise ValidationError("DNA Extension Packs must use a contributor-owned namespace")
+    if not SEMVER.fullmatch(version): raise ValidationError("DNA pack version must be semantic")
+    if not name.strip() or not description.strip(): raise ValidationError("DNA pack name and description are required")
+    if not refs: raise ValidationError("DNA pack requires at least one DNA reference")
+    if distribution not in {"auto", "private_only", "public"}: raise ValidationError("DNA pack distribution must be auto, private_only, or public")
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve()
+    records = load_layered_registry(project_root, home); by_key = {_asset_key(item["asset"]): item for item in records}
+    selected = []; seen_refs: set[tuple[str, str, str, str]] = set()
+    for ref in refs:
+        key = tuple(str(ref.get(field, "")) for field in ("namespace", "id", "type", "version")); record = by_key.get(key)
+        if not record: raise ValidationError(f"unresolved DNA reference {_ref_label(key)}")
+        if key in seen_refs: raise ValidationError(f"duplicate DNA Pack reference {_ref_label(key)}")
+        seen_refs.add(key)
+        if ref.get("content_digest") and ref["content_digest"] != digest(record["asset"]): raise ValidationError(f"DNA digest mismatch for {_ref_label(key)}")
+        if record["asset"]["namespace"] != namespace: raise ValidationError("every DNA in a pack must use the pack namespace")
+        if "discovery" not in record["asset"]: raise ValidationError(f"shared DNA requires confirmed discovery metadata: {_ref_label(key)}")
+        selected.append(record)
+    public_allowed = all(
+        _dna_rights_allow_public(item["asset"], item["preview"])
+        and item["asset"].get("discovery", {}).get("source") == "creator_confirmed"
+        for item in selected
+    )
+    resolved_distribution = "public" if distribution == "auto" and public_allowed else "private_only" if distribution == "auto" else distribution
+    if resolved_distribution == "public" and not public_allowed: raise ValidationError("public DNA Pack export rejected: rights or attribution are unresolved")
+    payload: dict[str, bytes] = {}
+    assets_manifest = []
+    for record in sorted(selected, key=lambda item: _asset_key(item["asset"])):
+        asset = record["asset"]; base = f"registry/{namespace}/{asset['type']}/{asset['id']}/{asset['version']}"
+        asset_path = f"{base}/asset.apsal.json"; preview_path = f"{base}/preview.webp"; preview_meta_path = f"{base}/preview.json"
+        payload[asset_path] = (json.dumps(asset, ensure_ascii=False, indent=2) + "\n").encode()
+        payload[preview_path] = record["preview_path"].read_bytes()
+        preview_meta = json.loads(json.dumps(record["preview"])); preview_meta["ref"] = asset_ref(asset); preview_meta["image"] = "preview.webp"
+        payload[preview_meta_path] = (json.dumps(preview_meta, ensure_ascii=False, indent=2) + "\n").encode()
+        assets_manifest.append({"ref": asset_ref(asset), "asset_path": asset_path, "preview_path": preview_path, "preview_metadata_path": preview_meta_path, "dependencies": asset.get("dependencies", [])})
+    license_lines = [f"DNA Pack: {name}", f"Distribution: {resolved_distribution}", "Each DNA and preview retains the independent license and attribution in its metadata.", "Reference media is not included."]
+    payload["LICENSE-CONTENT.md"] = ("\n".join(license_lines) + "\n").encode()
+    payload["README.md"] = (f"# {name}\n\n{description}\n\nAPSAL DNA Extension Pack `{namespace}/{pack_id}@{version}`. Install with `apsal registry install <zip>`; assets remain immutable and participate in explained scene recommendations.\n").encode()
+    files = {path: hashlib.sha256(data).hexdigest() for path, data in sorted(payload.items())}
+    manifest = {
+        "schema_version": DNA_PACK_SCHEMA_VERSION, "protocol": "apsal-open", "protocol_version": "0.3.0",
+        "pack_id": pack_id, "namespace": namespace, "version": version, "name": name, "description": description,
+        "distribution": resolved_distribution, "redistribution_allowed": public_allowed,
+        "assets": assets_manifest, "asset_count": len(assets_manifest), "files": files,
+    }
+    checksum_text = "".join(f"{sha}  {path}\n" for path, sha in sorted(files.items()))
+    archive_files = {**payload, "apsal-dna-pack.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(), "checksums.sha256": checksum_text.encode()}
+    content = _zip_bytes(archive_files); sha = hashlib.sha256(content).hexdigest()
+    output_dir.mkdir(parents=True, exist_ok=True); suffix = "-private" if resolved_distribution == "private_only" else ""
+    path = output_dir / f"{pack_id}-v{version}{suffix}.zip"; path.write_bytes(content)
+    checksum_path = path.with_suffix(".zip.sha256"); checksum_path.write_text(f"{sha}  {path.name}\n", encoding="utf-8")
+    if resolved_distribution == "private_only":
+        for item in (path, checksum_path):
+            try: item.chmod(0o600)
+            except OSError: pass
+    return path, sha
+
+
+def _resolve_dna_pack_source(source: str | Path) -> tuple[bytes, str]:
+    value = str(source)
+    if value.startswith("github:"):
+        match = re.fullmatch(r"github:([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)@([^#]+)#([A-Za-z0-9_.-]+\.zip)", value)
+        if not match: raise ValidationError("GitHub DNA Pack source must be github:owner/repo@tag#asset.zip")
+        owner, repo, tag, asset = match.groups()
+        value = f"https://github.com/{urllib.parse.quote(owner)}/{urllib.parse.quote(repo)}/releases/download/{urllib.parse.quote(tag, safe='')}/{urllib.parse.quote(asset)}"
+    if value.startswith("https://"):
+        parsed = urllib.parse.urlparse(value)
+        if parsed.hostname not in {"github.com", "objects.githubusercontent.com"}: raise ValidationError("remote DNA Packs must use a public GitHub release URL")
+        request = urllib.request.Request(value, headers={"User-Agent": "APSAL-Studio/0.6"})
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response: data = response.read(50_000_001)
+        except urllib.error.URLError as exc: raise ValidationError(f"DNA Pack download failed: {exc}") from exc
+        if len(data) > 50_000_000: raise ValidationError("DNA Pack exceeds 50 MB")
+        return data, value
+    path = Path(value).expanduser().resolve()
+    if not path.is_file(): raise ValidationError(f"DNA Pack not found: {path}")
+    if path.stat().st_size > 50_000_000: raise ValidationError("DNA Pack exceeds 50 MB")
+    return path.read_bytes(), str(path)
+
+
+def _inspect_dna_pack(data: bytes) -> tuple[dict[str, Any], dict[str, bytes]]:
+    try: archive = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile as exc: raise ValidationError("DNA Pack is not a valid ZIP") from exc
+    names = archive.namelist()
+    if len(names) != len(set(names)): raise ValidationError("DNA Pack contains duplicate paths")
+    files: dict[str, bytes] = {}
+    total_uncompressed = 0
+    for info in archive.infolist():
+        path = Path(info.filename)
+        if info.is_dir(): continue
+        if path.is_absolute() or ".." in path.parts or len(path.parts) > 8: raise ValidationError(f"unsafe DNA Pack path: {info.filename}")
+        if (info.external_attr >> 16) & 0o170000 == 0o120000: raise ValidationError(f"DNA Pack symlink rejected: {info.filename}")
+        total_uncompressed += info.file_size
+        if info.file_size > 10_000_000 or total_uncompressed > 100_000_000: raise ValidationError("DNA Pack expanded content exceeds safety limits")
+        files[info.filename] = archive.read(info)
+    for required in ("apsal-dna-pack.json", "checksums.sha256", "README.md", "LICENSE-CONTENT.md"):
+        if required not in files: raise ValidationError(f"DNA Pack missing {required}")
+    try: manifest = json.loads(files["apsal-dna-pack.json"])
+    except json.JSONDecodeError as exc: raise ValidationError("DNA Pack manifest is invalid JSON") from exc
+    if not isinstance(manifest, dict): raise ValidationError("DNA Pack manifest must be an object")
+    if manifest.get("schema_version") != DNA_PACK_SCHEMA_VERSION or manifest.get("protocol") != "apsal-open": raise ValidationError("DNA Pack manifest version or protocol is unsupported")
+    if not SAFE_NAMESPACE.fullmatch(str(manifest.get("pack_id", ""))) or not SAFE_NAMESPACE.fullmatch(str(manifest.get("namespace", ""))): raise ValidationError("DNA Pack id or namespace is invalid")
+    if manifest.get("namespace") == "official": raise ValidationError("DNA Extension Pack cannot use the official namespace")
+    if not SEMVER.fullmatch(str(manifest.get("version", ""))): raise ValidationError("DNA Pack version is invalid")
+    declared = manifest.get("files")
+    if not isinstance(declared, dict): raise ValidationError("DNA Pack files ledger is missing")
+    if set(declared) != set(files) - {"apsal-dna-pack.json", "checksums.sha256"}: raise ValidationError("DNA Pack files ledger does not match archive")
+    for path, sha in declared.items():
+        if not re.fullmatch(r"[a-f0-9]{64}", str(sha)) or hashlib.sha256(files[path]).hexdigest() != sha: raise ValidationError(f"DNA Pack checksum mismatch: {path}")
+    expected_ledger = "".join(f"{sha}  {path}\n" for path, sha in sorted(declared.items())).encode()
+    if files["checksums.sha256"] != expected_ledger: raise ValidationError("DNA Pack checksum ledger is not canonical")
+    assets = manifest.get("assets")
+    if not isinstance(assets, list) or len(assets) != manifest.get("asset_count") or not assets: raise ValidationError("DNA Pack asset count is invalid")
+    seen = set()
+    for entry in assets:
+        if not isinstance(entry, dict): raise ValidationError("DNA Pack asset entry must be an object")
+        for field in ("asset_path", "preview_path", "preview_metadata_path"):
+            if entry.get(field) not in files: raise ValidationError(f"DNA Pack asset entry missing {field}")
+        try: asset = json.loads(files[entry["asset_path"]]); preview = json.loads(files[entry["preview_metadata_path"]])
+        except json.JSONDecodeError as exc: raise ValidationError("DNA Pack asset or preview metadata is invalid JSON") from exc
+        if not isinstance(asset, dict) or not isinstance(preview, dict): raise ValidationError("DNA Pack asset and preview metadata must be objects")
+        errors = validate_registry_asset(asset)
+        if errors: raise ValidationError("\n".join(errors))
+        if asset.get("namespace") != manifest["namespace"]: raise ValidationError("DNA Pack asset namespace mismatch")
+        if entry.get("ref") != asset_ref(asset): raise ValidationError("DNA Pack asset reference digest mismatch")
+        key = _asset_key(asset)
+        if key in seen: raise ValidationError(f"DNA Pack duplicate asset {_ref_label(key)}")
+        seen.add(key)
+        with tempfile.TemporaryDirectory() as temporary:
+            preview_path = Path(temporary) / "preview.webp"; preview_path.write_bytes(files[entry["preview_path"]])
+            preview_errors = validate_preview_file(preview_path, preview)
+        if preview_errors: raise ValidationError("\n".join(preview_errors))
+        dependencies = entry.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(not isinstance(dep, dict) for dep in dependencies): raise ValidationError("DNA Pack dependencies must be reference objects")
+        entry["_asset"] = asset
+    return manifest, files
+
+
+def validate_dna_pack(source: str | Path) -> dict[str, Any]:
+    data, origin = _resolve_dna_pack_source(source); manifest, _ = _inspect_dna_pack(data)
+    return {"valid": True, "origin": origin, "sha256": hashlib.sha256(data).hexdigest(), "pack_id": manifest["pack_id"], "namespace": manifest["namespace"], "version": manifest["version"], "distribution": manifest["distribution"], "asset_count": manifest["asset_count"]}
+
+
+def install_dna_pack(source: str | Path, *, project_root: Path, home: Path | None = None) -> dict[str, Any]:
+    """Install a validated local or public-GitHub DNA Pack as a read-only extension layer."""
+    project_root = project_root.resolve(); home = (home or apsal_home()).resolve(); init_workspace(project_root, home)
+    data, origin = _resolve_dna_pack_source(source); pack_sha = hashlib.sha256(data).hexdigest(); manifest, files = _inspect_dna_pack(data)
+    target = home / "extensions" / manifest["namespace"] / manifest["pack_id"] / manifest["version"]
+    existing_zip = target / "pack.zip"
+    if existing_zip.is_file():
+        if hashlib.sha256(existing_zip.read_bytes()).hexdigest() != pack_sha: raise ValidationError("immutable DNA Pack version conflict")
+        return {"installed": False, "reason": "already_installed", "path": str(target), "sha256": pack_sha, "manifest": {key: value for key, value in manifest.items() if key != "assets"}}
+    official_keys = {_asset_key(asset) for asset in load_catalog().get("assets", [])}
+    existing_keys = {_asset_key(item["asset"]) for item in load_layered_registry(project_root, home)}
+    pack_keys = {_asset_key(entry["_asset"]) for entry in manifest["assets"]}
+    official_conflicts = pack_keys & official_keys
+    if official_conflicts: raise ValidationError(f"DNA Pack cannot override official ID/version: {sorted(_ref_label(key) for key in official_conflicts)}")
+    conflicts = pack_keys & existing_keys
+    if conflicts: raise ValidationError(f"DNA Pack conflicts with installed Registry assets: {sorted(_ref_label(key) for key in conflicts)}")
+    available = existing_keys | pack_keys
+    for entry in manifest["assets"]:
+        for dep in entry.get("dependencies", []):
+            key = tuple(str(dep.get(field, "")) for field in ("namespace", "id", "type", "version"))
+            if key not in available: raise ValidationError(f"DNA Pack unresolved dependency {_ref_label(key)}")
+    temporary = target.with_name(target.name + f".tmp-{uuid.uuid4().hex[:8]}"); _mkdir_private(temporary)
+    try:
+        for name, value in files.items():
+            path = _inside(temporary, temporary / name); path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(value)
+        (temporary / "pack.zip").write_bytes(data)
+        target.parent.mkdir(parents=True, exist_ok=True); temporary.rename(target)
+    except Exception:
+        shutil.rmtree(temporary, ignore_errors=True); raise
+    for path in target.rglob("*"):
+        try: path.chmod(0o500 if path.is_dir() else 0o400)
+        except OSError: pass
+    return {"installed": True, "origin": origin, "path": str(target), "sha256": pack_sha, "manifest": {key: value for key, value in manifest.items() if key != "assets"}}
 
 
 def pack_theme(

@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.5.0",
-  "description": "Create live-action AI photography from natural language with bound references, interactive DNA cards, reproducible prompts, and resumable native-4K runs.",
+  "version": "0.6.0",
+  "description": "Create live-action AI photography with scene-aware DNA recommendations, reusable personal memory, shareable Extension Packs, bound references, and native-4K runs.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -14,17 +14,17 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "一句话构建世界，绑定参考图，生成九张真人摄影作品",
-    "longDescription": "APSAL Studio turns one natural-language idea into interactive Character, World, Scene, and Photo DNA decisions, binds rights-aware reference images, compiles a live-action photography contract, and runs nine independent 9:16 native-4K Jobs. Its Registry, validators, compiler, and private Skill packager work offline; provider generation is optional and explicit.",
+    "shortDescription": "按场景推荐 DNA，积累个人方法，生成九张真人摄影作品",
+    "longDescription": "APSAL Studio interprets one natural-language idea, explains and recommends Character, World, Scene, and Photo DNA, remembers creator-confirmed assets locally, installs or exports rights-aware DNA Extension Packs, binds actual references, and runs nine independent 9:16 native-4K Jobs.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://github.com/henyjone/apsal-open",
     "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
     "defaultPrompt": [
-      "创建一套九张 9:16 真人摄影主题，并先确认参考图用途。",
-      "用自然语言设计 Character、World、Scene 和 Photo DNA，再导出私人 Skill。",
-      "继续未完成的 APSAL 原生 4K 九镜头生成，只续跑失败镜头。"
+      "创建九张真人摄影主题，并解释为什么推荐每个 DNA。",
+      "把刚确认的新 DNA 打好标签并保存到我的 DNA。",
+      "把权利清晰的 DNA 单独导出为可分享的 GitHub Extension Pack。"
     ],
     "brandColor": "#84A99C"
   }

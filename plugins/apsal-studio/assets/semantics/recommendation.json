@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.6.0",
+  "title": "APSAL DNA Recommendation Signals / APSAL DNA 推荐信号",
+  "scope_precedence": ["project", "personal", "extension", "official"],
+  "default_tags": {
+    "character": ["subject.identity.locked"],
+    "style": ["style.editorial.restrained"],
+    "environment": ["world.space.coherent"],
+    "lighting": ["light.direction.consistent"],
+    "composition": ["camera.viewpoint.single", "sequence.function.progression"],
+    "shot": ["event.state.transition", "job.output.independent"],
+    "qa": ["qa.identity", "qa.anatomy", "qa.continuity", "qa.no_text"]
+  },
+  "signals": [
+    {"id": "portrait", "terms": ["portrait", "人像", "人物", "写真"], "tags": ["subject.identity.locked", "qa.identity", "qa.anatomy"], "facets": {"subject.age": "adult", "output.medium": "live_action_photography"}},
+    {"id": "window", "terms": ["window", "窗", "窗边", "窗前"], "tags": ["world.space.coherent", "light.direction.consistent"], "facets": {"world.feature": "window", "lighting.source": "natural-window-light"}},
+    {"id": "interior", "terms": ["interior", "indoor", "室内", "房间", "空间"], "tags": ["world.space.coherent"], "facets": {"world.space": "interior"}},
+    {"id": "east-asian-minimal", "terms": ["eastern minimalist", "east asian minimal", "东方极简", "东方", "极简"], "tags": ["style.editorial.restrained", "camera.viewpoint.single"], "facets": {"world.cultural_language": "east-asian-minimal", "style.genre": "restrained-editorial"}},
+    {"id": "quiet", "terms": ["quiet", "calm", "restrained", "安静", "克制", "静谧", "沉静"], "tags": ["emotion.expression.restrained", "style.editorial.restrained"], "facets": {"subject.temperament": "quiet", "narrative.mood": "contemplative", "style.tempo": "slow"}},
+    {"id": "editorial", "terms": ["editorial", "杂志", "编辑摄影", "时尚"], "tags": ["style.editorial.restrained", "sequence.function.progression"], "facets": {"style.genre": "editorial"}},
+    {"id": "natural-light", "terms": ["natural light", "window light", "自然光", "窗光", "侧光"], "tags": ["light.direction.consistent", "color.palette.natural"], "facets": {"lighting.source": "natural-light", "lighting.direction": "side-light"}},
+    {"id": "handmade", "terms": ["handmade", "crayon", "wax", "手工", "蜡笔", "蜡质", "手绘"], "tags": ["world.prop.ownership", "color.palette.natural"], "facets": {"world.material": "handmade", "style.texture": "tactile"}},
+    {"id": "nine-shot", "terms": ["nine shot", "nine-shot", "九张", "九镜头", "九组"], "tags": ["sequence.function.progression", "job.output.independent"], "facets": {"camera.coverage": "nine-shot-sequence"}},
+    {"id": "vertical", "terms": ["9:16", "vertical", "portrait orientation", "竖构图", "竖版", "竖屏"], "tags": ["camera.viewpoint.single", "job.output.independent"], "facets": {"output.aspect_ratio": "9:16"}}
+  ]
+}
