@@ -72,7 +72,7 @@ Ask Codex:
 
 APSAL Studio will:
 
-1. Interpret the scene and recommend Character, World, Scene, and Photo DNA with concrete reasons.
+1. Interpret the scene and recommend Character, World, Scene, and Photo DNA as compact text-only cards with concrete reasons.
 2. Let you choose, revise in natural language, or redesign one scene without hand-writing data files.
 3. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
 4. Show the nine-shot overview and wait for confirmation.
@@ -160,7 +160,7 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
 - [Reference binding, live-action and native-4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
 - [DNA recommendation, memory and exchange RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
-- [APSAL Studio 0.6 release and installation notes](docs/releases/0.6.0.md)
+- [APSAL Studio 0.6.1 release and installation notes](docs/releases/0.6.1.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

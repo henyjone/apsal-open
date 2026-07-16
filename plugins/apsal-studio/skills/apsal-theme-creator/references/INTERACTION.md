@@ -1,10 +1,10 @@
-# APSAL Studio 0.6 interaction contract
+# APSAL Studio 0.6.1 interaction contract
 
 ## What creators see
 
-The creator sees natural language, preview cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
+The creator sees natural language, compact text-only DNA cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
 
-Each DNA card must display its preview, title, core attributes, scope (`project`, `personal`, `extension`, or `official`), version, rights license, attribution, QA state, recommendation reason, matched tags and relevant scene facets. A semantic card is a design aid, not evidence of final image quality. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
+Each DNA card is textual and must display its title, stable reference, core constraints, scope (`project`, `personal`, `extension`, or `official`), version, rights license, attribution, QA state, recommendation reason, matched tags and relevant scene facets. Do not render Registry thumbnails in the selection flow. Preview sidecars remain background assets for rights review, validation and Extension Pack exchange. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
 
 ## Recommendation and memory
 

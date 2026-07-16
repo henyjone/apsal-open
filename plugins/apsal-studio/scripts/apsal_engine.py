@@ -623,14 +623,17 @@ def recommend_dna(
 
 
 def dna_card(record: dict[str, Any]) -> dict[str, Any]:
-    asset = record["asset"]; preview_path: Path = record["preview_path"]
-    data = base64.b64encode(preview_path.read_bytes()).decode("ascii")
+    """Return the compact text-card projection used by conversational clients.
+
+    Registry previews remain available for rights review and Extension Pack
+    validation, but are deliberately excluded from interactive selection data.
+    """
+    asset = record["asset"]
     return {
         "ref": asset_ref(asset), "scope": record["scope"], "title": asset["id"], "type": asset["type"],
         "summary": asset["change_summary"], "version": asset["version"], "locks": asset.get("locks", []),
         "core_attributes": asset.get("locks") or [asset["prompt_fragment"]],
         "rights": asset["rights"], "qa_status": asset["qa_status"],
-        "preview": f"data:image/webp;base64,{data}", "preview_metadata": record["preview"],
     }
 
 

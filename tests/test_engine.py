@@ -415,7 +415,7 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_fifteen_tools_and_returns_visual_and_text_card_data(self):
+    def test_mcp_lists_fifteen_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             requests = [
@@ -426,11 +426,12 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.6.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.6.1")
             self.assertEqual(len(responses[1]["result"]["tools"]), 15)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
-            self.assertTrue(cards[0]["preview"].startswith("data:image/webp;base64,"))
+            self.assertNotIn("preview", cards[0])
+            self.assertNotIn("preview_metadata", cards[0])
             self.assertIn("change_summary", cards[0]["summary"] if isinstance(cards[0]["summary"], dict) else {"change_summary": cards[0]["summary"]})
 
     def test_path_components_reject_traversal(self):

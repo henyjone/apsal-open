@@ -1,6 +1,6 @@
 [project]
 name = "apsal-open"
-version = "0.6.0"
+version = "0.6.1"
 description = "Local-first APSAL conversational authoring, DNA Registry, semantic compiler, run lineage, and Codex plugin"
 requires-python = ">=3.11"
 license = "Apache-2.0"

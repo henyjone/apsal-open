@@ -61,7 +61,7 @@ codex plugin add apsal-studio@apsal-open
 
 插件会完成：
 
-1. 理解场景，依次推荐 Character、World、Scene、Photo DNA，并说明推荐理由。
+1. 理解场景，以简洁的纯文字卡片依次推荐 Character、World、Scene、Photo DNA，并说明推荐理由。
 2. 让你点击选择，也可以直接说“人物更成熟，但保留短发”或“重新设计第 4 镜”。
 3. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 4. 展示九镜头总览，等你确认后再执行。
@@ -149,7 +149,7 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [本地 Registry 与对话创作 RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
 - [参考图绑定、真人摄影与原生 4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
 - [DNA 推荐、记忆与交换 RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
-- [APSAL Studio 0.6 发布与安装说明](docs/releases/0.6.0.md)
+- [APSAL Studio 0.6.1 发布与安装说明](docs/releases/0.6.1.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)

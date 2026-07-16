@@ -64,6 +64,8 @@ def main() -> int:
             errors.append("MCP smoke test: 0.6 recommendation, memory, or exchange tools missing")
         elif "APSAL DNA Registry" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA card UI resource missing")
+        elif "<img" in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
+            errors.append("MCP smoke test: DNA selection UI must be text-only")
 
     if errors:
         print("\n".join(errors))

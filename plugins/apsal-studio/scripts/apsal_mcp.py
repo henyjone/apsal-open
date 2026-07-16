@@ -50,7 +50,7 @@ TOOLS = [
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "present_dna_cards", "description": "Present selectable DNA preview cards with an equivalent numbered-text fallback.",
+        "name": "present_dna_cards", "description": "Present compact selectable DNA text cards with an equivalent numbered-text fallback.",
         "inputSchema": _schema({"project_root": {"type": "string"}, "query": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}}, ["stage"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
         "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
@@ -238,9 +238,9 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.6.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.6.1"}}
     elif method == "tools/list": result = {"tools": TOOLS}
-    elif method == "resources/list": result = {"resources": [{"uri": UI_URI, "name": "APSAL DNA Cards", "mimeType": "text/html;profile=mcp-app"}]}
+    elif method == "resources/list": result = {"resources": [{"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"}]}
     elif method == "resources/read":
         if message.get("params", {}).get("uri") != UI_URI: raise ValidationError("unknown MCP resource")
         result = {"contents": [{"uri": UI_URI, "mimeType": "text/html;profile=mcp-app", "text": UI_PATH.read_text(encoding="utf-8")}]}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1 - 2026-07-16
+
+- Replaced image-led DNA selection with compact text-only protocol cards.
+- Removed preview-image Base64 payloads from interactive MCP recommendations and choices.
+- Kept Registry preview sidecars for rights review, validation and Extension Pack integrity; DNA assets and generation intent are unchanged.
+- Improved card hierarchy around stable reference, core constraints, recommendation reasons, matched tags, rights and QA.
+
 ## 0.6.0 - 2026-07-16
 
 - Added scene-aware DNA recommendations with controlled semantic tags, retrieval facets, explicit upstream compatibility, QA/rights checks, Registry scope and local outcome memory.
