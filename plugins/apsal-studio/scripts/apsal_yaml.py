@@ -193,7 +193,9 @@ class _Parser:
                 item, index = self._block(index, self.lines[index].indent)
                 result.append(item)
                 continue
-            if ":" in rest:
+            # A quoted scalar may legitimately contain a colon. Only an
+            # unquoted sequence item can begin an inline mapping here.
+            if ":" in rest and not rest.startswith(("\"", "'")):
                 key, scalar_text = _split_mapping(line, rest)
                 item: dict[str, Any] = {}
                 if scalar_text:
@@ -240,7 +242,9 @@ def _dump(value: Any, indent: int, lines: list[str]) -> None:
         for key, child in value.items():
             if not _KEY.fullmatch(str(key)):
                 raise TypeError(f"unsupported YAML key: {key!r}")
-            if isinstance(child, (dict, list)):
+            if isinstance(child, (dict, list)) and not child:
+                lines.append(f"{prefix}{key}: {'{}' if isinstance(child, dict) else '[]'}")
+            elif isinstance(child, (dict, list)):
                 lines.append(f"{prefix}{key}:")
                 _dump(child, indent + 2, lines)
             else:
@@ -248,7 +252,9 @@ def _dump(value: Any, indent: int, lines: list[str]) -> None:
         return
     if isinstance(value, list):
         for child in value:
-            if isinstance(child, (dict, list)):
+            if isinstance(child, (dict, list)) and not child:
+                lines.append(f"{prefix}- {'{}' if isinstance(child, dict) else '[]'}")
+            elif isinstance(child, (dict, list)):
                 lines.append(f"{prefix}-")
                 _dump(child, indent + 2, lines)
             else:

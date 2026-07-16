@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.6.0",
+  "engine_version": "0.7.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
@@ -600,6 +600,9 @@
       "priority": 82
     }
   },
+  "interaction_model": "legacy_four_stage",
+  "creative_layers": null,
+  "element_decisions": null,
   "dna": [
     {
       "id": "OPEN_CHAR_ADULT_001",
@@ -2313,5 +2316,5 @@
       "output_filename": "apsal-open-001_09.jpg"
     }
   ],
-  "compiled_digest": "cfe712efa66ab559751e0202f6a87efc2e4ac5f38954fff7b2c89345255c7522"
+  "compiled_digest": "8ec81f662636967ea819bb07c267e4b68bfb7ea81fb23f6547147da4146f30dc"
 }

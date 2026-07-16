@@ -4,6 +4,8 @@ A theme references exact DNA assets using `namespace`, `id`, `type`, and `versio
 
 Every shot requires a unique ID, title, framing, action, hands, gaze, composition, continuity state, and output filename. The default count is nine, but any count from 1 through 24 is supported.
 
+Studio 0.7 stores a creator-confirmed `element_decisions` object containing exactly the thirteen protocol roles. It records the five-layer conversation position, intent, structured values, observable image effects, invariants, QA expectations, source, DNA references and confirmation state. The five layers are authoring UX; they do not change Protocol or Semantic Contract 0.3.
+
 Protocol 0.3 authoring uses safe `.apsal.yaml`. Each meaningful element has a Semantic Contract: bilingual purpose, affected paths, non-target locks, allowed variation, observable expected effects, evidence-based QA expectations, controlled tags, and priority. Each creative shot field also explains its instance-level purpose, affected paths, expected effect, and QA check.
 
 Use `normalize` to create canonical `.apsal.json`; hashes and packages use JSON values, never YAML comments. `design`, `image`, and `qa` compilation targets have separate audiences and must not be collapsed into one oversized provider prompt.

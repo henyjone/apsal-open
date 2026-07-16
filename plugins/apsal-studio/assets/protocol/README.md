@@ -6,4 +6,6 @@ Every package and module declares stable identity, semantic version, parent, cha
 
 Studio 0.6 adds a Registry exchange layer without changing Protocol 0.3. Discovery tags/facets aid explained recommendation but never replace IDs, dependencies or rights. Standalone DNA Extension Packs contain immutable canonical DNA plus preview sidecars and checksums; installed packs are read-only and cannot override official or existing ID/version pairs.
 
+Studio 0.7 adds a five-layer authoring interaction without changing Protocol 0.3 or Semantic Contract 0.3. It exposes all thirteen roles as creator-confirmed text cards, while the existing seven Registry DNA categories remain the reusable asset layer.
+
 Protocol 0.3 preserves 0.2 JSON and adds Semantic Contract authoring. Creators edit safe `.apsal.yaml`; the engine normalizes `.apsal.json`, explains field intent, and compiles separate `design`, `image`, and `qa` targets. Run `apsal.py check-sync <directory>` before publishing YAML/JSON pairs.

@@ -7,10 +7,10 @@ from pathlib import Path
 
 from apsal_engine import (
     COMPILE_TARGETS, ValidationError, YamlError, check_sync, compile_theme,
-    commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
+    commit_element_layer, commit_session_stage, dump_yaml, explain_theme_path, finalize_design_session,
     execute_generation_run, init_workspace, load_catalog, load_design_session, load_document,
     load_generation_run, load_layered_registry, new_semantic_theme, new_theme,
-    pack_theme, project_root_from, promote_registry_asset, recommend_dna, registry_assets,
+    pack_theme, present_element_layer, project_root_from, promote_registry_asset, recommend_dna, recommend_layer_dna, registry_assets,
     record_dna_feedback, record_model_visual_qa, resolve_dna_memory_offer, search_registry,
     start_design_session, start_generation_run, suggest_discovery_metadata, confirm_discovery_metadata,
     export_dna_pack, install_dna_pack, validate_dna_pack,
@@ -51,6 +51,7 @@ def main() -> int:
     registry_sub.add_parser("list")
     search = registry_sub.add_parser("search"); search.add_argument("query", nargs="?", default=""); search.add_argument("--stage", choices=("character", "world", "scene", "photo")); search.add_argument("--limit", type=int, default=12)
     recommend = registry_sub.add_parser("recommend"); recommend.add_argument("brief"); recommend.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); recommend.add_argument("--session"); recommend.add_argument("--limit", type=int, default=6)
+    recommend_layer = registry_sub.add_parser("recommend-layer"); recommend_layer.add_argument("brief"); recommend_layer.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery")); recommend_layer.add_argument("--session"); recommend_layer.add_argument("--limit-per-type", type=int, default=3)
     suggest = registry_sub.add_parser("suggest-tags"); suggest.add_argument("asset", type=Path); suggest.add_argument("--brief", default=""); suggest.add_argument("--confirm", action="store_true")
     show = registry_sub.add_parser("show"); _ref_args(show)
     promote = registry_sub.add_parser("promote"); _ref_args(promote)
@@ -63,6 +64,8 @@ def main() -> int:
     start = session_sub.add_parser("start"); start.add_argument("brief"); start.add_argument("--id"); start.add_argument("--name"); start.add_argument("--shots", type=int, default=9)
     show_session = session_sub.add_parser("show"); show_session.add_argument("session_id")
     apply = session_sub.add_parser("apply"); apply.add_argument("session_id"); apply.add_argument("--stage", required=True, choices=("character", "world", "scene", "photo")); apply.add_argument("--selection", type=Path, required=True)
+    layer_show = session_sub.add_parser("layer-show"); layer_show.add_argument("session_id"); layer_show.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery"))
+    layer_apply = session_sub.add_parser("layer-apply"); layer_apply.add_argument("session_id"); layer_apply.add_argument("--layer", required=True, choices=("direction", "worldbuilding", "narrative", "image", "delivery")); layer_apply.add_argument("--selection", type=Path, required=True)
     memory = session_sub.add_parser("memory"); memory.add_argument("session_id"); memory.add_argument("offer_id"); memory.add_argument("--action", required=True, choices=("save_personal", "project_only", "not_now"))
     finalize = session_sub.add_parser("finalize"); finalize.add_argument("session_id")
     run = sub.add_parser("run"); run.add_argument("--project", type=Path, default=Path.cwd()); run.add_argument("--home", type=Path); run.add_argument("--session", required=True); run.add_argument("--mode", choices=("generate", "prompts", "skill"), default="generate"); run.add_argument("--confirm", action="store_true"); run.add_argument("--adapter", default="openai-image-api"); run.add_argument("--model", default="gpt-image-2"); run.add_argument("--resume")
@@ -124,6 +127,10 @@ def main() -> int:
                 value = recommend_dna(args.brief, args.stage, project_root=project, home=args.home, session_id=args.session, limit=args.limit)
                 safe = {**value, "recommendations": [{key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")} | {"scope": item["record"]["scope"], "asset": item["record"]["asset"]} for item in value["recommendations"]]}
                 print(json.dumps(safe, ensure_ascii=False, indent=2))
+            elif args.registry_command == "recommend-layer":
+                value = recommend_layer_dna(args.brief, args.layer, project_root=project, home=args.home, session_id=args.session, limit_per_type=args.limit_per_type)
+                safe = {**value, "by_type": {asset_type: [{key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")} | {"scope": item["record"]["scope"], "asset": item["record"]["asset"]} for item in items] for asset_type, items in value["by_type"].items()}}
+                print(json.dumps(safe, ensure_ascii=False, indent=2))
             elif args.registry_command == "suggest-tags":
                 value = suggest_discovery_metadata(load_document(args.asset), args.brief)
                 print(json.dumps(confirm_discovery_metadata(value) if args.confirm else value, ensure_ascii=False, indent=2))
@@ -144,6 +151,11 @@ def main() -> int:
             elif args.session_command == "apply":
                 selection = json.loads(args.selection.read_text(encoding="utf-8"))
                 value = commit_session_stage(args.session_id, args.stage, selection.get("refs", []), project_root=project, home=args.home, shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, reference_bindings=selection.get("reference_bindings"), draft_assets=selection.get("draft_assets"))
+            elif args.session_command == "layer-show":
+                value = present_element_layer(args.session_id, args.layer, project_root=project)
+            elif args.session_command == "layer-apply":
+                selection = json.loads(args.selection.read_text(encoding="utf-8"))
+                value = commit_element_layer(args.session_id, args.layer, selection.get("refs", []), project_root=project, home=args.home, decisions=selection.get("decisions"), shots=selection.get("shots"), reference_path=Path(selection["reference_path"]) if selection.get("reference_path") else None, reference_bindings=selection.get("reference_bindings"), draft_assets=selection.get("draft_assets"))
             elif args.session_command == "memory":
                 value = resolve_dna_memory_offer(args.session_id, args.offer_id, args.action, project_root=project, home=args.home)
             else:

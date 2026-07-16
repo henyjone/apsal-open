@@ -7,16 +7,22 @@ description: Create, revise, resume, generate, or package an APSAL photography t
 
 Keep JSON and YAML in the local artifact layer. Never ask a creator to write or inspect them unless they explicitly request developer mode.
 
-## Create through four confirmations
+## Create through five complete layers
 
 1. Call `start_design_session` with the creator's natural-language brief. Default to nine independent 9:16, 2160×3840 high-quality PNG images and a live-action photography Rendering Contract.
-2. For `character`, `world`, `scene`, then `photo`, call `recommend_dna` with the complete scene brief and current session. Show the top matching cards and their concrete recommendation reasons; use `search_dna` only for an explicit lookup.
-3. If the creator makes or revises DNA, call `suggest_dna_tags`, show the controlled semantic tags and facets, and obtain confirmation before including that discovery metadata in `draft_assets`.
-4. Call `commit_stage` only after the creator confirms that stage. For Scene, present the sequence strategy and nine distinct Scene cards; support accepting the set, revising one shot, redesigning one shot, or changing order.
-5. When `commit_stage` returns a pending memory offer, ask exactly once: “保存到我的 DNA、仅保留在当前项目，还是稍后决定？” Call `resolve_dna_memory` with the answer. Do not ask for official, extension, or already-personal DNA.
-6. If an upstream choice changes, respect the returned invalidations and reconfirm every affected downstream stage. Never reuse stale prompts.
-7. At `review_pending`, show a compact nine-shot overview and offer exactly: generate nine images, save prompts only, or export a Skill.
-8. Call `finalize_theme` after the creator confirms the overview. Treat the returned local artifact as the source of truth.
+2. For each layer, call `present_element_layer`. Never skip or hide a protocol role:
+   - `direction`: Content + Emotion. Confirm the theme proposition, primary/secondary mood, valence, arousal, expression, energy, tension and nine-shot emotional arc. This layer uses no Registry DNA.
+   - `worldbuilding`: Subject + World + Look. Call `recommend_layer_dna` for Character and Environment DNA; explicitly confirm identity, space, time, wardrobe, grooming, props and ownership.
+   - `narrative`: Event + Sequence. Recommend Composition and Shot DNA; show the sequence strategy and nine distinct Scene cards with consequences and order.
+   - `image`: Camera + Light + Style + Color/Post. Recommend Style and Lighting DNA; explicitly confirm viewpoint, coverage, optics, composition, light source/direction/quality/contrast, palette, temperature, saturation, curve, grain, sharpness, dynamic range and skin-tone policy.
+   - `delivery`: Job + Quality Control. Recommend QA DNA; confirm one-Job-one-image outputs, format, dimensions, rejection rules and separate model/human QA.
+3. Treat every element card as a proposal with source, intent, values, observable effects, locks and QA expectations. Accept a natural-language revision to one element, show its downstream effects, and preserve all non-target locks.
+4. If the creator makes or revises DNA, call `suggest_dna_tags`, show the controlled semantic tags and facets, and obtain confirmation before including that discovery metadata in `draft_assets`.
+5. Call `commit_element_layer` only after every element in that layer is explicitly confirmed. Never call legacy `commit_stage` for a new 0.7 session.
+6. When confirmation returns a pending memory offer, ask exactly once: “保存到我的 DNA、仅保留在当前项目，还是稍后决定？” Call `resolve_dna_memory` with the answer. Do not ask for official, extension, or already-personal DNA.
+7. If an upstream choice changes, respect the returned invalidations and reconfirm every affected downstream layer. Never reuse stale Prompts.
+8. At `review_pending`, show all thirteen confirmed decisions plus a compact nine-shot overview, then offer exactly: generate nine images, save prompts only, or export a Skill.
+9. Call `finalize_theme` after the creator confirms the overview. Treat the returned local artifact as the source of truth.
 
 At every stage, confirm each supplied reference image's role (`style`, `world`, `prop`, `wardrobe`, `composition`, or `identity`), allowed and forbidden uses, applicable Jobs, rights/consent, attribution, and redistribution status. Pass these as `reference_bindings`; never replace the image itself with a prose analysis.
 

@@ -19,6 +19,11 @@ engine = importlib.util.module_from_spec(spec); spec.loader.exec_module(engine)
 class EngineTests(unittest.TestCase):
     def test_catalog_is_complete_and_open(self): self.assertEqual(engine.validate_catalog(), [])
     def test_semantic_registry_covers_roles_categories_and_fields(self): self.assertEqual(engine.validate_semantic_registry(), [])
+    def test_five_layers_cover_all_thirteen_roles_and_seven_dna_types_once(self):
+        self.assertEqual(engine.validate_creative_layers(), [])
+        self.assertEqual([role for layer in engine.CREATIVE_LAYERS for role in engine.LAYER_ROLES[layer]], list(dict.fromkeys(role for layer in engine.CREATIVE_LAYERS for role in engine.LAYER_ROLES[layer])))
+        self.assertEqual({role for layer in engine.CREATIVE_LAYERS for role in engine.LAYER_ROLES[layer]}, set(engine.PROTOCOL_TYPES))
+        self.assertEqual({kind for layer in engine.CREATIVE_LAYERS for kind in engine.LAYER_TYPES[layer]}, set(engine.CATEGORIES))
     def test_default_theme_has_nine_unique_independent_outputs(self):
         theme = engine.new_theme("TEST-THEME", "Test", 9)
         self.assertEqual(engine.validate_theme(theme), [])
@@ -40,6 +45,7 @@ class EngineTests(unittest.TestCase):
         decoded = engine.load_yaml_text(encoded)
         self.assertEqual(decoded, theme)
         self.assertEqual(engine.digest(decoded), engine.digest(theme))
+        self.assertEqual(engine.load_yaml_text(engine.dump_yaml({"values": ["Tone: quiet joy"], "empty": [], "object": {}})), {"values": ["Tone: quiet joy"], "empty": [], "object": {}})
 
     def test_safe_yaml_rejects_duplicate_keys_tags_anchors_aliases_and_tabs(self):
         rejected = (
@@ -181,10 +187,94 @@ class EngineTests(unittest.TestCase):
     def _start_and_confirm(self, project: Path, home: Path, theme_id="TEST-NATURAL"):
         session = engine.start_design_session("创建一套九张东方极简窗边人像主题", project_root=project, home=home, theme_id=theme_id)
         assets = engine.load_catalog()["assets"]
-        for stage in engine.INTERACTION_STAGES:
-            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.STAGE_TYPES[stage]]
-            session = engine.commit_session_stage(session["session_id"], stage, refs, project_root=project, home=home)
+        for layer in engine.CREATIVE_LAYERS:
+            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES[layer]]
+            session = engine.commit_element_layer(session["session_id"], layer, refs, project_root=project, home=home)
         return session
+
+    def _confirm_direction(self, session, project: Path, home: Path):
+        return engine.commit_element_layer(session["session_id"], "direction", [], project_root=project, home=home)
+
+    def test_direction_classifies_emotion_and_requires_creator_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("设计一套欢喜、明亮但克制的九张窗边真人摄影", project_root=project, home=home, theme_id="TEST-MOOD")
+            layer = engine.present_element_layer(session["session_id"], "direction", project_root=project)
+            self.assertEqual([card["role"] for card in layer["cards"]], ["content", "emotion"])
+            emotion = next(card for card in layer["cards"] if card["role"] == "emotion")
+            self.assertEqual(emotion["values"]["primary_tone"], "quiet_joy")
+            self.assertEqual(set(emotion["values"]["arc"]), {"start", "turn", "end"})
+            self.assertEqual(emotion["status"], "proposed")
+            with self.assertRaisesRegex(engine.ValidationError, "all five creative layers"):
+                engine.finalize_design_session(session["session_id"], project_root=project, home=home)
+            confirmed = engine.commit_element_layer(session["session_id"], "direction", [], project_root=project, home=home)
+            self.assertEqual(confirmed["state"], "worldbuilding_pending")
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertTrue(all(theme["element_decisions"][role]["source"] == "creator_confirmed" for role in ("content", "emotion")))
+
+            mixed = engine.propose_element_decisions("悲伤中仍然保留希望", engine.new_semantic_theme("TEST-MIXED", "Mixed"))["emotion"]["values"]
+            self.assertEqual(mixed["primary_tone"], "sorrow")
+            self.assertIn("hope", mixed["secondary_tones"])
+            self.assertEqual(mixed["valence"], "mixed")
+
+    def test_cannot_skip_layers_and_each_layer_recommends_its_required_dna_types(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("悲伤但克制的室内真人摄影", project_root=project, home=home, theme_id="TEST-ORDER")
+            assets = engine.load_catalog()["assets"]
+            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES["worldbuilding"]]
+            with self.assertRaisesRegex(engine.ValidationError, "confirm direction"):
+                engine.commit_element_layer(session["session_id"], "worldbuilding", refs, project_root=project, home=home)
+            for layer in engine.CREATIVE_LAYERS:
+                recommendation = engine.recommend_layer_dna(session["brief"], layer, project_root=project, home=home, session_id=session["session_id"])
+                self.assertEqual(set(recommendation["by_type"]), set(engine.LAYER_TYPES[layer]))
+                self.assertTrue(all(recommendation["by_type"][kind] for kind in engine.LAYER_TYPES[layer]))
+
+    def test_final_theme_compiles_confirmed_thirteen_elements_into_image_and_qa(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = self._start_and_confirm(project, home, theme_id="TEST-THIRTEEN")
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertEqual(set(theme["element_decisions"]), set(engine.PROTOCOL_TYPES))
+            self.assertTrue(all(item["status"] == "confirmed" for item in theme["element_decisions"].values()))
+            image = engine.compile_theme(theme, "image")
+            qa = engine.compile_theme(theme, "qa")
+            first = image["shots"][0]["positive_prompt"]
+            self.assertIn("APSAL CONFIRMED ELEMENT DESIGN", first)
+            self.assertIn("LIGHT:", first)
+            self.assertIn("COLOR POST:", first)
+            self.assertIn("EMOTION:", first)
+            covered = {check["source"].removeprefix("element_decisions.") for check in qa["global_checks"] if check.get("source", "").startswith("element_decisions.")}
+            self.assertEqual(covered, set(engine.PROTOCOL_TYPES))
+
+    def test_legacy_four_stage_session_remains_readable_and_finalizable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir(); engine.init_workspace(project, home)
+            theme = engine.new_semantic_theme("TEST-LEGACY-SESSION", "Legacy", native_4k=True, live_action=True)
+            session = {
+                "schema_version": "0.6.0", "session_id": "SESSION-LEGACY-060", "brief": "legacy session",
+                "project_root": str(project.resolve()), "state": "character_pending", "shot_count": 9,
+                "stages": {stage: {"status": "pending", "selection": [], "confirmed_at": None} for stage in engine.INTERACTION_STAGES},
+                "private_references": [], "memory_offers": [], "invalidations": [],
+                "created_at": "2026-07-16T00:00:00Z", "updated_at": "2026-07-16T00:00:00Z", "theme_artifact": None,
+            }
+            engine._write_session(session, theme, project)
+            assets = engine.load_catalog()["assets"]
+            for stage in engine.INTERACTION_STAGES:
+                refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.STAGE_TYPES[stage]]
+                session = engine.commit_session_stage(session["session_id"], stage, refs, project_root=project, home=home)
+            self.assertEqual(session["state"], "review_pending")
+            ready = engine.finalize_design_session(session["session_id"], project_root=project, home=home)
+            self.assertEqual(ready["state"], "ready")
+
+    def test_element_contract_rejects_weakening_delivery_and_visual_qa_rules(self):
+        theme = engine.new_semantic_theme("TEST-ELEMENT-GUARD", "Guard")
+        decisions = engine.propose_element_decisions("安静人像", theme)
+        decisions["job"]["values"]["one_job_one_image"] = False
+        decisions["quality_control"]["values"]["human_visual_qa"] = "visual_qa_passed"
+        errors = engine.validate_element_decisions(decisions, require_confirmed=False)
+        self.assertTrue(any("one_job_one_image" in error for error in errors))
+        self.assertTrue(any("cannot pass without evidence" in error for error in errors))
 
     def test_init_respects_custom_home_and_writes_safe_ignore_rules(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -229,20 +319,25 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(loaded["state"], "review_pending")
             custom = self._custom_asset(namespace="mine")
             engine.save_registry_asset(custom, scope="project", project_root=project, home=home)
-            changed = engine.commit_session_stage(session["session_id"], "character", [engine.asset_ref(custom)], project_root=project, home=home)
-            self.assertEqual(changed["state"], "world_pending")
-            self.assertEqual(changed["stages"]["character"]["status"], "confirmed")
-            self.assertTrue(all(changed["stages"][name]["status"] == "pending" for name in ("world", "scene", "photo")))
-            self.assertEqual({item["invalidated"] for item in changed["invalidations"]}, {"world", "scene", "photo"})
+            assets = engine.load_catalog()["assets"]
+            refs = [engine.asset_ref(custom)] + [engine.asset_ref(item) for item in assets if item["type"] == "environment"]
+            changed = engine.commit_element_layer(session["session_id"], "worldbuilding", refs, project_root=project, home=home)
+            self.assertEqual(changed["state"], "narrative_pending")
+            self.assertEqual(changed["layers"]["worldbuilding"]["status"], "confirmed")
+            self.assertTrue(all(changed["layers"][name]["status"] == "pending" for name in ("narrative", "image", "delivery")))
+            self.assertEqual({item["invalidated"] for item in changed["invalidations"]}, {"narrative", "image", "delivery"})
 
     def test_confirmed_natural_language_draft_becomes_project_dna_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("设计人物", project_root=project, home=home, theme_id="TEST-DRAFT")
+            session = self._confirm_direction(session, project, home)
             draft = self._custom_asset(namespace="mine")
-            session = engine.commit_session_stage(session["session_id"], "character", [], project_root=project, home=home, draft_assets=[draft])
-            self.assertEqual(session["state"], "world_pending")
-            self.assertEqual(session["stages"]["character"]["selection"][0]["id"], draft["id"])
+            assets = engine.load_catalog()["assets"]
+            refs = [engine.asset_ref(draft)] + [engine.asset_ref(item) for item in assets if item["type"] == "environment"]
+            session = engine.commit_element_layer(session["session_id"], "worldbuilding", refs, project_root=project, home=home, draft_assets=[draft])
+            self.assertEqual(session["state"], "narrative_pending")
+            self.assertEqual(next(ref for ref in session["layers"]["worldbuilding"]["selection"] if ref["type"] == "character")["id"], draft["id"])
             self.assertTrue(list((project / ".apsal/registry").rglob("asset.apsal.json")))
             self.assertFalse(list((home / "registry").rglob("asset.apsal.json")))
             self.assertEqual(len(session["memory_offers"]), 1)
@@ -279,10 +374,13 @@ class EngineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("安静窗边成年人物", project_root=project, home=home, theme_id="TEST-MEMORY")
+            session = self._confirm_direction(session, project, home)
             draft = self._custom_asset(namespace="maker")
             discovery = engine.suggest_discovery_metadata(draft, session["brief"])
             draft["discovery"] = engine.confirm_discovery_metadata(discovery)
-            session = engine.commit_session_stage(session["session_id"], "character", [], project_root=project, home=home, draft_assets=[draft])
+            assets = engine.load_catalog()["assets"]
+            refs = [engine.asset_ref(draft)] + [engine.asset_ref(item) for item in assets if item["type"] == "environment"]
+            session = engine.commit_element_layer(session["session_id"], "worldbuilding", refs, project_root=project, home=home, draft_assets=[draft])
             offer = session["memory_offers"][0]
             self.assertFalse(offer["tag_confirmation_required"])
             self.assertFalse(list((home / "registry").rglob("asset.apsal.json")))
@@ -348,10 +446,10 @@ class EngineTests(unittest.TestCase):
             _, theme = engine.load_design_session(session["session_id"], project)
             shots = deepcopy(theme["shots"]); shots[3]["narrative_purpose"] = "A newly confirmed single-shot narrative purpose."
             assets = engine.load_catalog()["assets"]
-            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.STAGE_TYPES["scene"]]
-            changed = engine.commit_session_stage(session["session_id"], "scene", refs, project_root=project, home=home, shots=shots)
-            self.assertEqual(changed["state"], "photo_pending")
-            self.assertEqual(changed["stages"]["photo"]["status"], "pending")
+            refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES["narrative"]]
+            changed = engine.commit_element_layer(session["session_id"], "narrative", refs, project_root=project, home=home, shots=shots)
+            self.assertEqual(changed["state"], "image_pending")
+            self.assertEqual(changed["layers"]["image"]["status"], "pending")
 
     def test_finalize_hides_formats_and_saves_all_prompt_layers(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -415,24 +513,30 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_fifteen_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_eighteen_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
             requests = [
                 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
                 {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "present_dna_cards", "arguments": {"project_root": str(project), "stage": "character"}}},
+                {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "present_element_layer", "arguments": {"project_root": str(project), "session_id": session["session_id"], "layer": "direction"}}},
             ]
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.6.1")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 15)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.7.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 18)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
             self.assertNotIn("preview", cards[0])
             self.assertNotIn("preview_metadata", cards[0])
             self.assertIn("change_summary", cards[0]["summary"] if isinstance(cards[0]["summary"], dict) else {"change_summary": cards[0]["summary"]})
+            elements = responses[3]["result"]["structuredContent"]["cards"]
+            self.assertEqual([card["role"] for card in elements], ["content", "emotion"])
+            self.assertTrue(all("values" in card and "observable" in card and "qa_expectations" in card for card in elements))
+            self.assertNotIn("preview", json.dumps(elements))
 
     def test_path_components_reject_traversal(self):
         with self.assertRaises(engine.ValidationError): engine._safe_part("../escape", "test")

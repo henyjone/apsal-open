@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/element-decision.schema.json",
+  "title": "APSAL Confirmed Element Decision 0.7",
+  "type": "object",
+  "required": ["role", "layer", "status", "source", "intent", "values", "observable", "must_preserve", "qa_expectations", "basis"],
+  "properties": {
+    "role": {"enum": ["subject", "world", "style", "look", "emotion", "event", "camera", "light", "color_post", "quality_control", "content", "sequence", "job"]},
+    "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]},
+    "status": {"enum": ["proposed", "confirmed"]},
+    "source": {"enum": ["proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed"]},
+    "intent": {"type": "string", "minLength": 1},
+    "values": {"type": "object"},
+    "observable": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "must_preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "qa_expectations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "basis": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "dna_refs": {"type": "array", "items": {"type": "object"}},
+    "confirmed_at": {"type": "string"}
+  },
+  "additionalProperties": false
+}

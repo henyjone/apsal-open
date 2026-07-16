@@ -51,6 +51,7 @@ def main() -> int:
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
         {"jsonrpc": "2.0", "id": 3, "method": "resources/list", "params": {}},
         {"jsonrpc": "2.0", "id": 4, "method": "resources/read", "params": {"uri": "ui://apsal/dna-cards.html"}},
+        {"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "ui://apsal/element-cards.html"}},
     )
     process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=PLUGIN, input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True)
     if process.returncode:
@@ -58,19 +59,26 @@ def main() -> int:
     else:
         try: responses = [json.loads(line) for line in process.stdout.splitlines()]
         except json.JSONDecodeError as exc: errors.append(f"MCP smoke test returned invalid JSON: {exc}"); responses = []
-        if len(responses) != 4: errors.append("MCP smoke test: expected four responses")
-        elif len(responses[1].get("result", {}).get("tools", [])) != 15: errors.append("MCP smoke test: expected fifteen tools")
-        elif not {"recommend_dna", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
-            errors.append("MCP smoke test: 0.6 recommendation, memory, or exchange tools missing")
+        if len(responses) != 5: errors.append("MCP smoke test: expected five responses")
+        elif responses[0].get("result", {}).get("serverInfo", {}).get("version") != manifest.get("version"): errors.append("MCP smoke test: server and manifest versions differ")
+        elif len(responses[1].get("result", {}).get("tools", [])) != 18: errors.append("MCP smoke test: expected eighteen tools")
+        elif not {"recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
+            errors.append("MCP smoke test: 0.7 layer, recommendation, memory, or exchange tools missing")
+        elif len(responses[2].get("result", {}).get("resources", [])) != 2:
+            errors.append("MCP smoke test: expected DNA and element-card resources")
         elif "APSAL DNA Registry" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA card UI resource missing")
         elif "<img" in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA selection UI must be text-only")
+        elif "APSAL 十三元素" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
+            errors.append("MCP smoke test: thirteen-element card UI resource missing")
+        elif "<img" in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
+            errors.append("MCP smoke test: element decision UI must be text-only")
 
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 15 MCP tools, card resource")
+    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 18 MCP tools, two text-card resources")
     return 0
 
 

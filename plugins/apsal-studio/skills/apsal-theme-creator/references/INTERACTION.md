@@ -1,8 +1,8 @@
-# APSAL Studio 0.6.1 interaction contract
+# APSAL Studio 0.7 interaction contract
 
 ## What creators see
 
-The creator sees natural language, compact text-only DNA cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
+The creator sees natural language, compact text-only element and DNA cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
 
 Each DNA card is textual and must display its title, stable reference, core constraints, scope (`project`, `personal`, `extension`, or `official`), version, rights license, attribution, QA state, recommendation reason, matched tags and relevant scene facets. Do not render Registry thumbnails in the selection flow. Preview sidecars remain background assets for rights review, validation and Extension Pack exchange. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
 
@@ -20,18 +20,21 @@ After confirmation, ask whether project DNA should move to “My DNA.” Offer e
 
 Do not ask for bundled official DNA, installed extension DNA, or a version already in the personal Registry. Record successful/failed/rejected usage as private scoring memory without storing the raw brief.
 
-## Four creator-facing DNA groups
+## Five layers expose all thirteen protocol roles
 
-The UI uses four understandable groups without introducing competing protocol types:
+The UI groups decisions for human comprehension without inventing competing protocol types:
 
-| Stage | Internal DNA | Creator decision |
-|---|---|---|
-| Character | character | adult identity, reference, immutable locks |
-| World | environment | space, materials, physical rules, time, continuity |
-| Scene | composition + shot | sequence strategy, nine events, order, viewpoints |
-| Photo | style + lighting | photographic rhetoric, optics, light and color |
+| Layer | Protocol roles | Registry DNA | Creator decision |
+|---|---|---|---|
+| Direction | Content + Emotion | none | proposition, mood, energy, tension and emotional arc |
+| Worldbuilding | Subject + World + Look | character + environment | identity, space, time, wardrobe, grooming, props and ownership |
+| Narrative | Event + Sequence | composition + shot | event, consequences, rhythm, nine functions and order |
+| Image | Camera + Light + Style + Color/Post | style + lighting | viewpoint, lens, composition, light, palette and rendering |
+| Delivery | Job + Quality Control | qa | output contract, rejection rules and evidence |
 
-QA DNA remains an internal required dependency and is not presented as a creative style choice.
+The seven DNA categories remain reusable Registry assets. The thirteen roles remain the machine protocol. The five layers are only the conversation order that ensures none of those roles is omitted.
+
+Each element card shows its purpose, current values, source, observable effect, invariants and QA expectations. Direction must classify emotion with a controlled primary tone, optional secondary tones, undertone, valence, arousal, expression, energy and tension, plus a `start → turn → end` arc. If the brief combines positive and negative tones, keep both and propose mixed valence instead of silently discarding one. Chinese concepts such as 意境 or 气韵 may explain relationships, but do not replace observable behavior, light, color, space or sequence decisions.
 
 ## State transitions
 
@@ -39,23 +42,24 @@ Use this order:
 
 ```text
 brief
-→ character_pending
-→ world_pending
-→ scene_pending
-→ photo_pending
+→ direction_pending
+→ worldbuilding_pending
+→ narrative_pending
+→ image_pending
+→ delivery_pending
 → review_pending
 → ready
 → generating
 → completed / partial
 ```
 
-A creator may return to an earlier stage. Committing a changed upstream selection invalidates all confirmed downstream stages and compiled prompts. Explain which stages need confirmation again.
+A creator may return to an earlier layer. Committing a changed upstream decision invalidates all confirmed downstream layers and compiled Prompts. Explain which layers and elements need confirmation again.
 
 ## Natural-language revision
 
 Translate requests such as “人物更成熟，但保留短发” into a proposed DNA revision. Explain the one intended variable and the locks that remain. Save drafts automatically to the project. Confirmation promotes the draft to project DNA; copy it to personal DNA only after an explicit “保存到我的 DNA”. Never edit a formal ID/version in place.
 
-At Scene, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, 9:16-safe composition, continuity phase, and output filename. Default is one Job and one 2160×3840 PNG.
+At Narrative, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, 9:16-safe composition, continuity phase, and output filename. Default is one Job and one 2160×3840 PNG.
 
 ## Reference binding
 

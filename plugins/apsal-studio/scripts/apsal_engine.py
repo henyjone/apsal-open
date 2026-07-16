@@ -33,7 +33,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.6.0"
+ENGINE_VERSION = "0.7.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -47,8 +47,24 @@ STAGE_TYPES = {
     "scene": ("composition", "shot"),
     "photo": ("style", "lighting"),
 }
+CREATIVE_LAYERS = ("direction", "worldbuilding", "narrative", "image", "delivery")
+LAYER_ROLES = {
+    "direction": ("content", "emotion"),
+    "worldbuilding": ("subject", "world", "look"),
+    "narrative": ("event", "sequence"),
+    "image": ("camera", "light", "style", "color_post"),
+    "delivery": ("job", "quality_control"),
+}
+LAYER_TYPES = {
+    "direction": (),
+    "worldbuilding": ("character", "environment"),
+    "narrative": ("composition", "shot"),
+    "image": ("style", "lighting"),
+    "delivery": ("qa",),
+}
 SESSION_STATES = (
     "character_pending", "world_pending", "scene_pending", "photo_pending",
+    "direction_pending", "worldbuilding_pending", "narrative_pending", "image_pending", "delivery_pending",
     "review_pending", "ready", "generating", "completed", "partial",
 )
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
@@ -131,6 +147,10 @@ def load_semantic_registry() -> dict[str, Any]:
 
 def load_recommendation_registry() -> dict[str, Any]:
     return load_json(plugin_root() / "assets" / "semantics" / "recommendation.json")
+
+
+def load_creative_layers() -> dict[str, Any]:
+    return load_json(plugin_root() / "assets" / "semantics" / "creative-layers.json")
 
 
 def allowed_semantic_tags() -> set[str]:
@@ -573,25 +593,29 @@ def record_dna_feedback(
 
 def recommend_dna(
     brief: str, stage: str, *, project_root: Path, home: Path | None = None,
-    session_id: str | None = None, limit: int = 6,
+    session_id: str | None = None, limit: int = 6, _asset_types: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Rank DNA for one scene stage and explain every recommendation."""
     if not brief.strip(): raise ValidationError("recommendation brief cannot be empty")
-    if stage not in INTERACTION_STAGES: raise ValidationError(f"unknown interaction stage: {stage}")
+    if stage not in INTERACTION_STAGES and stage not in CREATIVE_LAYERS: raise ValidationError(f"unknown interaction stage: {stage}")
     project_root = project_root.resolve(); home = (home or apsal_home()).resolve()
+    allowed_types = _asset_types or (STAGE_TYPES[stage] if stage in STAGE_TYPES else LAYER_TYPES[stage])
     context = _detect_recommendation_context(brief); context_tags = set(context["semantic_tags"])
     context_facets = {key: set(value if isinstance(value, list) else [value]) for key, value in context["facets"].items()}
     selected_refs: list[dict[str, str]] = []
     if session_id:
         session, _ = load_design_session(session_id, project_root)
-        for prior in INTERACTION_STAGES[:INTERACTION_STAGES.index(stage)]: selected_refs.extend(session["stages"][prior].get("selection", []))
+        if session.get("schema_version") == "0.7.0" and stage in CREATIVE_LAYERS:
+            for prior in CREATIVE_LAYERS[:CREATIVE_LAYERS.index(stage)]: selected_refs.extend(session["layers"][prior].get("selection", []))
+        elif stage in INTERACTION_STAGES:
+            for prior in INTERACTION_STAGES[:INTERACTION_STAGES.index(stage)]: selected_refs.extend(session["stages"][prior].get("selection", []))
     selected_keys = {tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version")) for ref in selected_refs}
     weights = _usage_weights(home); scope_bonus = {"project": 3, "personal": 2, "extension": 1, "official": 0}
     brief_terms = {term for term in re.findall(r"[a-z0-9-]{2,}", brief.casefold())}
     recommendations: list[tuple[int, int, str, dict[str, Any]]] = []
     for record in load_layered_registry(project_root, home):
         asset = record["asset"]
-        if asset["type"] not in STAGE_TYPES[stage]: continue
+        if asset["type"] not in allowed_types: continue
         discovery = asset.get("discovery") or suggest_discovery_metadata(asset)
         tags = set(discovery.get("semantic_tags", [])); matched_tags = sorted(tags & context_tags)
         facets = discovery.get("facets", {}); matched_facets = []
@@ -618,6 +642,24 @@ def recommend_dna(
     return {
         "stage": stage, "context": context, "selected_upstream_refs": selected_refs,
         "recommendations": selected, "count": len(selected),
+        "ranking_policy": ["identity_rights_medium", "scene_intent", "dependency_compatibility", "photo_language", "personal_memory", "qa_scope"],
+    }
+
+
+def recommend_layer_dna(
+    brief: str, layer: str, *, project_root: Path, home: Path | None = None,
+    session_id: str | None = None, limit_per_type: int = 3,
+) -> dict[str, Any]:
+    """Recommend at least one explained candidate for every DNA type required by a creative layer."""
+    if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
+    by_type: dict[str, list[dict[str, Any]]] = {}
+    for asset_type in LAYER_TYPES[layer]:
+        value = recommend_dna(brief, layer, project_root=project_root, home=home, session_id=session_id,
+                              limit=limit_per_type, _asset_types=(asset_type,))
+        by_type[asset_type] = value["recommendations"]
+    return {
+        "layer": layer, "required_types": list(LAYER_TYPES[layer]), "by_type": by_type,
+        "count": sum(len(items) for items in by_type.values()),
         "ranking_policy": ["identity_rights_medium", "scene_intent", "dependency_compatibility", "photo_language", "personal_memory", "qa_scope"],
     }
 
@@ -799,6 +841,183 @@ def new_semantic_theme(
     return theme
 
 
+def _mood_profile(brief: str) -> dict[str, Any]:
+    registry = load_creative_layers(); folded = brief.casefold()
+    profiles = registry["mood_profiles"]
+    matches: list[tuple[int, int, dict[str, Any]]] = []
+    for order, profile in enumerate(profiles):
+        positions = [folded.find(term.casefold()) for term in profile["terms"] if folded.find(term.casefold()) >= 0]
+        if positions: matches.append((min(positions), order, profile))
+    matches.sort(key=lambda item: (item[0], item[1]))
+    primary = matches[0][2] if matches else profiles[-1]
+    result = json.loads(json.dumps(primary))
+    secondary = []
+    for _, _, profile in matches[1:]:
+        if profile["id"] != primary["id"] and profile["id"] not in secondary: secondary.append(profile["id"])
+    result["secondary_tones"] = secondary
+    matched_valences = {item[2]["valence"] for item in matches}
+    if "positive" in matched_valences and "negative" in matched_valences: result["valence"] = "mixed"
+    return result
+
+
+def _decision(
+    role: str, layer: str, intent: str, values: dict[str, Any], observable: list[str],
+    must_preserve: list[str], qa_expectations: list[str], *, source: str = "proposed_from_brief",
+    basis: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "role": role, "layer": layer, "status": "proposed", "source": source,
+        "intent": intent, "values": values, "observable": observable,
+        "must_preserve": must_preserve, "qa_expectations": qa_expectations,
+        "basis": basis or ["natural_language_brief"], "dna_refs": [],
+    }
+
+
+def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Create a deterministic, editable proposal covering all thirteen protocol roles."""
+    mood = _mood_profile(brief); output = theme["output"]; count = len(theme["shots"])
+    arc = dict(mood["arc"])
+    return {
+        "content": _decision("content", "direction", f"Turn the creator brief into one concrete photographic proposition: {brief}", {
+            "theme_statement": brief, "subject_matter": "one coherent live-action photographic world",
+            "central_tension": "the visible situation must reveal a change rather than a decorative pose",
+        }, [f"Every frame remains recognizably about: {brief}", "Objects and actions support one central proposition."],
+            ["creator intent", "rights provenance"], ["The theme remains legible without explanatory text."]),
+        "emotion": _decision("emotion", "direction", "Translate the overall emotional direction into observable behavior and a nine-shot arc.", {
+            "primary_tone": mood["id"], "secondary_tones": mood["secondary_tones"], "undertone": mood["undertone"], "valence": mood["valence"],
+            "arousal": mood["arousal"], "expression": mood["expression"], "energy": mood["energy"],
+            "tension": mood["tension"], "arc": arc,
+        }, [f"Primary tone: {mood['id']}; undertone: {mood['undertone']}.",
+            f"Emotional progression: {arc['start']} → {arc['turn']} → {arc['end']}.",
+            f"Expression is {mood['expression']}; energy is {mood['energy']}; tension is {mood['tension']}."],
+            ["subject identity", "emotion must be shown through gaze, breath, gesture and distance"],
+            ["The declared tone is observable without relying on a facial-expression label.", "The final frame completes the declared emotional arc."]),
+        "subject": _decision("subject", "worldbuilding", "Define who exists and which identity traits never drift.", {
+            "identity": "one stable fictional adult identity", "representation": "real adult human in live-action photography",
+            "identity_locks": ["face geometry", "age band", "skin characteristics", "hair", "body proportions"],
+        }, ["The same real adult subject remains identifiable across every Job."],
+            ["stable identity", "adult age", "natural anatomy"], ["Identity remains continuous in all outputs."]),
+        "world": _decision("world", "worldbuilding", "Construct one coherent physical world with persistent spatial and material rules.", {
+            "space": "one coherent physical location", "time": "one continuous time phase", "materials": ["photographically plausible materials"],
+            "physical_rules": ["consistent geometry", "gravity", "reflection", "material response"],
+            "continuity": ["location", "time", "weather", "object placement"],
+        }, ["Architecture, entrances, windows, reflections and object positions remain physically coherent."],
+            ["world geometry", "physical causality"], ["Every Job can be inferred to belong to the same world."]),
+        "look": _decision("look", "worldbuilding", "Define wardrobe, grooming and prop ownership as world state rather than decoration.", {
+            "wardrobe": "one locked wardrobe look unless a declared event changes it", "grooming": "consistent across the sequence",
+            "props": [], "ownership_policy": "every prop has one declared owner, location and state",
+        }, ["Wardrobe and grooming stay continuous.", "Every visible prop has stable ownership and changes state only through an event."],
+            ["wardrobe continuity", "prop ownership", "material continuity"], ["No prop duplicates, floats or changes owner without cause."]),
+        "event": _decision("event", "narrative", "Make an observable event change world state before designing poses.", {
+            "inciting_action": "one observable action initiates the sequence", "state_changes": ["each major action leaves a visible consequence"],
+            "consequences": ["later Jobs inherit the changed state"],
+        }, ["Actions are physically legible and leave consequences visible in later frames."],
+            ["subject identity", "world physics", "prop ownership"], ["Every action changes or reveals state rather than serving as an empty pose."]),
+        "sequence": _decision("sequence", "narrative", "Organize multiple viewpoints into time, rhythm and narrative progression.", {
+            "strategy": "establish → approach → trigger → develop → interiorize → reveal → turn → release → resolve" if count == 9 else "distinct functional progression",
+            "rhythm": "measured progression with no duplicate shot function", "progression": list(arc.values()), "shot_count": count,
+        }, [f"The {count} Jobs form a readable progression with distinct functions.", "Information, distance, action and emotion evolve across the sequence."],
+            ["event consequences", "world continuity", "shot order"], ["No two Jobs repeat the same narrative function."]),
+        "camera": _decision("camera", "image", "Choose necessary viewpoints and photographic coverage for each independent Job.", {
+            "viewpoint": "one coherent physical camera position per Job", "coverage": f"{count} distinct viewpoints",
+            "framing_language": "environment, full, medium, close and detail frames used by narrative need",
+            "lens_language": "physically plausible perspective without arbitrary lens drift",
+            "composition": "subject, depth, foreground, background and negative space form one relation system",
+        }, ["Every Job has one motivated viewpoint and visibly distinct composition."],
+            ["world geometry", "required action visibility"], ["Framing and perspective match the declared shot function."]),
+        "light": _decision("light", "image", "Make time, depth, material and emotion visible through physically coherent light.", {
+            "source": "one motivated key source with declared practical or ambient support", "direction": "consistent with the world",
+            "quality": "physically plausible softness and falloff", "contrast": "motivated by the emotional direction",
+            "time_phase": "continuous unless the sequence declares a transition", "continuity": "direction, shadow and exposure remain traceable",
+        }, ["Light direction, shadow, falloff and reflections agree with one physical setup."],
+            ["skin tone", "world geometry", "time continuity"], ["No contradictory shadows or unmotivated lighting changes appear."]),
+        "style": _decision("style", "image", "Define observable photographic rhetoric without using an artist name as a shortcut.", {
+            "photographic_genre": "restrained live-action editorial photography", "visual_rhetoric": "world-led rather than effect-led",
+            "texture": "photographic material detail", "realism": "live-action photographic realism",
+        }, ["The image reads as intentional photography with coherent texture and visual rhetoric."],
+            ["live-action human medium", "world material response"], ["Style never overrides identity, physics, event or camera logic."]),
+        "color_post": _decision("color_post", "image", "Organize color and rendering as relationships among skin, wardrobe, props, space, mood and time.", {
+            "palette": ["world-derived base colors", "one restrained accent"], "temperature": "motivated by light and emotional arc",
+            "saturation": "controlled", "contrast_curve": "preserve skin and material latitude", "grain": "subtle photographic grain",
+            "sharpness": "natural detail without synthetic oversharpening", "dynamic_range": "retain highlight and shadow information",
+            "skin_tone_policy": "natural and stable across all Jobs",
+        }, ["Palette, skin tone, saturation, contrast and grain remain relationally coherent across the set."],
+            ["natural skin tone", "light motivation", "material distinctions"], ["No global filter destroys skin, material or time relationships."]),
+        "job": _decision("job", "delivery", "Freeze each viewpoint as one independent, reproducible generation Job.", {
+            "one_job_one_image": True, "output_count": output["count"], "aspect_ratio": output["aspect_ratio"],
+            "size": output.get("size", "not_reported"), "format": output.get("format", "not_reported"),
+        }, [f"Produce {output['count']} independent {output['aspect_ratio']} images, exactly one image per Job."],
+            ["unique output filename", "no grid", "no text", "no watermark"], ["Each Job produces exactly one independently usable image."],
+            source="system_policy", basis=["output_contract"]),
+        "quality_control": _decision("quality_control", "delivery", "Define evidence that accepts or rejects each Job and the complete set.", {
+            "required_checks": ["identity", "live-action medium", "anatomy and hands", "world geometry", "prop ownership", "lighting", "color", "continuity", "shot intent", "rights"],
+            "reject_if": ["illustrated person", "identity drift", "anatomy failure", "prop duplication", "contradictory light", "collage or text"],
+            "human_visual_qa": "pending until evidence",
+        }, ["Every Job carries model visual QA and separate pending human visual QA."],
+            ["rights provenance", "successful outputs are immutable"], ["A failed required check rejects the Job; static validation never claims visual quality."],
+            source="system_policy", basis=["protocol_quality_policy"]),
+    }
+
+
+def validate_element_decisions(decisions: Any, *, require_confirmed: bool = True) -> list[str]:
+    errors: list[str] = []; spec = load_creative_layers(); required_values = spec["required_values"]
+    if not isinstance(decisions, dict) or set(decisions) != set(PROTOCOL_TYPES):
+        return ["element decisions must contain exactly the thirteen protocol roles"]
+    emotion_taxonomy = spec["emotion_taxonomy"]
+    list_fields = {
+        "emotion": {"secondary_tones"}, "subject": {"identity_locks"},
+        "world": {"materials", "physical_rules", "continuity"}, "look": {"props"},
+        "event": {"state_changes", "consequences"}, "sequence": {"progression"},
+        "color_post": {"palette"}, "quality_control": {"required_checks", "reject_if"},
+    }
+    non_string_fields = {"emotion": {"arc", "secondary_tones"}, "subject": {"identity_locks"},
+                         "world": {"materials", "physical_rules", "continuity"}, "look": {"props"},
+                         "event": {"state_changes", "consequences"}, "sequence": {"progression", "shot_count"},
+                         "color_post": {"palette"}, "job": {"one_job_one_image", "output_count"},
+                         "quality_control": {"required_checks", "reject_if"}}
+    for role in PROTOCOL_TYPES:
+        decision = decisions.get(role); label = f"element_decisions.{role}"
+        if not isinstance(decision, dict): errors.append(f"{label}: must be an object"); continue
+        expected_layer = next(layer for layer, roles in LAYER_ROLES.items() if role in roles)
+        if decision.get("role") != role or decision.get("layer") != expected_layer: errors.append(f"{label}: role or layer mismatch")
+        if decision.get("status") not in {"proposed", "confirmed"}: errors.append(f"{label}: invalid status")
+        if require_confirmed and decision.get("status") != "confirmed": errors.append(f"{label}: creator confirmation is required")
+        if decision.get("source") not in {"proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed"}: errors.append(f"{label}: invalid source")
+        if not isinstance(decision.get("intent"), str) or not decision["intent"].strip(): errors.append(f"{label}: intent is required")
+        values = decision.get("values")
+        if not isinstance(values, dict): errors.append(f"{label}: values must be an object"); values = {}
+        missing = set(required_values[role]) - set(values)
+        if missing: errors.append(f"{label}: missing values {sorted(missing)}")
+        for field in list_fields.get(role, set()):
+            value = values.get(field)
+            allow_empty = (role, field) in {("emotion", "secondary_tones"), ("look", "props")}
+            if not isinstance(value, list) or (not value and not allow_empty) or any(not isinstance(item, str) or not item.strip() for item in value):
+                errors.append(f"{label}.values.{field}: must be {'a' if allow_empty else 'a non-empty'} string array")
+        for field in set(required_values[role]) - non_string_fields.get(role, set()):
+            if not isinstance(values.get(field), str) or not values[field].strip(): errors.append(f"{label}.values.{field}: non-empty text is required")
+        for field in ("observable", "must_preserve", "qa_expectations", "basis"):
+            items = decision.get(field)
+            if not isinstance(items, list) or not items or any(not isinstance(item, str) or not item.strip() for item in items): errors.append(f"{label}.{field}: must be a non-empty string array")
+        if not isinstance(decision.get("dna_refs", []), list): errors.append(f"{label}.dna_refs: must be an array")
+    emotion = decisions.get("emotion", {}).get("values", {}) if isinstance(decisions.get("emotion"), dict) else {}
+    for field in ("primary_tone", "undertone", "valence", "arousal", "expression", "energy", "tension"):
+        allowed_key = "primary_tones" if field == "primary_tone" else "undertones" if field == "undertone" else field
+        if emotion.get(field) not in emotion_taxonomy[allowed_key]: errors.append(f"element_decisions.emotion.values.{field}: unknown controlled value")
+    secondary = emotion.get("secondary_tones")
+    if not isinstance(secondary, list) or len(secondary) != len(set(secondary)) or any(value not in emotion_taxonomy["primary_tones"] or value == emotion.get("primary_tone") for value in secondary):
+        errors.append("element_decisions.emotion.values.secondary_tones: requires unique controlled tones different from primary_tone")
+    arc = emotion.get("arc")
+    if not isinstance(arc, dict) or set(arc) != {"start", "turn", "end"} or any(not str(value).strip() for value in arc.values()): errors.append("element_decisions.emotion.values.arc: requires start, turn and end")
+    sequence = decisions.get("sequence", {}).get("values", {}) if isinstance(decisions.get("sequence"), dict) else {}
+    if not isinstance(sequence.get("shot_count"), int) or isinstance(sequence.get("shot_count"), bool) or sequence.get("shot_count", 0) < 1: errors.append("element_decisions.sequence.values.shot_count: positive integer required")
+    job = decisions.get("job", {}).get("values", {}) if isinstance(decisions.get("job"), dict) else {}
+    if job.get("one_job_one_image") is not True: errors.append("element_decisions.job.values.one_job_one_image: must remain true")
+    if not isinstance(job.get("output_count"), int) or isinstance(job.get("output_count"), bool) or job.get("output_count", 0) < 1: errors.append("element_decisions.job.values.output_count: positive integer required")
+    quality = decisions.get("quality_control", {}).get("values", {}) if isinstance(decisions.get("quality_control"), dict) else {}
+    if quality.get("human_visual_qa") in {"passed", "visual_qa_passed"}: errors.append("element_decisions.quality_control.values.human_visual_qa: cannot pass without evidence")
+    return errors
+
+
 def validate_catalog() -> list[str]:
     errors: list[str] = []
     seen: set[tuple[str, str, str]] = set()
@@ -826,6 +1045,52 @@ def validate_catalog() -> list[str]:
     missing = set(CATEGORIES) - categories
     if missing:
         errors.append(f"catalog: missing categories {sorted(missing)}")
+    return errors
+
+
+def validate_creative_layers() -> list[str]:
+    """Keep the five creator layers synchronized with all protocol and DNA roles."""
+    errors: list[str] = []
+    try:
+        spec = load_creative_layers()
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return [f"creative layers: unreadable: {exc}"]
+    layers = spec.get("layers", [])
+    ids = [item.get("id") for item in layers if isinstance(item, dict)]
+    if ids != list(CREATIVE_LAYERS):
+        errors.append("creative layers: order or IDs do not match the five-layer engine contract")
+    declared_roles: list[str] = []
+    declared_types: list[str] = []
+    for item in layers:
+        if not isinstance(item, dict):
+            errors.append("creative layers: every layer must be an object"); continue
+        layer = item.get("id")
+        if layer not in CREATIVE_LAYERS: continue
+        if item.get("roles") != list(LAYER_ROLES[layer]): errors.append(f"creative layers.{layer}: role mapping mismatch")
+        if item.get("dna_types") != list(LAYER_TYPES[layer]): errors.append(f"creative layers.{layer}: DNA mapping mismatch")
+        if not str(item.get("zh", "")).strip() or not str(item.get("en", "")).strip(): errors.append(f"creative layers.{layer}: bilingual titles are required")
+        declared_roles.extend(item.get("roles", [])); declared_types.extend(item.get("dna_types", []))
+    if len(declared_roles) != len(set(declared_roles)) or set(declared_roles) != set(PROTOCOL_TYPES):
+        errors.append("creative layers: the thirteen protocol roles must each appear exactly once")
+    if len(declared_types) != len(set(declared_types)) or set(declared_types) != set(CATEGORIES):
+        errors.append("creative layers: the seven Registry DNA types must each appear exactly once")
+    required_values = spec.get("required_values", {})
+    if set(required_values) != set(PROTOCOL_TYPES) or any(not isinstance(value, list) or not value for value in required_values.values()):
+        errors.append("creative layers: every protocol role requires a non-empty value contract")
+    taxonomy = spec.get("emotion_taxonomy", {})
+    for key in ("primary_tones", "undertones", "valence", "arousal", "expression", "energy", "tension"):
+        values = taxonomy.get(key)
+        if not isinstance(values, list) or not values or len(values) != len(set(values)): errors.append(f"creative layers.emotion_taxonomy.{key}: non-empty unique values required")
+    profiles = spec.get("mood_profiles", [])
+    profile_ids = [item.get("id") for item in profiles if isinstance(item, dict)]
+    if set(profile_ids) != set(taxonomy.get("primary_tones", [])): errors.append("creative layers: mood profiles must cover every primary tone")
+    for profile in profiles:
+        if not isinstance(profile, dict): continue
+        for field in ("undertone", "valence", "arousal", "expression", "energy", "tension"):
+            allowed = taxonomy.get("undertones" if field == "undertone" else field, [])
+            if profile.get(field) not in allowed: errors.append(f"creative layers.mood_profiles.{profile.get('id')}.{field}: unknown value")
+        arc = profile.get("arc")
+        if not isinstance(arc, dict) or set(arc) != {"start", "turn", "end"}: errors.append(f"creative layers.mood_profiles.{profile.get('id')}: complete emotional arc required")
     return errors
 
 
@@ -862,6 +1127,7 @@ def validate_semantic_registry() -> list[str]:
         field = fields.get(f"shots.*.{name}", {})
         for key in ("en", "zh", "role", "affects", "compile_stage", "qa"):
             if not field.get(key): errors.append(f"semantic registry field {name}: missing {key}")
+    errors.extend(validate_creative_layers())
     return errors
 
 
@@ -1084,6 +1350,8 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
         elif "initial_version" not in theme.get("changed_fields", []):
             errors.append("theme: new semantic asset without a parent must declare initial_version")
         errors.extend(validate_semantic_theme(theme))
+    if "element_decisions" in theme:
+        errors.extend(validate_element_decisions(theme["element_decisions"], require_confirmed=True))
     return errors
 
 
@@ -1163,10 +1431,25 @@ def _english_statements(contract: dict[str, Any], key: str) -> list[str]:
     return [item["en"] for item in contract.get(key, []) if isinstance(item, dict) and item.get("en")]
 
 
+def _confirmed_element_prompt(theme: dict[str, Any]) -> str:
+    decisions = theme.get("element_decisions")
+    if not isinstance(decisions, dict): return ""
+    parts = []
+    for role in PROTOCOL_TYPES:
+        if role == "quality_control": continue
+        observable = decisions.get(role, {}).get("observable", [])
+        if observable: parts.append(f"{role.upper().replace('_', ' ')}: {'; '.join(observable)}")
+    return "APSAL CONFIRMED ELEMENT DESIGN — " + " | ".join(parts) + ". " if parts else ""
+
+
 def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[str, Any]:
     ordered = sorted(assets, key=lambda a: CATEGORIES.index(a["type"]))
     shared = ", ".join(a["prompt_fragment"] for a in ordered)
     negative = ", ".join(a["negative_fragment"] for a in ordered)
+    element_prefix = _confirmed_element_prompt(theme)
+    quality_values = theme.get("element_decisions", {}).get("quality_control", {}).get("values", {})
+    reject_if = quality_values.get("reject_if", []) if isinstance(quality_values, dict) else []
+    if reject_if: negative = f"{', '.join(str(item) for item in reject_if)}, {negative}"
     rendering = theme.get("rendering_contract")
     medium_prefix = ""
     if rendering:
@@ -1188,7 +1471,7 @@ def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[
             f"Continuity: {canonical_json(shot['continuity'])}. Output file: {shot['output_filename']}."
             f"{observable_text}"
         )
-        positive = f"{medium_prefix}{shared}, {instruction}"
+        positive = f"{medium_prefix}{element_prefix}{shared}, {instruction}"
         reference_ids = [
             ref["reference_id"] for ref in theme.get("references", [])
             if "*" in ref.get("applies_to", []) or shot["shot_id"] in ref.get("applies_to", [])
@@ -1213,6 +1496,9 @@ def _compile_design(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict
         "output_contract": theme.get("output"),
         "protocol_mapping": theme.get("protocol_mapping"),
         "element_semantics": theme.get("element_semantics"),
+        "interaction_model": theme.get("interaction_model", "legacy_four_stage"),
+        "creative_layers": load_creative_layers()["layers"] if theme.get("element_decisions") else None,
+        "element_decisions": theme.get("element_decisions"),
         "dna": [{"id": asset["id"], "type": asset["type"], "version": asset["version"]} for asset in assets],
         "shots": [
             {
@@ -1229,6 +1515,13 @@ def _compile_design(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict
 
 def _compile_qa(theme: dict[str, Any]) -> dict[str, Any]:
     global_checks = []
+    for role in PROTOCOL_TYPES:
+        decision = theme.get("element_decisions", {}).get(role, {})
+        for position, expectation in enumerate(decision.get("qa_expectations", []), 1):
+            global_checks.append({
+                "id": f"element.{role}.{position:02d}", "en": expectation, "zh": expectation,
+                "scope": "theme", "source": f"element_decisions.{role}",
+            })
     quality = theme.get("element_semantics", {}).get("quality_control", {})
     for item in quality.get("qa_expectations", []):
         global_checks.append({"id": item["id"], "en": item["en"], "zh": item["zh"], "scope": "theme"})
@@ -1316,22 +1609,76 @@ def start_design_session(
     brief: str, *, project_root: Path, theme_id: str | None = None, name: str | None = None,
     shot_count: int = 9, home: Path | None = None,
 ) -> dict[str, Any]:
-    """Start a resumable four-stage natural-language design session."""
+    """Start a resumable five-layer, thirteen-element natural-language design session."""
     brief = brief.strip()
     if not brief: raise ValidationError("creative brief cannot be empty")
     project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
     theme_id = theme_id or _new_theme_id()
     theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=True, live_action=True)
+    theme["element_decisions"] = propose_element_decisions(brief, theme)
+    theme["interaction_model"] = "five_layer_thirteen_element"
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
     session = {
-        "schema_version": "0.6.0", "session_id": session_id, "brief": brief,
-        "project_root": str(project_root), "state": "character_pending", "shot_count": shot_count,
-        "stages": {stage: {"status": "pending", "selection": [], "confirmed_at": None} for stage in INTERACTION_STAGES},
+        "schema_version": "0.7.0", "interaction_model": "five_layer_thirteen_element",
+        "session_id": session_id, "brief": brief,
+        "project_root": str(project_root), "state": "direction_pending", "shot_count": shot_count,
+        "layers": {
+            layer: {"status": "pending", "roles": list(LAYER_ROLES[layer]), "selection": [], "confirmed_at": None}
+            for layer in CREATIVE_LAYERS
+        },
         "private_references": [], "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
         "theme_artifact": None,
     }
     _write_session(session, theme, project_root)
     return session
+
+
+def present_element_layer(session_id: str, layer: str, *, project_root: Path) -> dict[str, Any]:
+    """Return creator-facing text cards for one layer without exposing YAML or JSON."""
+    if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
+    session, theme = load_design_session(session_id, project_root.resolve())
+    if session.get("schema_version") != "0.7.0": raise ValidationError("element layers require an APSAL Studio 0.7 session")
+    layer_spec = next(item for item in load_creative_layers()["layers"] if item["id"] == layer)
+    cards = []
+    for role in LAYER_ROLES[layer]:
+        role_meta = load_semantic_registry()["roles"][role]; decision = theme["element_decisions"][role]
+        cards.append({
+            "role": role, "title": role_meta["zh"], "title_en": role_meta["en"],
+            "question": role_meta["question_zh"], "status": decision["status"], "source": decision["source"],
+            "intent": decision["intent"], "values": decision["values"], "observable": decision["observable"],
+            "must_preserve": decision["must_preserve"], "qa_expectations": decision["qa_expectations"],
+            "basis": decision["basis"], "dna_refs": decision.get("dna_refs", []),
+        })
+    result = {
+        "session_id": session_id, "layer": layer, "title": layer_spec["zh"], "title_en": layer_spec["en"],
+        "roles": list(LAYER_ROLES[layer]), "required_dna_types": list(LAYER_TYPES[layer]),
+        "cards": cards, "status": session["layers"][layer]["status"],
+    }
+    if layer == "direction": result["emotion_taxonomy"] = load_creative_layers()["emotion_taxonomy"]
+    return result
+
+
+def _resolve_layer_refs(
+    refs: list[dict[str, str]], layer: str, project_root: Path, home: Path | None,
+) -> list[dict[str, Any]]:
+    required = set(LAYER_TYPES[layer])
+    if not required:
+        if refs: raise ValidationError(f"{layer} layer does not select Registry DNA")
+        return []
+    records = load_layered_registry(project_root, home); by_key = {_asset_key(record["asset"]): record for record in records}
+    selected = []
+    for ref in refs:
+        key = tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version")); record = by_key.get(key)
+        if not record: raise ValidationError(f"unresolved DNA reference {_ref_label(key)}")
+        if ref.get("content_digest") and ref["content_digest"] != digest(record["asset"]): raise ValidationError(f"DNA digest mismatch for {_ref_label(key)}")
+        selected.append(record)
+    actual = [record["asset"]["type"] for record in selected]
+    if set(actual) != required or len(actual) != len(required): raise ValidationError(f"{layer} layer requires exactly one of {sorted(required)}")
+    return selected
+
+
+def _decision_compare(value: dict[str, Any]) -> dict[str, Any]:
+    return {key: value.get(key) for key in ("intent", "values", "observable", "must_preserve", "qa_expectations", "basis")}
 
 
 def _resolve_refs(
@@ -1419,6 +1766,138 @@ def _validate_shot_replacement(shots: list[dict[str, Any]], expected_count: int)
         raise ValidationError("scene shots require unique IDs and output filenames")
 
 
+def commit_element_layer(
+    session_id: str, layer: str, refs: list[dict[str, str]], *, project_root: Path,
+    decisions: dict[str, dict[str, Any]] | None = None, home: Path | None = None,
+    shots: list[dict[str, Any]] | None = None, reference_path: Path | None = None,
+    reference_bindings: list[dict[str, Any]] | None = None,
+    draft_assets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Confirm one of five creator layers and its complete subset of thirteen element decisions."""
+    if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session.get("schema_version") != "0.7.0": raise ValidationError("five-layer confirmation requires an APSAL Studio 0.7 session")
+    if session["state"] in {"ready", "generating", "completed", "partial"}: raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
+    layer_index = CREATIVE_LAYERS.index(layer)
+    for prior in CREATIVE_LAYERS[:layer_index]:
+        if session["layers"][prior]["status"] != "confirmed": raise ValidationError(f"confirm {prior} before {layer}")
+
+    proposed_assets = [json.loads(json.dumps(asset)) for asset in (draft_assets or [])]
+    for asset in proposed_assets:
+        if asset.get("type") not in LAYER_TYPES[layer]: raise ValidationError(f"draft DNA type {asset.get('type')} does not belong to {layer}")
+        if "discovery" not in asset: asset["discovery"] = suggest_discovery_metadata(asset, session["brief"])
+        errors = validate_registry_asset(asset)
+        if errors: raise ValidationError("\n".join(errors))
+        target = _registry_asset_path(project_root / ".apsal" / "registry", asset)
+        if target.exists() and digest(load_json(target)) != digest(asset): raise ValidationError(f"immutable DNA conflict for {_ref_label(_asset_key(asset))}")
+    created_assets = [save_registry_asset(asset, scope="project", project_root=project_root, home=home) for asset in proposed_assets]
+    if proposed_assets:
+        # Discovery metadata may be derived immediately before an asset is
+        # written.  Always resolve a just-created draft by the digest of the
+        # bytes that actually became immutable Registry content, not by a
+        # caller's pre-enrichment draft digest.
+        created_refs = {_asset_key(asset): created["ref"] for asset, created in zip(proposed_assets, created_assets)}
+        if refs:
+            refs = [created_refs.get(tuple(str(ref.get(name, "")) for name in ("namespace", "id", "type", "version")), ref) for ref in refs]
+        else:
+            refs = list(created_refs.values())
+    records = _resolve_layer_refs(refs, layer, project_root, home)
+    next_selection = [asset_ref(record["asset"]) for record in records]
+    selected_types = set(LAYER_TYPES[layer])
+    theme["dna"] = [ref for ref in theme["dna"] if ref["type"] not in selected_types]
+    theme["dna"].extend(next_selection); theme["dna"].sort(key=lambda ref: CATEGORIES.index(ref["type"]))
+
+    shots_changed = shots is not None and digest(shots) != digest(theme["shots"])
+    if shots is not None:
+        if layer != "narrative": raise ValidationError("shot changes are only allowed in the narrative layer")
+        _validate_shot_replacement(shots, session["shot_count"]); theme["shots"] = shots
+
+    bound_references: list[dict[str, Any]] = []; reference_changed = False
+    if reference_path is not None:
+        if layer != "worldbuilding": raise ValidationError("identity references belong to the worldbuilding layer")
+        bound_references.append(store_private_reference(reference_path, home=home))
+    for binding in reference_bindings or []:
+        if not isinstance(binding, dict) or not binding.get("path"): raise ValidationError("reference binding requires a path")
+        bound_references.append(store_private_reference(
+            Path(binding["path"]), home=home, reference_id=binding.get("reference_id"), uses=binding.get("uses"),
+            allowed_uses=binding.get("allowed_uses"), forbidden_uses=binding.get("forbidden_uses"),
+            applies_to=binding.get("applies_to"), rights=binding.get("rights"), expected_sha256=binding.get("expected_sha256"),
+        ))
+    for stored in bound_references:
+        previous = next((item for item in session["private_references"] if item.get("reference_id") == stored["reference_id"]), None)
+        if previous != stored:
+            session["private_references"] = [item for item in session["private_references"] if item.get("reference_id") != stored["reference_id"]]
+            session["private_references"].append(stored); reference_changed = True
+        public_metadata = {key: value for key, value in stored.items() if key not in {"vault_uri", "visibility", "created_at", "size"}}
+        theme.setdefault("references", []); theme["references"] = [item for item in theme["references"] if item.get("reference_id") != stored["reference_id"]]
+        theme["references"].append(public_metadata); theme["references"].sort(key=lambda item: item["reference_id"])
+        if stored["rights"].get("redistribution_allowed") is not True: theme["distribution"] = "private_only"
+
+    submitted = decisions or {}
+    unknown_roles = set(submitted) - set(LAYER_ROLES[layer])
+    if unknown_roles: raise ValidationError(f"{layer} decisions contain roles outside the layer: {sorted(unknown_roles)}")
+    previous_decisions = {role: _decision_compare(theme["element_decisions"][role]) for role in LAYER_ROLES[layer]}
+    confirmed_selections = [
+        ref for prior in CREATIVE_LAYERS[:layer_index] for ref in session["layers"][prior].get("selection", [])
+    ] + next_selection
+    mapping = load_semantic_registry()["dna_to_protocol"]
+    for role in LAYER_ROLES[layer]:
+        current = json.loads(json.dumps(theme["element_decisions"][role])); supplied = submitted.get(role, {})
+        if not isinstance(supplied, dict): raise ValidationError(f"{layer}.{role}: decision must be an object")
+        for key in ("intent", "observable", "must_preserve", "qa_expectations", "basis"):
+            if key in supplied: current[key] = supplied[key]
+        if "values" in supplied:
+            if not isinstance(supplied["values"], dict): raise ValidationError(f"{layer}.{role}.values must be an object")
+            current["values"] = {**current.get("values", {}), **supplied["values"]}
+        role_refs = [ref for ref in confirmed_selections if role in mapping.get(ref["type"], [])]
+        current.update({
+            "role": role, "layer": layer, "status": "confirmed", "source": "creator_confirmed",
+            "dna_refs": role_refs, "confirmed_at": _utc_now(),
+        })
+        if "creator_confirmation" not in current["basis"]: current["basis"].append("creator_confirmation")
+        theme["element_decisions"][role] = current
+    errors = validate_element_decisions(theme["element_decisions"], require_confirmed=False)
+    if errors: raise ValidationError("\n".join(errors))
+
+    changed = (
+        session["layers"][layer].get("selection") != next_selection or shots_changed or reference_changed
+        or previous_decisions != {role: _decision_compare(theme["element_decisions"][role]) for role in LAYER_ROLES[layer]}
+    )
+    session["layers"][layer] = {
+        "status": "confirmed", "roles": list(LAYER_ROLES[layer]), "selection": next_selection,
+        "confirmed_at": _utc_now(), "created_project_assets": created_assets,
+        "reference_ids": [item["reference_id"] for item in bound_references],
+    }
+    resolved_home = (home or apsal_home()).resolve()
+    for record in records:
+        _append_usage_event({"event": "dna_selection", "outcome": "selected", "stage": layer, "ref": asset_ref(record["asset"]), "context": _detect_recommendation_context(session["brief"])}, resolved_home)
+    existing_offer_keys = {tuple(item.get("ref", {}).get(name, "") for name in ("namespace", "id", "type", "version")) for item in session.get("memory_offers", [])}
+    for record in records:
+        key = _asset_key(record["asset"])
+        if record["scope"] != "project" or _registry_asset_path(resolved_home / "registry", record["asset"]).is_file() or key in existing_offer_keys: continue
+        session["memory_offers"].append({
+            "offer_id": f"MEMORY-{uuid.uuid4().hex[:10].upper()}", "status": "pending", "stage": layer,
+            "ref": asset_ref(record["asset"]), "title": record["asset"]["id"],
+            "reason": "New or revised project DNA can be reused and recommended across future projects.",
+            "discovery": record["asset"].get("discovery"),
+            "tag_confirmation_required": record["asset"].get("discovery", {}).get("source") != "creator_confirmed",
+            "options": ["save_personal", "project_only", "not_now"],
+        })
+    if changed:
+        for later in CREATIVE_LAYERS[layer_index + 1:]:
+            if session["layers"][later]["status"] == "confirmed": session["invalidations"].append({"source": layer, "invalidated": later, "at": _utc_now()})
+            session["layers"][later] = {"status": "pending", "roles": list(LAYER_ROLES[later]), "selection": [], "confirmed_at": None}
+            for role in LAYER_ROLES[later]:
+                stale = theme["element_decisions"][role]; stale["status"] = "proposed"
+                stale["source"] = "system_policy" if role in {"job", "quality_control"} else "proposed_from_brief"
+                stale.pop("confirmed_at", None); stale["dna_refs"] = []
+        session["theme_artifact"] = None
+    pending = next((item for item in CREATIVE_LAYERS if session["layers"][item]["status"] != "confirmed"), None)
+    session["state"] = f"{pending}_pending" if pending else "review_pending"
+    _write_session(session, theme, project_root)
+    return session
+
+
 def commit_session_stage(
     session_id: str, stage: str, refs: list[dict[str, str]], *, project_root: Path,
     home: Path | None = None, shots: list[dict[str, Any]] | None = None,
@@ -1428,6 +1907,7 @@ def commit_session_stage(
     """Confirm or revise one interaction stage and invalidate every affected downstream stage."""
     if stage not in INTERACTION_STAGES: raise ValidationError(f"unknown interaction stage: {stage}")
     project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session.get("schema_version") == "0.7.0": raise ValidationError("this session uses five-layer confirmation; call commit_element_layer")
     if session["state"] in {"ready", "generating", "completed", "partial"}:
         raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
     proposed_assets = [json.loads(json.dumps(asset)) for asset in (draft_assets or [])]
@@ -1561,7 +2041,12 @@ def finalize_design_session(
 ) -> dict[str, Any]:
     """Freeze a confirmed draft as YAML source, canonical JSON and three compiled targets."""
     project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
-    if any(session["stages"][stage]["status"] != "confirmed" for stage in INTERACTION_STAGES):
+    if session.get("schema_version") == "0.7.0":
+        if any(session["layers"][layer]["status"] != "confirmed" for layer in CREATIVE_LAYERS):
+            raise ValidationError("all five creative layers and thirteen elements must be confirmed before finalization")
+        decision_errors = validate_element_decisions(theme.get("element_decisions"), require_confirmed=True)
+        if decision_errors: raise ValidationError("\n".join(decision_errors))
+    elif any(session["stages"][stage]["status"] != "confirmed" for stage in INTERACTION_STAGES):
         raise ValidationError("all four DNA stages must be confirmed before finalization")
     assets = registry_assets(project_root, home)
     errors = validate_theme(theme, assets)

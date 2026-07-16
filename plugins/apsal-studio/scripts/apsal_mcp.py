@@ -7,15 +7,17 @@ from pathlib import Path
 from typing import Any, Callable
 
 from apsal_engine import (
-    ValidationError, commit_session_stage, dna_card, finalize_design_session,
+    ValidationError, commit_element_layer, commit_session_stage, dna_card, finalize_design_session,
     execute_generation_run, load_design_session, project_root_from, record_generation_result,
     record_model_visual_qa, search_registry, start_design_session, start_generation_run,
-    recommend_dna, suggest_discovery_metadata, confirm_discovery_metadata,
+    present_element_layer, recommend_dna, recommend_layer_dna, suggest_discovery_metadata, confirm_discovery_metadata,
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
 )
 
 UI_URI = "ui://apsal/dna-cards.html"
 UI_PATH = Path(__file__).resolve().parents[1] / "assets" / "ui" / "dna-cards.html"
+ELEMENT_UI_URI = "ui://apsal/element-cards.html"
+ELEMENT_UI_PATH = Path(__file__).resolve().parents[1] / "assets" / "ui" / "element-cards.html"
 
 
 def _schema(properties: dict[str, Any], required: list[str]) -> dict[str, Any]:
@@ -45,6 +47,18 @@ TOOLS = [
         "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
     },
     {
+        "name": "recommend_layer_dna", "description": "Recommend explained DNA choices for every Registry type required by one of the five creative layers.",
+        "inputSchema": _schema({"brief": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "limit_per_type": {"type": "integer", "minimum": 1, "maximum": 6}}, ["brief", "layer"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+        "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
+    },
+    {
+        "name": "present_element_layer", "description": "Present the creator-facing text cards for one of five layers, exposing every relevant APSAL protocol element, proposed value, source, observable effect and QA expectation.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "project_root": {"type": "string"}}, ["session_id", "layer"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+        "_meta": {"openai/outputTemplate": ELEMENT_UI_URI, "ui/resourceUri": ELEMENT_UI_URI},
+    },
+    {
         "name": "suggest_dna_tags", "description": "Suggest controlled semantic tags and scene facets for a new or revised DNA before the creator confirms it.",
         "inputSchema": _schema({"asset": {"type": "object"}, "brief": {"type": "string"}, "confirmed": {"type": "boolean"}}, ["asset"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
@@ -58,6 +72,11 @@ TOOLS = [
     {
         "name": "commit_stage", "description": "Confirm one DNA stage and invalidate affected downstream selections when an upstream choice changes.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "stage": {"enum": ["character", "world", "scene", "photo"]}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "stage"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "commit_element_layer", "description": "Confirm one of five creative layers, its complete subset of thirteen element decisions and the exact DNA references required by that layer.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "layer"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -81,7 +100,7 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True},
     },
     {
-        "name": "finalize_theme", "description": "Freeze the four confirmed stages into local YAML, canonical JSON, compiled targets and per-shot prompts.",
+        "name": "finalize_theme", "description": "Freeze five confirmed creative layers and all thirteen protocol elements into local YAML, canonical JSON, compiled targets and per-shot prompts; legacy four-stage sessions remain readable.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}}, ["session_id"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
@@ -113,22 +132,27 @@ def _root(arguments: dict[str, Any]) -> Path:
 
 
 def _summary(session: dict[str, Any]) -> dict[str, Any]:
-    return {
+    value = {
         "session_id": session["session_id"], "state": session["state"], "brief": session["brief"],
-        "shot_count": session["shot_count"], "stages": session["stages"],
+        "shot_count": session["shot_count"],
         "theme_artifact": session.get("theme_artifact"), "invalidations": session.get("invalidations", []),
         "reference_count": len(session.get("private_references", [])),
         "memory_offers": session.get("memory_offers", []),
     }
+    if session.get("schema_version") == "0.7.0":
+        value.update({"interaction_model": session["interaction_model"], "layers": session["layers"],
+                      "confirmed_element_count": sum(len(item["roles"]) for item in session["layers"].values() if item["status"] == "confirmed")})
+    else: value["stages"] = session["stages"]
+    return value
 
 
 def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments.get("session_id"):
         session, _ = load_design_session(arguments["session_id"], _root(arguments))
-        return {**_summary(session), "next_action": f"Resume at {session['state']}; present only the pending or invalidated stage."}
+        return {**_summary(session), "next_action": f"Resume at {session['state']}; present only the pending or invalidated layer."}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
     session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9))
-    return {**_summary(session), "next_action": "Present Character DNA cards and ask the user to choose or revise the identity."}
+    return {**_summary(session), "next_action": "Present Direction and Emotion element cards, then confirm the first of five creative layers."}
 
 
 def _records(arguments: dict[str, Any]) -> list[dict[str, Any]]:
@@ -149,6 +173,22 @@ def _tool_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
     return {**value, "recommendations": recommendations}
 
 
+def _tool_layer_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
+    value = recommend_layer_dna(arguments["brief"], arguments["layer"], project_root=_root(arguments), session_id=arguments.get("session_id"), limit_per_type=arguments.get("limit_per_type", 3))
+    by_type = {}; cards = []
+    for asset_type, items in value["by_type"].items():
+        converted = []
+        for item in items:
+            card = dna_card(item["record"]); card.update({key: item[key] for key in ("score", "reasons", "matched_tags", "matched_facets", "discovery")})
+            converted.append(card); cards.append(card)
+        by_type[asset_type] = converted
+    return {**value, "by_type": by_type, "cards": cards, "stage": arguments["layer"]}
+
+
+def _tool_element_layer(arguments: dict[str, Any]) -> dict[str, Any]:
+    return present_element_layer(arguments["session_id"], arguments["layer"], project_root=_root(arguments))
+
+
 def _tool_suggest(arguments: dict[str, Any]) -> dict[str, Any]:
     value = suggest_discovery_metadata(arguments["asset"], arguments.get("brief", ""))
     return confirm_discovery_metadata(value) if arguments.get("confirmed") is True else value
@@ -161,6 +201,11 @@ def _tool_cards(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
     session = commit_session_stage(arguments["session_id"], arguments["stage"], arguments.get("refs", []), project_root=_root(arguments), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, reference_bindings=arguments.get("reference_bindings"), draft_assets=arguments.get("draft_assets"))
+    return _summary(session)
+
+
+def _tool_commit_layer(arguments: dict[str, Any]) -> dict[str, Any]:
+    session = commit_element_layer(arguments["session_id"], arguments["layer"], arguments.get("refs", []), project_root=_root(arguments), decisions=arguments.get("decisions"), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, reference_bindings=arguments.get("reference_bindings"), draft_assets=arguments.get("draft_assets"))
     return _summary(session)
 
 
@@ -204,8 +249,9 @@ def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
 
 HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "start_design_session": _tool_start, "search_dna": _tool_search,
-    "recommend_dna": _tool_recommend, "suggest_dna_tags": _tool_suggest,
-    "present_dna_cards": _tool_cards, "commit_stage": _tool_commit,
+    "recommend_dna": _tool_recommend, "recommend_layer_dna": _tool_layer_recommend,
+    "present_element_layer": _tool_element_layer, "suggest_dna_tags": _tool_suggest,
+    "present_dna_cards": _tool_cards, "commit_stage": _tool_commit, "commit_element_layer": _tool_commit_layer,
     "resolve_dna_memory": _tool_memory, "record_dna_feedback": _tool_feedback,
     "export_dna_pack": _tool_export, "install_dna_pack": _tool_install,
     "finalize_theme": _tool_finalize, "start_generation_run": _tool_run,
@@ -217,8 +263,8 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
 def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name not in HANDLERS: raise ValidationError(f"unknown MCP tool: {name}")
     value = HANDLERS[name](arguments)
-    if name in {"present_dna_cards", "recommend_dna"}:
-        cards = value["cards"] if name == "present_dna_cards" else value["recommendations"]
+    if name in {"present_dna_cards", "recommend_dna", "recommend_layer_dna"}:
+        cards = value["cards"] if name in {"present_dna_cards", "recommend_layer_dna"} else value["recommendations"]
         lines = [f"APSAL {value['stage']} DNA choices (text fallback):"]
         for number, card in enumerate(cards, 1):
             ref = card["ref"]
@@ -226,10 +272,16 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             reason = f" — Why: {'; '.join(card.get('reasons', []))}" if card.get("reasons") else ""
             lines.append(f"{number}. [{card['scope']}] {card['title']} v{card['version']} — {card['summary']} — {attributes} — {card['rights']['license']} / {card['rights']['attribution']} — {card['qa_status']} — digest {ref['content_digest']}{reason}")
         text = "\n".join(lines)
+    elif name == "present_element_layer":
+        lines = [f"APSAL layer: {value['title']} / {value['title_en']}"]
+        for card in value["cards"]:
+            lines.append(f"- {card['title']} / {card['title_en']} [{card['source']}]: {card['intent']} Values: {json.dumps(card['values'], ensure_ascii=False)} Observable: {'; '.join(card['observable'])}")
+        text = "\n".join(lines)
     else:
         text = json.dumps(value, ensure_ascii=False, indent=2)
     result = {"content": [{"type": "text", "text": text}], "structuredContent": value, "isError": False}
-    if name in {"present_dna_cards", "recommend_dna"}: result["_meta"] = {"openai/outputTemplate": UI_URI}
+    if name in {"present_dna_cards", "recommend_dna", "recommend_layer_dna"}: result["_meta"] = {"openai/outputTemplate": UI_URI}
+    if name == "present_element_layer": result["_meta"] = {"openai/outputTemplate": ELEMENT_UI_URI}
     return result
 
 
@@ -238,12 +290,17 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.6.1"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.7.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
-    elif method == "resources/list": result = {"resources": [{"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"}]}
+    elif method == "resources/list": result = {"resources": [
+        {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},
+        {"uri": ELEMENT_UI_URI, "name": "APSAL Element Text Cards", "mimeType": "text/html;profile=mcp-app"},
+    ]}
     elif method == "resources/read":
-        if message.get("params", {}).get("uri") != UI_URI: raise ValidationError("unknown MCP resource")
-        result = {"contents": [{"uri": UI_URI, "mimeType": "text/html;profile=mcp-app", "text": UI_PATH.read_text(encoding="utf-8")}]}
+        uri = message.get("params", {}).get("uri")
+        path = UI_PATH if uri == UI_URI else ELEMENT_UI_PATH if uri == ELEMENT_UI_URI else None
+        if path is None: raise ValidationError("unknown MCP resource")
+        result = {"contents": [{"uri": uri, "mimeType": "text/html;profile=mcp-app", "text": path.read_text(encoding="utf-8")}]}
     elif method == "tools/call":
         params = message.get("params", {}); result = call_tool(params.get("name", ""), params.get("arguments", {}))
     else: raise ValidationError(f"unsupported MCP method: {method}")

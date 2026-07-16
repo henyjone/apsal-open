@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.7.0",
+  "title": "APSAL Five-Layer / Thirteen-Element Authoring",
+  "layers": [
+    {"id": "direction", "zh": "创作命题与情绪", "en": "Direction and Emotion", "roles": ["content", "emotion"], "dna_types": []},
+    {"id": "worldbuilding", "zh": "人物与世界陈设", "en": "Subject and World", "roles": ["subject", "world", "look"], "dna_types": ["character", "environment"]},
+    {"id": "narrative", "zh": "事件与叙事序列", "en": "Event and Sequence", "roles": ["event", "sequence"], "dna_types": ["composition", "shot"]},
+    {"id": "image", "zh": "摄影与成像语言", "en": "Photography and Imaging", "roles": ["camera", "light", "style", "color_post"], "dna_types": ["style", "lighting"]},
+    {"id": "delivery", "zh": "执行与验证", "en": "Execution and Validation", "roles": ["job", "quality_control"], "dna_types": ["qa"]}
+  ],
+  "required_values": {
+    "content": ["theme_statement", "subject_matter", "central_tension"],
+    "emotion": ["primary_tone", "secondary_tones", "undertone", "valence", "arousal", "expression", "energy", "tension", "arc"],
+    "subject": ["identity", "representation", "identity_locks"],
+    "world": ["space", "time", "materials", "physical_rules", "continuity"],
+    "look": ["wardrobe", "grooming", "props", "ownership_policy"],
+    "event": ["inciting_action", "state_changes", "consequences"],
+    "sequence": ["strategy", "rhythm", "progression", "shot_count"],
+    "camera": ["viewpoint", "coverage", "framing_language", "lens_language", "composition"],
+    "light": ["source", "direction", "quality", "contrast", "time_phase", "continuity"],
+    "style": ["photographic_genre", "visual_rhetoric", "texture", "realism"],
+    "color_post": ["palette", "temperature", "saturation", "contrast_curve", "grain", "sharpness", "dynamic_range", "skin_tone_policy"],
+    "job": ["one_job_one_image", "output_count", "aspect_ratio", "size", "format"],
+    "quality_control": ["required_checks", "reject_if", "human_visual_qa"]
+  },
+  "emotion_taxonomy": {
+    "primary_tones": ["quiet_joy", "tenderness", "serenity", "hope", "nostalgia", "melancholy", "sorrow", "tension", "mystery", "solemnity", "contemplative"],
+    "undertones": ["anticipation", "intimacy", "relief", "longing", "hesitation", "loneliness", "loss", "unease", "awe", "none"],
+    "valence": ["positive", "negative", "mixed", "neutral"],
+    "arousal": ["low", "medium", "high"],
+    "expression": ["restrained", "clear", "intense"],
+    "energy": ["still", "slow", "flowing", "urgent"],
+    "tension": ["stable", "suspended", "rising", "released"]
+  },
+  "mood_profiles": [
+    {"id": "quiet_joy", "terms": ["joy", "joyful", "happy", "delight", "欢喜", "喜悦", "快乐", "欣喜"], "undertone": "anticipation", "valence": "positive", "arousal": "medium", "expression": "clear", "energy": "flowing", "tension": "released", "arc": {"start": "anticipation", "turn": "recognition", "end": "release"}},
+    {"id": "tenderness", "terms": ["tender", "gentle", "intimate", "温柔", "柔情", "亲密"], "undertone": "intimacy", "valence": "positive", "arousal": "low", "expression": "restrained", "energy": "slow", "tension": "stable", "arc": {"start": "distance", "turn": "approach", "end": "intimacy"}},
+    {"id": "serenity", "terms": ["serene", "calm", "quiet", "peaceful", "宁静", "安静", "静谧", "沉静"], "undertone": "none", "valence": "neutral", "arousal": "low", "expression": "restrained", "energy": "still", "tension": "stable", "arc": {"start": "arrival", "turn": "attention", "end": "stillness"}},
+    {"id": "hope", "terms": ["hope", "hopeful", "希望", "新生", "曙光"], "undertone": "anticipation", "valence": "positive", "arousal": "medium", "expression": "restrained", "energy": "flowing", "tension": "rising", "arc": {"start": "uncertainty", "turn": "opening", "end": "possibility"}},
+    {"id": "nostalgia", "terms": ["nostalgia", "nostalgic", "怀旧", "追忆", "旧日"], "undertone": "longing", "valence": "mixed", "arousal": "low", "expression": "restrained", "energy": "slow", "tension": "suspended", "arc": {"start": "encounter", "turn": "memory", "end": "aftertaste"}},
+    {"id": "melancholy", "terms": ["melancholy", "wistful", "忧郁", "惆怅", "怅然"], "undertone": "longing", "valence": "negative", "arousal": "low", "expression": "restrained", "energy": "slow", "tension": "suspended", "arc": {"start": "quiet", "turn": "absence", "end": "aftertaste"}},
+    {"id": "sorrow", "terms": ["sorrow", "sad", "grief", "悲伤", "伤心", "哀伤", "失去"], "undertone": "loss", "valence": "negative", "arousal": "medium", "expression": "clear", "energy": "slow", "tension": "released", "arc": {"start": "resistance", "turn": "recognition", "end": "acceptance"}},
+    {"id": "tension", "terms": ["tense", "anxious", "suspense", "紧张", "焦虑", "压迫", "悬疑"], "undertone": "unease", "valence": "negative", "arousal": "high", "expression": "clear", "energy": "urgent", "tension": "rising", "arc": {"start": "warning", "turn": "escalation", "end": "suspension"}},
+    {"id": "mystery", "terms": ["mystery", "mysterious", "神秘", "幽秘", "未知"], "undertone": "awe", "valence": "mixed", "arousal": "medium", "expression": "restrained", "energy": "slow", "tension": "suspended", "arc": {"start": "trace", "turn": "revelation", "end": "unresolved"}},
+    {"id": "solemnity", "terms": ["solemn", "ceremonial", "庄重", "肃穆", "仪式"], "undertone": "awe", "valence": "neutral", "arousal": "medium", "expression": "restrained", "energy": "slow", "tension": "stable", "arc": {"start": "preparation", "turn": "ritual", "end": "stillness"}},
+    {"id": "contemplative", "terms": [], "undertone": "hesitation", "valence": "neutral", "arousal": "low", "expression": "restrained", "energy": "slow", "tension": "suspended", "arc": {"start": "observation", "turn": "decision", "end": "aftertaste"}}
+  ]
+}

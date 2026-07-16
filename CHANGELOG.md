@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 - 2026-07-16
+
+- Replaced the incomplete four-group confirmation for new sessions with five creator layers: Direction, Worldbuilding, Narrative, Image and Delivery.
+- Exposed all thirteen existing protocol roles as text-only decision cards with intent, structured values, provenance, observable effects, locks and QA expectations.
+- Added controlled emotional direction covering primary tone, undertone, valence, arousal, expression, energy, tension and a start/turn/end arc.
+- Made wardrobe, props and ownership; light source/direction/quality/contrast; palette, temperature, saturation, curve, grain, sharpness, dynamic range and skin-tone policy explicit creator decisions.
+- Added `recommend_layer_dna`, `present_element_layer` and `commit_element_layer` MCP tools, bringing the local server to 18 tools and two text-card resources.
+- Added the `creative-layers.json` contract, element-decision schema, five-layer CLI commands and automatic downstream invalidation.
+- Compiled confirmed observable element instructions into every image Prompt and every role's expectations into QA.
+- Kept all seven Registry DNA types, Protocol 0.3, Semantic Contract 0.3, official DNA, legacy assets and four-stage session compatibility unchanged.
+
 ## 0.6.1 - 2026-07-16
 
 - Replaced image-led DNA selection with compact text-only protocol cards.

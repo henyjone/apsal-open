@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.6.1",
-  "description": "Create live-action AI photography with scene-aware DNA recommendations, reusable personal memory, shareable Extension Packs, bound references, and native-4K runs.",
+  "version": "0.7.0",
+  "description": "Build live-action AI photography through five creator-friendly layers that expose every APSAL protocol element, with reusable DNA, bound references, QA, and native-4K runs.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -14,17 +14,17 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "按场景推荐 DNA，积累个人方法，生成九张真人摄影作品",
-    "longDescription": "APSAL Studio interprets one natural-language idea, explains and recommends Character, World, Scene, and Photo DNA, remembers creator-confirmed assets locally, installs or exports rights-aware DNA Extension Packs, binds actual references, and runs nine independent 9:16 native-4K Jobs.",
+    "shortDescription": "用五层决策确认十三元素，生成九张真人摄影作品",
+    "longDescription": "APSAL Studio turns one natural-language idea into five text-card layers covering Content, Emotion, Subject, World, Look, Event, Sequence, Camera, Light, Style, Color/Post, Job and Quality Control; it recommends reusable DNA, binds real references, preserves local lineage and runs nine independent native-4K Jobs.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://github.com/henyjone/apsal-open",
     "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
     "defaultPrompt": [
-      "创建九张真人摄影主题，并解释为什么推荐每个 DNA。",
-      "把刚确认的新 DNA 打好标签并保存到我的 DNA。",
-      "把权利清晰的 DNA 单独导出为可分享的 GitHub Extension Pack。"
+      "创建九张真人摄影主题，按五层文字卡确认全部十三个 APSAL 元素。",
+      "设计一个欢喜但克制的主题，并分别确认灯光、色调、道具与后期。",
+      "把确认的新 DNA 打好标签，保存到我的 DNA 或导出 Extension Pack。"
     ],
     "brandColor": "#84A99C"
   }

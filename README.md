@@ -37,10 +37,13 @@ APSAL is that open visual language. It turns creative intuition into explicit el
 ```mermaid
 flowchart LR
     A["One natural-language idea"] --> B["APSAL decomposition"]
-    B --> C["Character · World · Scene · Photo DNA cards"]
-    C --> D["Creator confirmation"]
-    D --> E["Nine independent shot Jobs"]
-    E --> F["Nine images · Prompts · Skill"]
+    B --> C["Direction and Emotion"]
+    C --> D["Subject and World"]
+    D --> E["Event and Sequence"]
+    E --> F["Photography and Imaging"]
+    F --> G["Execution and Validation"]
+    G --> H["All 13 roles confirmed"]
+    H --> I["Nine images · Prompts · Skill"]
 ```
 
 | ELEMENTS | GRAMMAR | WORLD | CAMERA | OUTPUT |
@@ -51,7 +54,17 @@ flowchart LR
 
 ## The open system behind the idea
 
-The protocol defines 13 composable module roles. The DNA Registry stores reusable visual elements. The engine explains which DNA fits the scene, remembers only creator-approved personal knowledge, resolves versions and dependencies, validates identity and continuity, and packages themes or standalone DNA without requiring a hosted service.
+The protocol defines 13 composable roles. The DNA Registry stores seven kinds of reusable visual knowledge. Studio exposes every role through five compact text-card layers so props, emotion, lighting, color, post-processing and QA cannot disappear inside a vague “Photo style” choice. The engine explains which DNA fits the scene, remembers only creator-approved personal knowledge, resolves versions and dependencies, and packages themes or standalone DNA without requiring a hosted service.
+
+| Creator layer | Required APSAL roles | Registry DNA recommendations |
+|---|---|---|
+| Direction | Content, Emotion | none; proposed from the brief |
+| Worldbuilding | Subject, World, Look | Character, Environment |
+| Narrative | Event, Sequence | Composition, Shot |
+| Image | Camera, Light, Style, Color/Post | Style, Lighting |
+| Delivery | Job, Quality Control | QA |
+
+The five layers are the conversation order, the thirteen elements are protocol roles, and the seven DNA types are reusable assets.
 
 ## Install the Codex plugin
 
@@ -72,13 +85,13 @@ Ask Codex:
 
 APSAL Studio will:
 
-1. Interpret the scene and recommend Character, World, Scene, and Photo DNA as compact text-only cards with concrete reasons.
-2. Let you choose, revise in natural language, or redesign one scene without hand-writing data files.
-3. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
-4. Show the nine-shot overview and wait for confirmation.
-5. Confirm the live-action contract and reference uses, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
+1. Confirm what the work is about, whether its direction is joyful, sorrowful, serene, tense or mixed, and how that emotion evolves.
+2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as compact text cards. Character, Environment, Composition, Shot, Style, Lighting and QA DNA are recommended with concrete reasons.
+3. Explicitly confirm wardrobe, props and ownership; camera; light source and direction; palette, temperature, saturation, curve, grain, sharpness, skin policy and rejection rules. Revise any one element in natural language.
+4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
+5. Show all thirteen decisions and the nine-shot overview, then generate nine independent 9:16 images, save the Prompts, or export a reproducible Skill.
 
-Creators never need to see JSON or YAML. Protocol 0.3 keeps them in the local artifact layer for reuse, versioning, compilation and QA. Studio 0.6 adds explainable scene-aware recommendation, explicit personal memory and shareable DNA Extension Packs while retaining 0.5 reference binding and live-action execution. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
+Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.7 simply makes the existing thirteen roles complete and visible through Direction → Worldbuilding → Narrative → Image → Delivery, while retaining scene-aware recommendation, explicit personal memory, DNA Extension Packs, reference binding and live-action execution. Image generation requires one explicit confirmation and always runs one Job per image; one failed image does not force successful images to run again.
 
 ### Where your DNA lives
 
@@ -125,7 +138,8 @@ No account, hosted API, or model key is required for validation and packaging.
 ```bash
 python3 plugins/apsal-studio/scripts/apsal.py init
 python3 plugins/apsal-studio/scripts/apsal.py session start "Create a nine-shot Eastern-minimalist window portrait series"
-python3 plugins/apsal-studio/scripts/apsal.py registry recommend "quiet Eastern-minimalist window portrait" --stage world
+python3 plugins/apsal-studio/scripts/apsal.py registry recommend-layer "quiet Eastern-minimalist window portrait" --layer worldbuilding
+python3 plugins/apsal-studio/scripts/apsal.py session layer-show SESSION-ID --layer direction
 python3 plugins/apsal-studio/scripts/apsal.py registry search --stage character
 python3 plugins/apsal-studio/scripts/apsal.py catalog
 python3 plugins/apsal-studio/scripts/apsal.py validate examples/quiet-window/theme.apsal.yaml
@@ -160,7 +174,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Local Registry and conversational authoring RFC](protocol/RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md)
 - [Reference binding, live-action and native-4K RFC](protocol/RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md)
 - [DNA recommendation, memory and exchange RFC](protocol/RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md)
-- [APSAL Studio 0.6.1 release and installation notes](docs/releases/0.6.1.md)
+- [Five-layer, thirteen-element authoring RFC](protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md)
+- [APSAL Studio 0.7.0 release and installation notes](docs/releases/0.7.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
