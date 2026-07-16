@@ -20,7 +20,7 @@
         "content_digest": "d017eacdcd9fb94b6b2a05b6847f0e71017f77013e2050f62e3d87b0782bafd2"
       },
       "image": "character.webp",
-      "sha256": "23962817733f87fee23a9715e927ee909940eeab2cfcde70d5d2690f4d4dddd6",
+      "sha256": "ce1efa4f98d5311b61c10826f39f03bfc0ad3b8542e227e0e5abfe44dfb8ab59",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -44,7 +44,7 @@
         "content_digest": "5dd2eae8f4022068406f7141010d94f09ac5bfdcbcef2a9ee538cbba28f7e953"
       },
       "image": "style.webp",
-      "sha256": "5847cf10955a24a850c15f4dd2072dbdfd269f3928d296395af828e430f3e00b",
+      "sha256": "8171daa14d70983120572ff20b81ec621d6f64661ac74507e4543197829b2eaf",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -68,7 +68,7 @@
         "content_digest": "4c73fdc9c7c679a2bffd7479e8165a91b077c369e4b6bb4976289d940de60fa0"
       },
       "image": "environment.webp",
-      "sha256": "ec6fc45f96cbf9c5ac541cb92e50710a541893917b316da6aa87d3653493cd96",
+      "sha256": "3c80a74aa553be85669c212dcd62e8a573145cde60180bebdd9ecd5232c46b51",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -92,7 +92,7 @@
         "content_digest": "82ee1421187113b320e510d9d0c74e21b2c704b79f31e6e03e82abada740382b"
       },
       "image": "lighting.webp",
-      "sha256": "d6f8f1027ea12cd0b12518cc4cc87a138191971ce62a36859cb7e0e5bb0fc200",
+      "sha256": "514ec56963d21e7fda6c5e8e9e62068118b9abd33d21a52ca13156a0f83bda68",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -116,7 +116,7 @@
         "content_digest": "0aa4a21ced85672e7812e6781f410c59ef404b9c3093a411350c106d84e9cd0b"
       },
       "image": "composition.webp",
-      "sha256": "08d0f9a328c44444abd716b3a6f59fd8a96cbf245e75b40cba68ee2776f1bbd7",
+      "sha256": "906b775f6644739d34139ac64e803812c295639762e192ce61f59cd1a7b26a47",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -140,7 +140,7 @@
         "content_digest": "60fed6be922b979f7207055b4567d2cfe85509e28a09b7a9256c17688896f823"
       },
       "image": "shot.webp",
-      "sha256": "40de4d2aad9bf4d9c9cb0fb10b24ff0a878d3cbf78c2da7def5db01d07fc55da",
+      "sha256": "45357ed2b831001529e6952ddefc6d847e3aa386ac67442b34e162b85d7c40dc",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",
@@ -164,7 +164,7 @@
         "content_digest": "5ef51933854d06e7265a9f1050e3790d803a72380e198b547d7ab5e16b8ac383"
       },
       "image": "qa.webp",
-      "sha256": "a1349eb24c67fe8cb7e41cd7a16246c060386b553457b0354cb606e07f8a089b",
+      "sha256": "d46ad39502da86bad29e0efbc8fcda182ee35ff5ca91659a26d5cf39983fc24b",
       "kind": "semantic_card",
       "rights": {
         "license": "CC-BY-4.0",

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "assets" / "brand"
 MASTER = BRAND / "apsal-worldbuilding-master.png"
 SOCIAL_SIZE = (1280, 640)
-MASTER_SIZE = (2560, 1280)
+MASTER_SIZE = (1920, 960)
 
 JPEG_TARGETS = (
     "apsal-readme-banner.jpg",
@@ -67,7 +67,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors))
         return 1
-    print("APSAL brand images validated: one 2560x1280 master and five GitHub-safe 1280x640 JPEGs")
+    print("APSAL brand images validated: one 1920x960 master and five GitHub-safe 1280x640 JPEGs")
     return 0
 
 
