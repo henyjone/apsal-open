@@ -12,6 +12,15 @@
     h1 { margin:0; color:var(--accent-strong); font-size:20px; font-weight:700; }
     header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
     .progress { color:var(--accent); font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; }
+    .stage-heading { margin:18px 0 8px; color:var(--accent); font-size:11px; font-weight:750; letter-spacing:.08em; }
+    #stage-previews { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+    figure.stage { margin:0; min-width:0; padding:7px; border:1px solid var(--line); border-radius:11px; background:#141815; }
+    figure.stage.current { border-color:var(--accent-strong); background:var(--accent-surface); box-shadow:0 0 0 1px rgba(185,223,208,.16); }
+    figure.stage.confirmed { border-color:#557267; }
+    figure.stage img { display:block; width:100%; aspect-ratio:4/3; border-radius:7px; background:#101411; object-fit:cover; }
+    figure.stage figcaption { padding:7px 2px 1px; }
+    .stage-title { display:block; color:var(--accent-strong); font-size:11px; font-weight:720; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stage-status { display:block; margin-top:2px; color:var(--muted); font-size:10px; }
     #cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:10px; margin-top:16px; }
     article { position:relative; overflow:hidden; padding:17px; border:1px solid var(--line); border-radius:12px; background:var(--panel); transition:border-color .18s ease,background .18s ease; }
     article::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--accent); opacity:.72; }
@@ -40,13 +49,16 @@
     button:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
     #confirm { width:100%; margin-top:14px; border-color:var(--accent-strong); background:var(--accent-strong); color:var(--accent-ink); font-weight:750; }
     #confirm:hover { background:#c9eadf; color:#07100c; }
-    @media(max-width:540px) { body{font-size:16px} main{padding:14px} header{align-items:flex-start;flex-direction:column} #cards{grid-template-columns:1fr} dl{grid-template-columns:1fr} }
+    @media(max-width:720px) { #stage-previews{grid-template-columns:repeat(2,minmax(0,1fr))} }
+    @media(max-width:540px) { body{font-size:16px} main{padding:14px} header{align-items:flex-start;flex-direction:column} #cards{grid-template-columns:1fr} dl{grid-template-columns:1fr} #stage-previews{grid-template-columns:1fr 1fr} }
     @media(prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important;transition:none!important} }
   </style>
 </head>
 <body>
 <main>
   <header><div><h1 id="title">元素设计</h1><p id="subtitle"></p></div><div class="progress" id="progress"></div></header>
+  <div class="stage-heading" id="stage-heading"></div>
+  <div id="stage-previews" aria-label=""></div>
   <div id="cards"></div>
   <button id="confirm" type="button"></button>
 </main>
@@ -57,11 +69,11 @@
   document.documentElement.lang = zh ? "zh-CN" : "en";
   const labels = zh ? {
     subtitle:"每张卡片都已填入设计提案、理由、取值、结果与验收标准。", elements:"个元素", proposal:"我的设计提案",
-    rationale:"为什么这样建议", options:"可调整方向", purpose:"设计目的", values:"建议取值",
+    rationale:"为什么这样建议", options:"可调整方向", purpose:"设计目的", values:"建议取值", stages:"五阶段视觉摘要",
     observable:"应当看到", preserve:"必须保持", qa:"验收标准", revise:"用自然语言修改此元素", confirm:"确认本层全部元素", none:"无"
   } : {
     subtitle:"Every card contains the full proposal, rationale, values, expected result, and acceptance criteria.", elements:"elements", proposal:"My design proposal",
-    rationale:"Why this is recommended", options:"Adjustable directions", purpose:"Design purpose", values:"Proposed values",
+    rationale:"Why this is recommended", options:"Adjustable directions", purpose:"Design purpose", values:"Proposed values", stages:"Five-stage visual summary",
     observable:"Expected result", preserve:"Must preserve", qa:"Acceptance criteria", revise:"Revise this element in natural language", confirm:"Confirm every element in this layer", none:"None"
   };
   const safe = value => {
@@ -75,6 +87,14 @@
   document.querySelector("#subtitle").textContent = labels.subtitle;
   document.querySelector("#progress").textContent = `${safe(output.layer_label || output.title)} · ${cards.length} ${labels.elements}`;
   document.querySelector("#confirm").textContent = labels.confirm;
+  document.querySelector("#stage-heading").textContent = labels.stages;
+  const previewHost=document.querySelector("#stage-previews");
+  previewHost.setAttribute("aria-label",labels.stages);
+  (output.stage_previews||[]).forEach(preview=>{
+    const figure=document.createElement("figure"); figure.className=`stage ${preview.current?"current":""} ${preview.status==="confirmed"?"confirmed":""}`;
+    const img=document.createElement("img"); img.src=preview.data_uri; img.alt=preview.alt_text; img.width=768; img.height=576; img.loading="lazy"; img.decoding="async"; img.dataset.generationInput=String(preview.generation_input); figure.appendChild(img);
+    const caption=document.createElement("figcaption"); add(caption,"span","stage-title",preview.title); add(caption,"span","stage-status",preview.status_label); figure.appendChild(caption); previewHost.appendChild(figure);
+  });
   const host=document.querySelector("#cards");
   cards.forEach(card => {
     const article=document.createElement("article");

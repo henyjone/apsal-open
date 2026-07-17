@@ -1,6 +1,6 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.13 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.14 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
 
 The selected creator-facing language (`zh-CN` or `en`) is stored inside the local design session. Detection uses only the current creator message or brief. APSAL Studio does not read or transmit an operating-system locale, Codex account preference, or remote profile.
 
@@ -15,6 +15,10 @@ Installed community packs live under `~/.apsal/extensions/` as read-only Registr
 Private references are copied into the content-addressed local Vault at `~/.apsal/vault/sha256/`. They are not embedded in DNA JSON, public releases, or Git commits. The creator is responsible for copyright, portrait consent, attribution, and permitted uses.
 
 A locally exported Codex Prompt/Skill package includes sanitized copies of its bound references so Codex built-in image generation can receive the actual images. The package records every image's SHA-256, purpose, allowed and forbidden uses, rights state, attribution, and redistribution permission. Any unresolved or non-redistributable reference forces `distribution: private_only`; the public packager and release checks reject it. Reference media does not inherit the theme text's CC BY 4.0 license.
+
+The package designates one bound reference as its core visual anchor when real media exists. That designation never widens the image's permitted uses or applicable Jobs. If no real image is bound, the package records `not_bound` instead of creating or substituting an image.
+
+The plugin also renders and packages five-stage semantic thumbnails in Chinese and English. They are deterministic SVG interface summaries, licensed as project content, stored separately from references, and marked `generation_input: false`. They contain no private photograph and are never sent to image generation.
 
 When importing a legacy run ZIP or directory, Studio reads only the contained run manifest, Prompt text and candidate image files after path, size, symlink and archive-safety checks. It may search the local private Vault by the run's declared SHA-256 to restore an omitted reference. Imported references and the reconstructed run remain inside the current project's ignored `.apsal/` directory. Imported packages are always `private_only`; historical absolute paths are removed from the new Prompt/Skill package.
 

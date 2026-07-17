@@ -1,4 +1,4 @@
-# APSAL Studio 0.13 interaction and delivery contract
+# APSAL Studio 0.14 interaction and delivery contract
 
 ## Language before creative decisions
 
@@ -10,9 +10,11 @@ An attached APSAL ZIP or directory with `run.json` is a creator artifact, not a 
 
 ## What creators see
 
-The creator sees natural language, compact text-only element and DNA cards, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
+The creator sees natural language, compact text-only element and DNA cards, a five-stage semantic thumbnail strip, the nine-shot overview, and generation progress. YAML is the editable background source; canonical JSON is the immutable execution and lineage artifact. Do not expose either by default.
 
 Each DNA card is textual and must display its title, stable reference, core constraints, scope (`project`, `personal`, `extension`, or `official`), version, rights license, attribution, QA state, recommendation reason, matched tags and relevant scene facets. Do not render Registry thumbnails in the selection flow. Preview sidecars remain background assets for rights review, validation and Extension Pack exchange. In a client without MCP Apps, print the same choices as a numbered list and accept a number or natural-language revision.
+
+The stage thumbnail strip is a different surface. It contains one localized 4:3 semantic summary for Direction, Worldbuilding, Narrative, Image and Delivery, showing confirmed/current/pending progress. It may appear above the element text cards, but it must not replace the complete proposal. Each thumbnail is accessible, deterministic, rights-clear, and explicitly marked `generation_input: false`. Never place it under `assets/references/` or send it to Codex image generation.
 
 ## Recommendation and memory
 
@@ -100,6 +102,8 @@ Do not accept “use this image” as an untyped instruction. For every supplied
 
 The image is stored in the private Vault by SHA-256. Theme DNA stores only purpose, restrictions, rights metadata, and the Vault URI needed by the local engine. Replacing bytes creates a new content digest and requires a new theme version. A prose analysis can supplement a reference but cannot replace the actual image sent to the provider.
 
+When at least one real reference is bound, designate exactly one core visual anchor. Prefer an explicit creator choice; otherwise prefer identity, then an all-shot reference, then the first bound reference. “Core” means easiest package entry point, not permission expansion: uses, forbidden uses and applicable Jobs still control every call. With no real reference, record `not_bound` and continue without inventing one.
+
 ## Local storage
 
 - Bundled official Registry: read-only and shipped with the plugin.
@@ -117,7 +121,7 @@ Private references go to `~/.apsal/vault/sha256/`. Retain only their Vault URI, 
 
 After the nine-shot overview, offer:
 
-Finalization always creates and displays a reproducible Codex Prompt/Skill ZIP plus SHA-256. It contains a language index plus complete English and Chinese guides, three Prompt files per Job, reference media allowed for local use, rights metadata, QA and checksums. Private references force `private_only`; public export fails unless redistribution rights are explicit.
+Finalization always creates and displays a reproducible Codex Prompt/Skill ZIP plus SHA-256. It contains a language index plus complete English and Chinese guides, three Prompt files per Job, reference media allowed for local use, a core-anchor declaration, ten localized stage preview assets, rights metadata, QA and checksums. Private references force `private_only`; public export fails unless redistribution rights are explicit.
 
 After the package is ready, offer exactly:
 

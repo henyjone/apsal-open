@@ -114,6 +114,17 @@ class EngineTests(unittest.TestCase):
                 skill_text = z.read(skill).decode()
                 self.assertIn("built-in image-generation", skill_text)
                 self.assertIn("Do not call an image API", skill_text)
+                names = z.namelist()
+                self.assertEqual(len([name for name in names if "/assets/previews/stages/" in name and name.endswith(".svg")]), 10)
+                preview_name = next(name for name in names if name.endswith("references/preview_manifest.json"))
+                preview = json.loads(z.read(preview_name))
+                self.assertEqual(preview["stage_count"], 5)
+                self.assertEqual(preview["asset_count"], 10)
+                self.assertFalse(preview["generation_input"])
+                reference_name = next(name for name in names if name.endswith("references/reference_manifest.json"))
+                references = json.loads(z.read(reference_name))
+                self.assertIsNone(references["core_visual_anchor_reference_id"])
+                self.assertEqual(references["core_visual_anchor_status"], "not_bound")
 
     def test_semantic_skill_includes_yaml_design_and_qa(self):
         theme = engine.load_document(ROOT / "examples/quiet-window/theme.apsal.yaml")
@@ -211,10 +222,16 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(emotion["values"]["primary_tone"], "quiet_joy")
             self.assertEqual(set(emotion["values"]["arc"]), {"start", "turn", "end"})
             self.assertEqual(emotion["status"], "proposed")
+            self.assertEqual(len(layer["stage_previews"]), 5)
+            self.assertTrue(all(item["data_uri"].startswith("data:image/svg+xml") for item in layer["stage_previews"]))
+            self.assertTrue(all(item["generation_input"] is False for item in layer["stage_previews"]))
+            self.assertEqual(layer["stage_previews"][0]["status_label"], "当前设计")
             with self.assertRaisesRegex(engine.ValidationError, "all five creative layers"):
                 engine.finalize_design_session(session["session_id"], project_root=project, home=home)
             confirmed = engine.commit_element_layer(session["session_id"], "direction", [], project_root=project, home=home)
             self.assertEqual(confirmed["state"], "worldbuilding_pending")
+            progress = engine.present_element_layer(session["session_id"], "worldbuilding", project_root=project)["stage_previews"]
+            self.assertEqual([item["status_label"] for item in progress[:2]], ["已确认", "当前设计"])
             _, theme = engine.load_design_session(session["session_id"], project)
             self.assertTrue(all(theme["element_decisions"][role]["source"] == "creator_confirmed" for role in ("content", "emotion")))
 
@@ -722,7 +739,7 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.13.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.14.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 21)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("set_session_language", names)
@@ -742,6 +759,9 @@ class EngineTests(unittest.TestCase):
             self.assertTrue(all("values" in card and "observable" in card and "qa_expectations" in card for card in elements))
             self.assertTrue(all(card["display_recommendation"] and card["display_rationale"] and card["display_options"] and card["display_qa_expectations"] for card in elements))
             self.assertNotIn("preview", json.dumps(elements))
+            stage_previews = responses[3]["result"]["structuredContent"]["stage_previews"]
+            self.assertEqual(len(stage_previews), 5)
+            self.assertFalse(any(item["generation_input"] for item in stage_previews))
             imported = responses[4]["result"]["structuredContent"]
             self.assertTrue(imported["ready_for_codex"])
             self.assertEqual(imported["next_job"]["shot_id"], "SHOT_01")
@@ -783,6 +803,9 @@ class EngineTests(unittest.TestCase):
                 manifest_name = next(name for name in names if name.endswith("reference_manifest.json"))
                 manifest = json.loads(archive.read(manifest_name))
                 self.assertEqual(manifest["reference_count"], 1)
+                self.assertEqual(manifest["schema_version"], "0.6.0")
+                self.assertEqual(manifest["core_visual_anchor_reference_id"], "TEST_STYLE_REF_001")
+                self.assertTrue(manifest["references"][0]["core_visual_anchor"])
                 self.assertTrue(manifest["private_media_included"])
                 self.assertFalse(manifest["redistribution_allowed"])
                 self.assertNotEqual(manifest["references"][0]["packaged_sha256"], "0" * 64)

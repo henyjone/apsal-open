@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0 - 2026-07-17
+
+- Added a localized five-stage semantic thumbnail strip above the complete element text cards. DNA selection cards remain text-only. The 4:3 thumbnails show Direction, Worldbuilding, Narrative, Image and Delivery progress in Chinese or English without replacing the proposals.
+- Added deterministic Chinese and English SVG stage previews to every newly exported Prompt/Skill package, with a separate `preview_manifest.json`, SHA-256 ledger, accessibility text and `generation_input: false` enforcement.
+- Added one core visual anchor declaration whenever real references are packaged. Explicit creator choice wins; otherwise identity, all-shot and first-reference precedence applies. The anchor never broadens declared uses or applicable Jobs.
+- A Skill without real references now records `core_visual_anchor_status: not_bound`; semantic thumbnails cannot masquerade as reference images.
+- Upgraded the reference manifest to 0.6.0 and Prompt/Skill package manifest to 0.10.0. Protocol and Semantic Contract remain 0.3.0; session schema remains 0.7.0; older themes and packages remain readable.
+
 ## 0.13.0 - 2026-07-17
 
 - Added a creator-visible set organization choice: `chaptered_variation` (“章节式丰富变化”) or `continuous_narrative` (“连续叙事”). New nine-image sessions default to Chaptered Variation unless the brief explicitly requests one continuous scene/look/event.

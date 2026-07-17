@@ -60,7 +60,7 @@ TOOLS = [
         "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
     },
     {
-        "name": "present_element_layer", "description": "Present creator-facing cards for one of five layers, including clickable set-strategy and adjustment directions plus every relevant protocol value, effect, lock and QA expectation.",
+        "name": "present_element_layer", "description": "Present creator-facing text cards plus five localized semantic stage thumbnails. Thumbnails are progress summaries and never image-generation references.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "project_root": {"type": "string"}}, ["session_id", "layer"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
         "_meta": {"openai/outputTemplate": ELEMENT_UI_URI, "ui/resourceUri": ELEMENT_UI_URI},
@@ -82,7 +82,7 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "commit_element_layer", "description": "Confirm one of five creative layers, its complete subset of thirteen element decisions and the exact DNA references required by that layer.",
+        "name": "commit_element_layer", "description": "Confirm one of five creative layers, its protocol decisions, exact DNA references, and optional real reference bindings. A binding may declare core_visual_anchor=true.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "layer"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
@@ -154,6 +154,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "shot_count": session["shot_count"],
         "theme_artifact": session.get("theme_artifact"), "invalidations": session.get("invalidations", []),
         "reference_count": len(session.get("private_references", [])),
+        "core_visual_anchor_reference_id": session.get("core_visual_anchor_reference_id"),
         "memory_offers": session.get("memory_offers", []),
         "language": session_interface_language(session),
     }
@@ -398,11 +399,11 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.13.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.14.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},
-        {"uri": ELEMENT_UI_URI, "name": "APSAL Element Text Cards", "mimeType": "text/html;profile=mcp-app"},
+        {"uri": ELEMENT_UI_URI, "name": "APSAL Element Text Cards and Stage Thumbnails", "mimeType": "text/html;profile=mcp-app"},
     ]}
     elif method == "resources/read":
         uri = message.get("params", {}).get("uri")
