@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.0 - 2026-07-17
+
+- Added a creator-visible set organization choice: `chaptered_variation` (“章节式丰富变化”) or `continuous_narrative` (“连续叙事”). New nine-image sessions default to Chaptered Variation unless the brief explicitly requests one continuous scene/look/event.
+- Materialized Chaptered Variation as three related scenes, three coordinated looks locked per chapter, nine distinct action-led body states and five functional focal-perspective families. Identity, live-action medium, world physics, photographic grammar and color remain coherent.
+- Made scene/look/action/pose/framing/focal variation and identity/world/medium/color continuity explicit in the existing Content, World, Look, Event, Sequence, Camera and Quality Control roles; no new protocol role or DNA category was introduced.
+- Added per-Job chapter, scene/look lock, action/body state, nominal focal length and observable perspective purpose to design and image compilation, plus separate set-level variation and continuity QA checks.
+- Rebuild downstream proposals and invalidate confirmed downstream layers when the Direction strategy changes. Older session-schema 0.7 artifacts without a strategy retain their previous intent.
+- Turned every card adjustment direction into a touch- and keyboard-accessible button. Selecting a direction requests a card revision and never silently confirms a layer.
+- Added RFC 0009, complete bilingual usage guidance and release notes. Protocol and Semantic Contract remain 0.3.0; official DNA and frozen theme versions remain unchanged.
+
 ## 0.12.0 - 2026-07-17
 
 - Filled every five-layer element card with the complete APSAL proposal: recommendation, rationale, adjustable directions, concrete values, observable results, invariants and acceptance criteria. Deliberately unset values now explain what should be decided later instead of showing an empty area.

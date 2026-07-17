@@ -317,6 +317,83 @@ class EngineTests(unittest.TestCase):
             male = engine.propose_element_decisions("创建一位成年男性主角的肖像", engine.new_semantic_theme("TEST-MALE", "Male"))["subject"]
             self.assertIn("male protagonist", male["values"]["identity"])
 
+    def test_new_session_defaults_to_three_chapter_controlled_variation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("创建九张东方极简窗边真人摄影主题", project_root=project, home=home, theme_id="TEST-CHAPTERED")
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertEqual(theme["set_strategy"], "chaptered_variation")
+            self.assertEqual(session["set_strategy"], "chaptered_variation")
+            self.assertEqual({shot["continuity"]["scene"] for shot in theme["shots"]}, {"SCENE_A", "SCENE_B", "SCENE_C"})
+            self.assertEqual({shot["continuity"]["wardrobe"] for shot in theme["shots"]}, {"LOOK_A", "LOOK_B", "LOOK_C"})
+            self.assertEqual(len({shot["pose_state"] for shot in theme["shots"]}), 9)
+            self.assertGreaterEqual(len({shot["focal_length"] for shot in theme["shots"]}), 5)
+            decisions = theme["element_decisions"]
+            self.assertEqual(decisions["world"]["values"]["scene_count"], 3)
+            self.assertEqual(decisions["look"]["values"]["look_count"], 3)
+            self.assertEqual(len(decisions["camera"]["values"]["focal_length_plan"]), 9)
+            content_card = engine.present_element_layer(session["session_id"], "direction", project_root=project)["cards"][0]
+            self.assertEqual(content_card["display_options"], ["章节式丰富变化（推荐）", "连续叙事"])
+            self.assertIn("三章", content_card["display_recommendation"])
+
+            confirmed = self._start_and_confirm(project, home, theme_id="TEST-CHAPTERED-COMPILED")
+            _, frozen = engine.load_design_session(confirmed["session_id"], project)
+            image = engine.compile_theme(frozen, "image")
+            qa = engine.compile_theme(frozen, "qa")
+            self.assertIn("APSAL SET STRATEGY — chaptered_variation", image["shots"][0]["positive_prompt"])
+            self.assertIn("Optics: 28 mm environmental wide", image["shots"][0]["positive_prompt"])
+            self.assertTrue(any(check["id"].startswith("set_strategy.variation_checks") for check in qa["global_checks"]))
+
+    def test_direction_can_switch_to_continuous_narrative_and_rebuild_downstream(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("创建九张室内真人摄影主题", project_root=project, home=home, theme_id="TEST-CONTINUOUS")
+            session = engine.commit_element_layer(
+                session["session_id"], "direction", [], project_root=project, home=home,
+                decisions={"content": {"values": {"set_strategy": "continuous_narrative"}}},
+            )
+            self.assertEqual(session["set_strategy"], "continuous_narrative")
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertEqual(theme["set_strategy"], "continuous_narrative")
+            self.assertEqual({shot["continuity"]["scene"] for shot in theme["shots"]}, {"SCENE_A"})
+            self.assertEqual({shot["continuity"]["wardrobe"] for shot in theme["shots"]}, {"LOOK_A"})
+            self.assertEqual(len({shot["pose_state"] for shot in theme["shots"]}), 9)
+            self.assertGreaterEqual(len({shot["focal_length"] for shot in theme["shots"]}), 5)
+            self.assertEqual(theme["element_decisions"]["world"]["values"]["scene_count"], 1)
+            self.assertEqual(theme["element_decisions"]["look"]["values"]["look_count"], 1)
+            self.assertEqual(theme["element_decisions"]["sequence"]["values"]["chapter_plan"], "one continuous event across nine Jobs")
+            world_card = next(card for card in engine.present_element_layer(session["session_id"], "worldbuilding", project_root=project)["cards"] if card["role"] == "world")
+            self.assertIn("一个核心场景", world_card["display_recommendation"])
+            assets = engine.load_catalog()["assets"]
+            for layer in engine.CREATIVE_LAYERS[1:]:
+                refs = [engine.asset_ref(item) for item in assets if item["type"] in engine.LAYER_TYPES[layer]]
+                session = engine.commit_element_layer(session["session_id"], layer, refs, project_root=project, home=home)
+            revised = engine.commit_element_layer(
+                session["session_id"], "direction", [], project_root=project, home=home,
+                decisions={"content": {"values": {"set_strategy": "chaptered_variation"}}},
+            )
+            self.assertEqual(revised["state"], "worldbuilding_pending")
+            self.assertEqual({item["invalidated"] for item in revised["invalidations"][-4:]}, set(engine.CREATIVE_LAYERS[1:]))
+            _, rebuilt = engine.load_design_session(session["session_id"], project)
+            self.assertEqual({shot["continuity"]["scene"] for shot in rebuilt["shots"]}, {"SCENE_A", "SCENE_B", "SCENE_C"})
+
+    def test_pre_013_session_without_set_strategy_keeps_its_original_intent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session("创建九张安静人像", project_root=project, home=home, theme_id="TEST-OLD-SESSION")
+            session_data, theme = engine.load_design_session(session["session_id"], project)
+            session_data.pop("set_strategy", None); theme.pop("set_strategy", None)
+            theme["element_decisions"]["content"]["values"].pop("set_strategy", None)
+            for shot in theme["shots"]:
+                for key in ("focal_length", "perspective_intent", "pose_state", "chapter"): shot.pop(key, None)
+                shot["continuity"] = {"identity": "locked", "wardrobe": "LOOK_A", "phase": "PHASE_1"}
+            engine._write_session(session_data, theme, project)
+            confirmed = engine.commit_element_layer(session["session_id"], "direction", [], project_root=project, home=home)
+            _, preserved = engine.load_design_session(session["session_id"], project)
+            self.assertNotIn("set_strategy", confirmed)
+            self.assertNotIn("set_strategy", preserved)
+            self.assertNotIn("set_strategy", preserved["element_decisions"]["content"]["values"])
+
     def test_cannot_skip_layers_and_each_layer_recommends_its_required_dna_types(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
@@ -645,7 +722,7 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.12.0")
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.13.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 21)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("set_session_language", names)

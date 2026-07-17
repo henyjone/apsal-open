@@ -2,9 +2,9 @@
 
 A theme references exact DNA assets using `namespace`, `id`, `type`, and `version`. The engine verifies the content digest through its bundled catalog, compiles layers in category order, and appends the shot-specific instruction.
 
-Every shot requires a unique ID, title, framing, action, hands, gaze, composition, continuity state, and output filename. The default count is nine, but any count from 1 through 24 is supported.
+Every shot requires a unique ID, title, framing, action, hands, gaze, composition, continuity state, and output filename. Studio 0.13 additionally materializes the selected set strategy as chapter, scene/look lock, action-led body state, nominal focal length and observable perspective purpose. The default count is nine, but any count from 1 through 24 is supported.
 
-Studio 0.7 stores a creator-confirmed `element_decisions` object containing exactly the thirteen protocol roles. It records the five-layer conversation position, intent, structured values, observable image effects, invariants, QA expectations, source, DNA references and confirmation state. The five layers are authoring UX; they do not change Protocol or Semantic Contract 0.3.
+Studio 0.7 stores a creator-confirmed `element_decisions` object containing exactly the thirteen protocol roles. It records the five-layer conversation position, intent, structured values, observable image effects, invariants, QA expectations, source, DNA references and confirmation state. Studio 0.13 adds an optional controlled `set_strategy` (`chaptered_variation` or `continuous_narrative`) for new sessions without making it mandatory for older 0.7 artifacts. The five layers are authoring UX; they do not change Protocol or Semantic Contract 0.3.
 
 Studio packages every Job as `.prompt.txt`, `.negative.txt` and `.full.txt` inside a deterministic Codex Prompt/Skill ZIP. `PROMPT_GUIDE.md` is the language index; `PROMPT_GUIDE.en.md` and `PROMPT_GUIDE.zh-CN.md` are equally complete creator-facing instructions. `references/manifest.json` must declare `generation_surface: codex_imagegen`, `direct_api_calls: false`, `api_key_required: false` and `returned_dimensions_guaranteed: false`.
 

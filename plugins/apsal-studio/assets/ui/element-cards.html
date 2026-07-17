@@ -23,7 +23,10 @@
     .proposal { margin-top:13px; padding:12px 13px; border-left:3px solid var(--accent-strong); background:var(--accent-surface); color:var(--accent-strong); font-weight:680; overflow-wrap:anywhere; }
     .intent,.rationale { color:#e5eee9; font-weight:520; overflow-wrap:anywhere; }
     .options { display:flex; flex-wrap:wrap; gap:6px; }
-    .option { padding:5px 9px; border:1px solid #405a4f; border-radius:999px; background:#202b26; color:var(--accent-strong); font-size:11px; font-weight:650; }
+    button.option { min-height:44px; flex:0 1 auto; padding:8px 12px; border:1px solid #405a4f; border-radius:999px; background:#202b26; color:var(--accent-strong); font-size:12px; font-weight:650; cursor:pointer; touch-action:manipulation; transition:background .18s ease,border-color .18s ease,color .18s ease; }
+    button.option:hover { border-color:var(--accent-strong); background:#294038; color:#e4f7ef; }
+    button.option:active { background:#315044; }
+    button.option:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
     section { margin-top:13px; padding-top:11px; border-top:1px solid var(--soft); }
     .label { margin-bottom:7px; color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.08em; }
     dl { display:grid; grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr); gap:6px 10px; margin:0; }
@@ -38,7 +41,7 @@
     #confirm { width:100%; margin-top:14px; border-color:var(--accent-strong); background:var(--accent-strong); color:var(--accent-ink); font-weight:750; }
     #confirm:hover { background:#c9eadf; color:#07100c; }
     @media(max-width:540px) { body{font-size:16px} main{padding:14px} header{align-items:flex-start;flex-direction:column} #cards{grid-template-columns:1fr} dl{grid-template-columns:1fr} }
-    @media(prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important} }
+    @media(prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important;transition:none!important} }
   </style>
 </head>
 <body>
@@ -81,7 +84,13 @@
     add(article,"span","source",`${safe(card.source_label)} · ${safe(card.status_label)}`);
     const proposal=document.createElement("section"); add(proposal,"div","label",labels.proposal); add(proposal,"div","proposal",card.display_recommendation); article.appendChild(proposal);
     const rationale=document.createElement("section"); add(rationale,"div","label",labels.rationale); add(rationale,"div","rationale",card.display_rationale); article.appendChild(rationale);
-    const options=document.createElement("section"); add(options,"div","label",labels.options); const optionHost=document.createElement("div"); optionHost.className="options"; (card.display_options||[]).forEach(value=>add(optionHost,"span","option",value)); options.appendChild(optionHost); article.appendChild(options);
+    const options=document.createElement("section"); add(options,"div","label",labels.options); const optionHost=document.createElement("div"); optionHost.className="options";
+    (card.display_options||[]).forEach(value=>{
+      const option=add(optionHost,"button","option",value); option.type="button";
+      option.setAttribute("aria-label",zh ? `选择${card.title}的方向：${safe(value)}` : `Choose ${safe(value)} for ${card.title}`);
+      option.addEventListener("click",()=>window.openai?.sendFollowUpMessage?.({prompt:zh ? `我选择“${safe(value)}”。请按这个方向修改“${card.title}”元素，说明会影响哪些后续元素，然后更新卡片让我确认。` : `I choose “${safe(value)}”. Revise the ${card.role} element in that direction, explain downstream effects, then show the updated card for confirmation.`}));
+    });
+    options.appendChild(optionHost); article.appendChild(options);
     const purpose=document.createElement("section"); add(purpose,"div","label",labels.purpose); add(purpose,"div","intent",card.display_intent); article.appendChild(purpose);
     const values=document.createElement("section"); add(values,"div","label",labels.values);
     const dl=document.createElement("dl"); Object.entries(card.display_values || {}).forEach(([key,value])=>{add(dl,"dt","",key);add(dl,"dd","",safe(value));}); values.appendChild(dl); article.appendChild(values);

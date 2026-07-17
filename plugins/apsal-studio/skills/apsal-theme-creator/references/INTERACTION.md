@@ -1,4 +1,4 @@
-# APSAL Studio 0.10 interaction and delivery contract
+# APSAL Studio 0.13 interaction and delivery contract
 
 ## Language before creative decisions
 
@@ -44,7 +44,20 @@ The seven DNA categories remain reusable Registry assets. The thirteen roles rem
 
 Each element card shows a fully populated design proposal, rationale, adjustable directions, purpose, current values, source, observable effect, invariants and QA expectations. Do not render empty proposal areas or hide the useful recommendation in chat outside the card. A deliberately empty machine value such as no secondary mood or no prop yet must be presented as a meaningful recommendation explaining when it should be added.
 
-Unless the brief explicitly requests another subject, the default Subject proposal is a poised, distinctive East Asian adult female protagonist with reliable camera presence and broad compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Preserve facial geometry, adult age, natural skin, hair color/hairline and body proportions so styling versatility never becomes face substitution. The current set still locks one confirmed look unless an observable event explicitly motivates a change.
+Unless the brief explicitly requests another subject, the default Subject proposal is a poised, distinctive East Asian adult female protagonist with reliable camera presence and broad compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Preserve facial geometry, adult age, natural skin, hair color/hairline and body proportions so styling versatility never becomes face substitution. The current set follows its confirmed set strategy: Chaptered Variation locks one coordinated look inside each chapter and permits changes only at chapter boundaries; Continuous Narrative locks one confirmed look unless an observable event explicitly motivates a change.
+
+## Set organization strategy and controlled variation
+
+Confirm one of two strategies in the Direction layer before Worldbuilding:
+
+1. **Chaptered Variation** (default): three related sub-scenes, three coordinated looks, and three Jobs per chapter. Across the nine Jobs, action/body state, hand plan, gaze, framing and focal perspective are distinct. Subject identity, live-action medium, world physics, photographic grammar and color system remain coherent.
+2. **Continuous Narrative**: one core scene, one confirmed look and one causally continuous event. Action/body state, hand plan, gaze, framing and focal perspective still vary by Job function, while scene, styling and event state remain strongly continuous.
+
+The visible card labels are “章节式丰富变化” and “连续叙事” in Chinese. The internal controlled values are `chaptered_variation` and `continuous_narrative`. Card option buttons request a revision and must not silently confirm a layer.
+
+For the nine-Job default, Chaptered Variation uses these functional perspectives: environmental wide, full-action, natural medium, emotional close and hand/prop detail. The canonical plan may store nominal focal lengths, but every Prompt must also state the observable perspective purpose because an image model cannot be assumed to simulate a lens from a number alone.
+
+Changing the set strategy rebuilds World, Look, Event, Sequence, Camera and Quality Control proposals plus the per-Job scene/look/focal/body-state plan. Any confirmed downstream layer becomes pending again. Existing 0.7 sessions that do not contain a set strategy preserve their prior intent and are not silently migrated.
 
 Direction must classify emotion with a controlled primary tone, optional secondary tones, undertone, valence, arousal, expression, energy and tension, plus a `start → turn → end` arc. If the brief combines positive and negative tones, keep both and propose mixed valence instead of silently discarding one. Chinese concepts such as 意境 or 气韵 may explain relationships, but do not replace observable behavior, light, color, space or sequence decisions.
 
@@ -74,7 +87,7 @@ A creator may return to an earlier layer. Committing a changed upstream decision
 
 Translate requests such as “人物更成熟，但保留短发” into a proposed DNA revision. Explain the one intended variable and the locks that remain. Save drafts automatically to the project. Confirmation promotes the draft to project DNA; copy it to personal DNA only after an explicit “保存到我的 DNA”. Never edit a formal ID/version in place.
 
-At Narrative, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, 9:16-safe composition, continuity phase, and output filename. Default is one Job and one 2160×3840 PNG.
+At Narrative, first explain the sequence arc, then show nine Scene summaries. Every frame needs a unique narrative function, observable action, motivated gaze, hand plan, weight/body state, 9:16-safe composition, chapter or continuous-event lock, focal perspective and output filename. Default is one Job and one requested 2160×3840 PNG.
 
 ## Reference binding
 

@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.12.0",
+  "engine_version": "0.13.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
@@ -650,6 +650,10 @@
       "hands": "hands relaxed, anatomically plausible, and consistent with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -836,6 +840,10 @@
       "hands": "hands relaxed, anatomically plausible, and consistent with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1022,6 +1030,10 @@
       "hands": "both hands visible and naturally engaged with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1208,6 +1220,10 @@
       "hands": "both hands visible and naturally engaged with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1394,6 +1410,10 @@
       "hands": "both hands visible and naturally engaged with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1580,6 +1600,10 @@
       "hands": "hands relaxed, anatomically plausible, and consistent with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1766,6 +1790,10 @@
       "hands": "hands relaxed, anatomically plausible, and consistent with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -1952,6 +1980,10 @@
       "hands": "both hands visible and naturally engaged with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -2138,6 +2170,10 @@
       "hands": "hands relaxed, anatomically plausible, and consistent with the action",
       "gaze": "motivated by the window, paper, or path of movement; never an arbitrary fashion stare",
       "composition": "distinct editorial framing with coherent room geometry, controlled depth, and purposeful negative space",
+      "focal_length": null,
+      "perspective_intent": null,
+      "pose_state": null,
+      "chapter": null,
       "continuity": {
         "identity": "locked",
         "wardrobe": "LOOK_A",
@@ -2316,5 +2352,5 @@
       "output_filename": "apsal-open-001_09.jpg"
     }
   ],
-  "compiled_digest": "aa08e1308cbeff270fe18007754ac424b281ca6e2d1c42a230c975ba4942ac47"
+  "compiled_digest": "80ece640391cb0554bc3058f4b89b55425cc649d9a1c525ba89c1585e14dd7a7"
 }

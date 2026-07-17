@@ -33,8 +33,8 @@ REF_SCHEMA = _schema({
 
 TOOLS = [
     {
-        "name": "start_design_session", "description": "Start a new APSAL design from one natural-language brief, or resume an existing local session.",
-        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}}, []),
+        "name": "start_design_session", "description": "Start or resume an APSAL design. New sets default to three-chapter controlled variation and may explicitly select continuous narrative.",
+        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}}, []),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -60,7 +60,7 @@ TOOLS = [
         "_meta": {"openai/outputTemplate": UI_URI, "ui/resourceUri": UI_URI},
     },
     {
-        "name": "present_element_layer", "description": "Present the creator-facing text cards for one of five layers, exposing every relevant APSAL protocol element, proposed value, source, observable effect and QA expectation.",
+        "name": "present_element_layer", "description": "Present creator-facing cards for one of five layers, including clickable set-strategy and adjustment directions plus every relevant protocol value, effect, lock and QA expectation.",
         "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "project_root": {"type": "string"}}, ["session_id", "layer"]),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
         "_meta": {"openai/outputTemplate": ELEMENT_UI_URI, "ui/resourceUri": ELEMENT_UI_URI},
@@ -157,6 +157,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "memory_offers": session.get("memory_offers", []),
         "language": session_interface_language(session),
     }
+    if session.get("set_strategy") in {"chaptered_variation", "continuous_narrative"}: value["set_strategy"] = session["set_strategy"]
     if session.get("schema_version") == "0.7.0":
         value.update({"interaction_model": session["interaction_model"], "layers": session["layers"],
                       "confirmed_element_count": sum(len(item["roles"]) for item in session["layers"].values() if item["status"] == "confirmed")})
@@ -174,7 +175,7 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
         if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
         return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
-    session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9), language=arguments.get("language", "auto"))
+    session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9), language=arguments.get("language", "auto"), set_strategy=arguments.get("set_strategy"))
     locale = session_interface_language(session)
     if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
     elif locale["code"] == "zh-CN": next_action = "展示“创作命题与情绪”元素卡，确认五层中的第一层。"
@@ -360,26 +361,28 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     elif name == "present_element_layer":
         lines = [(f"创作层：{value['title']}" if value.get("language") == "zh-CN" else f"APSAL layer: {value['title']}")]
         for card in value["cards"]:
-            labels = ("提案", "理由", "取值", "应当看到", "必须保持", "验收标准") if value.get("language") == "zh-CN" else ("Proposal", "Rationale", "Values", "Expected", "Must preserve", "Acceptance criteria")
+            labels = ("提案", "理由", "可选方向", "取值", "应当看到", "必须保持", "验收标准") if value.get("language") == "zh-CN" else ("Proposal", "Rationale", "Selectable directions", "Values", "Expected", "Must preserve", "Acceptance criteria")
             if value.get("language") == "zh-CN":
                 lines.append(
                     f"- {card['title']}【{card['source_label']}；{card['status_label']}】"
                     f"\n  {labels[0]}：{card['display_recommendation']}"
                     f"\n  {labels[1]}：{card['display_rationale']}"
-                    f"\n  {labels[2]}：{json.dumps(card['display_values'], ensure_ascii=False)}"
-                    f"\n  {labels[3]}：{'；'.join(card['display_observable'])}"
-                    f"\n  {labels[4]}：{'；'.join(card['display_must_preserve'])}"
-                    f"\n  {labels[5]}：{'；'.join(card['display_qa_expectations'])}"
+                    f"\n  {labels[2]}：{'；'.join(card['display_options'])}"
+                    f"\n  {labels[3]}：{json.dumps(card['display_values'], ensure_ascii=False)}"
+                    f"\n  {labels[4]}：{'；'.join(card['display_observable'])}"
+                    f"\n  {labels[5]}：{'；'.join(card['display_must_preserve'])}"
+                    f"\n  {labels[6]}：{'；'.join(card['display_qa_expectations'])}"
                 )
             else:
                 lines.append(
                     f"- {card['title']} [{card['source']}]"
                     f"\n  {labels[0]}: {card['display_recommendation']}"
                     f"\n  {labels[1]}: {card['display_rationale']}"
-                    f"\n  {labels[2]}: {json.dumps(card['display_values'], ensure_ascii=False)}"
-                    f"\n  {labels[3]}: {'; '.join(card['display_observable'])}"
-                    f"\n  {labels[4]}: {'; '.join(card['display_must_preserve'])}"
-                    f"\n  {labels[5]}: {'; '.join(card['display_qa_expectations'])}"
+                    f"\n  {labels[2]}: {'; '.join(card['display_options'])}"
+                    f"\n  {labels[3]}: {json.dumps(card['display_values'], ensure_ascii=False)}"
+                    f"\n  {labels[4]}: {'; '.join(card['display_observable'])}"
+                    f"\n  {labels[5]}: {'; '.join(card['display_must_preserve'])}"
+                    f"\n  {labels[6]}: {'; '.join(card['display_qa_expectations'])}"
                 )
         text = "\n".join(lines)
     else:
@@ -395,7 +398,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.12.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.13.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

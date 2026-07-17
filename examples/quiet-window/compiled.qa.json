@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.12.0",
+  "engine_version": "0.13.0",
   "theme_id": "APSAL-OPEN-001",
   "theme_version": "1.1.0",
   "theme_digest": "d31fa194f10148019d66b6dec3d392f1762b06e78179cce6686575b05aa40944",
@@ -63,6 +63,24 @@
           "source": "continuity"
         },
         {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
+        },
+        {
           "id": "output.independent",
           "en": "The output is one independent finished image with no text or grid.",
           "zh": "输出为一张无文字、无拼图的独立完成图。",
@@ -116,6 +134,24 @@
           "en": "The same fictional adult identity is preserved.",
           "zh": "保持同一虚构成年人物身份。",
           "source": "continuity"
+        },
+        {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
         },
         {
           "id": "output.independent",
@@ -173,6 +209,24 @@
           "source": "continuity"
         },
         {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
+        },
+        {
           "id": "output.independent",
           "en": "The output is one independent finished image with no text or grid.",
           "zh": "输出为一张无文字、无拼图的独立完成图。",
@@ -226,6 +280,24 @@
           "en": "The same fictional adult identity is preserved.",
           "zh": "保持同一虚构成年人物身份。",
           "source": "continuity"
+        },
+        {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
         },
         {
           "id": "output.independent",
@@ -283,6 +355,24 @@
           "source": "continuity"
         },
         {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
+        },
+        {
           "id": "output.independent",
           "en": "The output is one independent finished image with no text or grid.",
           "zh": "输出为一张无文字、无拼图的独立完成图。",
@@ -336,6 +426,24 @@
           "en": "The same fictional adult identity is preserved.",
           "zh": "保持同一虚构成年人物身份。",
           "source": "continuity"
+        },
+        {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
         },
         {
           "id": "output.independent",
@@ -393,6 +501,24 @@
           "source": "continuity"
         },
         {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
+        },
+        {
           "id": "output.independent",
           "en": "The output is one independent finished image with no text or grid.",
           "zh": "输出为一张无文字、无拼图的独立完成图。",
@@ -446,6 +572,24 @@
           "en": "The same fictional adult identity is preserved.",
           "zh": "保持同一虚构成年人物身份。",
           "source": "continuity"
+        },
+        {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
         },
         {
           "id": "output.independent",
@@ -503,6 +647,24 @@
           "source": "continuity"
         },
         {
+          "id": "variation.pose_state",
+          "en": "The declared body state for this Job is visibly distinct and action-led.",
+          "zh": "本镜声明的身体状态清楚可见、由行动驱动，并且不与其他镜头重复。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "camera.focal_purpose",
+          "en": "The declared focal perspective serves this Job's perspective purpose without artificial optical distortion.",
+          "zh": "本镜焦段服务于已声明的观看目的，不产生无理由的人工透视变形。",
+          "source": "set_strategy"
+        },
+        {
+          "id": "continuity.scene_look",
+          "en": "The scene and look match the declared chapter or continuous-event lock.",
+          "zh": "场景与妆造符合本章锁定或连续事件锁定。",
+          "source": "set_strategy"
+        },
+        {
           "id": "output.independent",
           "en": "The output is one independent finished image with no text or grid.",
           "zh": "输出为一张无文字、无拼图的独立完成图。",
@@ -511,5 +673,5 @@
       ]
     }
   ],
-  "compiled_digest": "ed541421e4d550c49030f75032fab8ab92a415a35bf41ccee109ef62e89770e6"
+  "compiled_digest": "25da767a7ffaa6c8a10a4ee675152af63a6040b4e1ab23f429cf18a0322e5ef3"
 }

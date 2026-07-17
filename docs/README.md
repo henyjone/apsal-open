@@ -9,12 +9,12 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 | Install and use APSAL Studio from first idea to nine images | [Complete usage guide](USAGE_GUIDE.md) | [完整使用手册](USAGE_GUIDE.zh-CN.md) |
 | Understand APSAL Elemental Photography | [Methodology monograph](monograph/README.md) | [《构建可见世界》](monograph/README.md) |
 | Build against the machine contract | [APSAL Open Protocol](../protocol/APSAL_OPEN_PROTOCOL.md) | [APSAL 开放协议](../protocol/APSAL_OPEN_PROTOCOL.md) |
-| See what changed in the current plugin | [APSAL Studio 0.12.0](releases/0.12.0.md) | [APSAL Studio 0.12.0](releases/0.12.0.md) |
+| See what changed in the current plugin | [APSAL Studio 0.13.0](releases/0.13.0.md) | [APSAL Studio 0.13.0](releases/0.13.0.md) |
 | Contribute original DNA or protocol work | [Contribution guide](../CONTRIBUTING.md) | [贡献指南](../CONTRIBUTING.md) |
 
 ## Creator paths
 
-- **Create a new theme:** one natural-language idea → five creator layers → thirteen confirmed elements → nine-shot review → Prompt/Skill package → one Codex-generated image per turn.
+- **Create a new theme:** one natural-language idea → Chaptered Variation or Continuous Narrative → five creator layers → thirteen confirmed elements → nine-shot review → Prompt/Skill package → one Codex-generated image per turn.
 - **Open an old APSAL ZIP:** attach the ZIP → automatic Prompt and reference recovery → private Codex Skill package → first image ready. No JSON repair or image API runner is required.
 - **Reuse DNA:** accept a scene-matched recommendation, revise it, keep it in the project, or explicitly save it to My DNA for future recommendations.
 - **Share DNA:** export rights-cleared reusable DNA as an independent Extension Pack without publishing private themes or reference media.
@@ -29,5 +29,6 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 - [Codex-native generation and Prompt delivery](../protocol/RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md)
 - [Legacy run takeover](../protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
 - [Bilingual creator interaction](../protocol/RFC-0008-BILINGUAL-INTERACTION.md)
+- [Controlled variation and set strategy](../protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 
 Static validation proves structure, lineage and reproducibility. Generated photographs still require Codex visual review and a separate human visual-QA decision.

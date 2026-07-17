@@ -150,6 +150,10 @@ Preview sidecars remain in the Registry for rights review, Extension Pack valida
 
 Beginning with Studio 0.12, every element card must contain the actual design proposal, its rationale, adjustable directions, concrete values, expected effects, invariants and acceptance criteria. Useful recommendations cannot live only in surrounding chat, and a deliberately unset machine value must be explained rather than rendered as an empty area. The numbered-text fallback must carry the same content.
 
+## Studio 0.13 controlled set variation
+
+Studio 0.13 makes Content choose a set organization strategy before downstream layers are confirmed. The default Chaptered Variation coordinates three related scenes, three chapter-locked looks, nine action-led body states and functional focal perspectives through the existing World, Look, Event, Sequence, Camera and Quality Control roles. Continuous Narrative preserves one core scene and look while the event and camera progress. This adds no protocol role or DNA type. See [RFC 0009](RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md).
+
 New sessions use a poised, distinctive East Asian adult female protagonist as the default when the creator has not specified another subject. The default supports classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling variables remain separate from immutable identity: facial geometry, adult age, natural skin, hair color/hairline and body proportions stay locked. Within one set, the confirmed styling state remains continuous unless an observable event explicitly changes it. Explicit creator subject requirements override the default.
 
 ## Compatibility and versioning

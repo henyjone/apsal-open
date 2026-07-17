@@ -1,4 +1,4 @@
-# APSAL Studio 0.11 Complete Usage Guide
+# APSAL Studio 0.13 Complete Usage Guide
 
 [中文](USAGE_GUIDE.zh-CN.md) · [Documentation hub](README.md) · [Project home](../README.md)
 
@@ -8,6 +8,7 @@ This guide covers the complete creator workflow: installation, natural-language 
 
 ```text
 One natural-language idea
+→ Chaptered Variation or Continuous Narrative
 → five creator layers
 → scene-matched DNA recommendations
 → creator confirmation or natural-language revision
@@ -25,7 +26,7 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 Install the pinned stable release:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.12.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.13.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -35,14 +36,14 @@ Restart Codex or open a new task, then verify:
 codex plugin list
 ```
 
-You should see `apsal-studio@apsal-open`, enabled at version `0.12.0`.
+You should see `apsal-studio@apsal-open`, enabled at version `0.13.0`.
 
 To replace an older pinned installation:
 
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.12.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.13.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -84,15 +85,26 @@ Answer normally; Studio stores the choice in the local design session. To switch
 
 | Layer | Protocol roles | Creator decision |
 |---|---|---|
-| Direction | Content, Emotion | proposition, primary/secondary mood, valence, arousal and nine-shot emotional arc |
+| Direction | Content, Emotion | proposition, set strategy, primary/secondary mood, valence, arousal and nine-shot emotional arc |
 | Worldbuilding | Subject, World, Look | identity, age, space, time, physics, wardrobe, grooming, props and ownership |
 | Narrative | Event, Sequence | what changes in each Job and why the nine images progress rather than repeat poses |
 | Image | Camera, Light, Style, Color/Post | framing, viewpoint, optics, composition, source/direction/quality of light, palette and post-processing |
 | Delivery | Job, Quality Control | one image per Job, output request, rejection rules, model QA and human QA |
 
-Every text card includes the complete recommendation, rationale, adjustable directions, intent, values, provenance, observable effects, locks and QA expectations. A deliberately unset machine value is shown as an explanation of when it should be added, not as a blank card region.
+Every text card includes the complete recommendation, rationale, adjustable directions, intent, values, provenance, observable effects, locks and QA expectations. A deliberately unset machine value is shown as an explanation of when it should be added, not as a blank card region. Adjustable directions are real buttons: selecting one asks Studio to revise that element and explain downstream effects, but never silently confirms the layer.
 
-Unless the brief explicitly requests another subject, Studio proposes a poised, distinctive East Asian adult female protagonist with stable camera presence and compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling versatility never means identity drift: facial geometry, adult age, natural skin, hair color/hairline and body proportions remain locked. One set retains one confirmed look unless an observable event motivates a change. An explicit adult male brief overrides the female default.
+Unless the brief explicitly requests another subject, Studio proposes a poised, distinctive East Asian adult female protagonist with stable camera presence and compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling versatility never means identity drift: facial geometry, adult age, natural skin, hair color/hairline and body proportions remain locked. Chaptered Variation locks one of three coordinated looks inside each chapter; Continuous Narrative retains one confirmed look unless an observable event motivates a change. An explicit adult male brief overrides the female default.
+
+### Choose how the set changes
+
+The first Content card offers two choices:
+
+1. **Chaptered Variation (recommended):** three related sub-scenes and three coordinated looks, one scene/look per three-shot chapter. Nine Jobs receive nine distinct action-led body states. Environment, full-action, natural-medium, emotional-close and hand/prop-detail focal perspectives are selected by shot function. Identity, live-action medium, world physics, photographic grammar and color system remain coherent.
+2. **Continuous Narrative:** one core scene, one confirmed look and one continuous event state. Actions, hand plans, gaze, body states, framing and focal perspective still progress, but scene, styling and physical consequences remain strongly continuous.
+
+The nominal plan uses roughly 28 mm environment, 35 mm full action, 50 mm natural medium, 85 mm emotional close and 105 mm hand/prop detail. These are photographic intent labels, not a promise that an image model simulates exact optics. Every Prompt also contains the observable perspective purpose.
+
+Changing the choice later rebuilds World, Look, Event, Sequence, Camera and Quality Control proposals and invalidates any confirmed downstream layer. Review the new cards before continuing.
 
 Confirm a layer, or revise one target in natural language:
 
@@ -137,7 +149,7 @@ Studio records SHA-256, scope, allowed/forbidden uses, copyright, portrait conse
 
 ## 7. Review and finalize
 
-The final review should show all thirteen decisions, nine distinct Jobs, live-action Rendering Contract, references and rights, requested output, independent-image restrictions and separate model/human QA.
+The final review should show all thirteen decisions, the chosen set strategy, nine distinct Jobs with scene/look/body-state/focal plans, live-action Rendering Contract, references and rights, requested output, independent-image restrictions and separate model/human QA.
 
 After approval, finalization always creates the canonical theme artifacts and a reproducible Codex Prompt/Skill ZIP, even if you choose immediate generation. Chat history is never the only lineage record.
 
@@ -245,10 +257,11 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Symptom | Action |
 |---|---|
 | Studio does not trigger | Restart Codex/open a new task and explicitly say “Use APSAL Studio” |
-| Codex explains `run.json` instead of using the package | Confirm version 0.12.0 and say “Open this APSAL package and generate the first image” |
-| English input still shows Chinese cards | Open a new task after upgrading to 0.12.0, or say “use English”; the session should report language `en` |
-| Chinese cards contain English machine fields | Confirm version 0.12.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
-| Element cards show only headings or blank proposal areas | Confirm version 0.12.0 and start a new task; each card should show its proposal, rationale, options, values, expected effects, locks and acceptance criteria |
+| Codex explains `run.json` instead of using the package | Confirm version 0.13.0 and say “Open this APSAL package and generate the first image” |
+| English input still shows Chinese cards | Open a new task after upgrading to 0.13.0, or say “use English”; the session should report language `en` |
+| Chinese cards contain English machine fields | Confirm version 0.13.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
+| Element cards show only headings or blank proposal areas | Confirm version 0.13.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
+| Every image repeats the same scene, look, pose or focal perspective | Start a new 0.13 session and keep Chaptered Variation, or switch the first Content card from Continuous Narrative; review the three scene/look chapters and nine body-state plan before confirmation |
 | Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |
 | A programming interface or code image appears | Reject the current image as visual-QA failure and retry that Job; it is never a valid photographic output |
 | The human looks illustrated, doll-like or 3D | Fail live-action medium QA and retry only that Job with the Rendering Contract preserved |
