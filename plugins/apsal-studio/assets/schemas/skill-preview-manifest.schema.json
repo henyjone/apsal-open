@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/henyjone/apsal-open/schemas/skill-preview-manifest.schema.json",
+  "title": "APSAL Skill Preview Manifest 0.1",
+  "type": "object",
+  "required": ["schema_version", "theme_id", "theme_version", "stage_count", "asset_count", "generation_input", "relationship_to_reference_manifest", "rights", "assets", "preview_manifest_digest"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "theme_id": {"type": "string"},
+    "theme_version": {"type": "string"},
+    "stage_count": {"const": 5},
+    "asset_count": {"const": 10},
+    "generation_input": {"const": false},
+    "relationship_to_reference_manifest": {"const": "strictly_separate"},
+    "rights": {
+      "type": "object",
+      "required": ["license", "attribution", "status"]
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["preview_id", "layer", "locale", "title", "alt_text", "file", "mime_type", "width", "height", "sha256", "generation_input", "visual_kind", "qa_status"],
+        "properties": {
+          "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]},
+          "locale": {"enum": ["zh-CN", "en"]},
+          "file": {"type": "string", "pattern": "^assets/previews/stages/"},
+          "mime_type": {"const": "image/svg+xml"},
+          "width": {"const": 768},
+          "height": {"const": 576},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "generation_input": {"const": false},
+          "visual_kind": {"const": "semantic_stage_summary"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "preview_manifest_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": true
+}

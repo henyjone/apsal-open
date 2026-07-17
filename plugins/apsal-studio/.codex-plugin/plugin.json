@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.13.0",
-  "description": "Build live-action AI photography with controlled scene, styling, pose and focal-length variation, package every Prompt, and generate each shot directly with Codex.",
+  "version": "0.14.0",
+  "description": "Build live-action AI photography with five semantic stage previews, a rights-scoped visual anchor, complete Prompts, and direct Codex generation.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -14,8 +14,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "Controlled variety across a coherent photo set",
-    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five highlighted text-card layers covering all thirteen protocol roles. New sets default to Chaptered Variation: three related scenes, three coordinated looks, nine action-led body states and functional multi-focal coverage, while identity, live-action medium, world grammar and color remain coherent. Creators can choose Continuous Narrative instead. Every option is clickable, every card contains a complete proposal, and finalization packages all Prompts before Codex generates one independent image per turn.",
+    "shortDescription": "Five-stage world building for coherent photo sets",
+    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five highlighted text-card layers covering all thirteen protocol roles. A localized thumbnail strip summarizes Direction, Worldbuilding, Narrative, Image and Delivery without replacing the complete proposals. New sets support Chaptered Variation or Continuous Narrative. Finalization packages all Prompts, real rights-scoped references with one core visual anchor when available, and separate non-generation stage previews before Codex generates one independent image per turn.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],

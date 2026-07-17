@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import datetime as dt
 import importlib.util
 import io
@@ -32,7 +33,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.13.0"
+ENGINE_VERSION = "0.14.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -47,6 +48,14 @@ STAGE_TYPES = {
     "photo": ("style", "lighting"),
 }
 CREATIVE_LAYERS = ("direction", "worldbuilding", "narrative", "image", "delivery")
+STAGE_PREVIEW_SCHEMA_VERSION = "0.1.0"
+STAGE_PREVIEW_COLORS = {
+    "direction": ("#B8E2D2", "#365E50"),
+    "worldbuilding": ("#E4CFA8", "#66513A"),
+    "narrative": ("#D9B7C6", "#624653"),
+    "image": ("#AFC7E2", "#3C536D"),
+    "delivery": ("#D7D3B0", "#56543C"),
+}
 LAYER_ROLES = {
     "direction": ("content", "emotion"),
     "worldbuilding": ("subject", "world", "look"),
@@ -1964,6 +1973,9 @@ def validate_reference_metadata(references: Any, theme: dict[str, Any] | None = 
     if expected and expected != actual: errors.append("references: digests must match reference_analysis exactly")
     if analysis.get("identity_usage") == "none" and any("identity" in ref.get("uses", []) for ref in references if isinstance(ref, dict)):
         errors.append("references: identity usage conflicts with reference_analysis.identity_usage=none")
+    anchor = (theme or {}).get("core_visual_anchor_reference_id")
+    if anchor is not None and anchor not in ids:
+        errors.append("references: core_visual_anchor_reference_id must resolve to a declared reference")
     return errors
 
 
@@ -2353,7 +2365,8 @@ def start_design_session(
             layer: {"status": "pending", "roles": list(LAYER_ROLES[layer]), "selection": [], "confirmed_at": None}
             for layer in CREATIVE_LAYERS
         },
-        "private_references": [], "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
+        "private_references": [], "core_visual_anchor_reference_id": None,
+        "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
         "theme_artifact": None,
     }
     _write_session(session, theme, project_root)
@@ -2367,6 +2380,93 @@ def set_session_language(session_id: str, language: str, *, project_root: Path) 
     session["language"] = resolve_interface_language("", language)
     _write_session(session, theme, project_root)
     return session
+
+
+def _stage_preview_copy(layer: str, locale: str) -> tuple[str, str, str]:
+    """Return fully localized, creator-facing copy for a semantic stage preview."""
+    if locale == "zh-CN":
+        copy = {
+            "direction": ("创作命题与情绪", "命题、情绪与套片基调", "内容 · 情绪"),
+            "worldbuilding": ("人物与世界陈设", "人物、空间与妆造关系", "人物 · 世界 · 妆造"),
+            "narrative": ("事件与叙事序列", "事件推进与九镜头节奏", "事件 · 序列"),
+            "image": ("摄影与成像语言", "相机、灯光、风格与色调", "相机 · 灯光 · 风格 · 色调后期"),
+            "delivery": ("执行与验证", "单镜执行、输出与质量检查", "任务 · 质量检查"),
+        }
+    else:
+        copy = {
+            "direction": ("Direction & Emotion", "Theme, emotion, and set tone", "Content · Emotion"),
+            "worldbuilding": ("Subject & World", "Subject, space, and styling", "Subject · World · Look"),
+            "narrative": ("Event & Sequence", "Event progression and nine-shot rhythm", "Event · Sequence"),
+            "image": ("Photography Language", "Camera, light, style, and color", "Camera · Light · Style · Color/Post"),
+            "delivery": ("Execution & QA", "One-job execution, output, and review", "Job · Quality Control"),
+        }
+    return copy[layer]
+
+
+def build_stage_preview_svg(
+    theme: dict[str, Any], layer: str, *, locale: str = "zh-CN", status: str | None = None,
+) -> bytes:
+    """Build a deterministic semantic thumbnail; it is never a generation reference."""
+    if layer not in CREATIVE_LAYERS: raise ValidationError(f"unknown creative layer: {layer}")
+    if locale not in SUPPORTED_INTERFACE_LANGUAGES: raise ValidationError(f"unsupported preview language: {locale}")
+    decisions = theme.get("element_decisions", {})
+    confirmed = all(decisions.get(role, {}).get("status") == "confirmed" for role in LAYER_ROLES[layer])
+    state = status or ("confirmed" if confirmed else "proposed")
+    title, subtitle, roles = _stage_preview_copy(layer, locale)
+    state_label = ("已确认" if state == "confirmed" else "设计提案") if locale == "zh-CN" else ("CONFIRMED" if state == "confirmed" else "PROPOSAL")
+    disclaimer = "语义缩略图 · 不作为生成参考图" if locale == "zh-CN" else "Semantic thumbnail · never a generation reference"
+    accent, accent_dark = STAGE_PREVIEW_COLORS[layer]
+    layer_index = CREATIVE_LAYERS.index(layer)
+    seed = digest({"layer": layer, "decisions": {role: decisions.get(role, {}) for role in LAYER_ROLES[layer]}})
+    nodes = []
+    for index in range(6):
+        value = int(seed[index * 2:index * 2 + 2], 16)
+        x = 95 + index * 105
+        y = 352 + (value % 92)
+        radius = 7 + value % 7
+        nodes.append(f'<circle cx="{x}" cy="{y}" r="{radius}" fill="{accent}" fill-opacity="{0.38 + index * 0.07:.2f}"/>')
+    progress = []
+    for index, item in enumerate(CREATIVE_LAYERS):
+        fill = STAGE_PREVIEW_COLORS[item][0] if index <= layer_index else "#39413D"
+        progress.append(f'<circle cx="{112 + index * 136}" cy="505" r="8" fill="{fill}"/>')
+        if index < len(CREATIVE_LAYERS) - 1:
+            progress.append(f'<path d="M{120 + index * 136} 505 H{240 + index * 136}" stroke="#39413D" stroke-width="2"/>')
+    escaped = [html.escape(item, quote=True) for item in (title, subtitle, roles, state_label, disclaimer)]
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="768" height="576" viewBox="0 0 768 576" role="img" aria-labelledby="title desc" data-generation-input="false">
+<title id="title">{escaped[0]}</title><desc id="desc">{escaped[1]}. {escaped[4]}</desc>
+<rect width="768" height="576" rx="34" fill="#101411"/>
+<rect x="28" y="28" width="712" height="520" rx="26" fill="#171C18" stroke="#39433E"/>
+<path d="M66 76 H702 M66 468 H702" stroke="#2C3530"/>
+<rect x="66" y="76" width="8" height="176" rx="4" fill="{accent}"/>
+<text x="98" y="112" fill="{accent}" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" font-weight="700" letter-spacing="2">APSAL · {layer_index + 1:02d}</text>
+<text x="98" y="169" fill="#F2EEE3" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="34" font-weight="760">{escaped[0]}</text>
+<text x="98" y="211" fill="#B8C1BC" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="18">{escaped[1]}</text>
+<rect x="98" y="244" width="544" height="42" rx="21" fill="{accent_dark}"/>
+<text x="120" y="271" fill="{accent}" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" font-weight="650">{escaped[2]}</text>
+<g>{''.join(nodes)}</g><path d="M95 400 C200 330 298 452 410 371 S598 330 650 397" fill="none" stroke="{accent}" stroke-opacity=".44" stroke-width="2"/>
+<rect x="570" y="95" width="110" height="34" rx="17" fill="{accent}"/><text x="625" y="117" text-anchor="middle" fill="#101411" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" font-weight="800">{escaped[3]}</text>
+<g>{''.join(progress)}</g>
+<text x="66" y="535" fill="#8F9A94" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="12">{escaped[4]}</text>
+</svg>'''
+    return svg.encode("utf-8")
+
+
+def stage_preview_cards(session: dict[str, Any], theme: dict[str, Any], locale: str) -> list[dict[str, Any]]:
+    """Return all five localized progress thumbnails for the MCP card strip."""
+    current = next((item for item in CREATIVE_LAYERS if session["layers"][item]["status"] != "confirmed"), None)
+    cards = []
+    for layer in CREATIVE_LAYERS:
+        status = session["layers"][layer]["status"]
+        title, subtitle, _ = _stage_preview_copy(layer, locale)
+        svg = build_stage_preview_svg(theme, layer, locale=locale, status=status)
+        cards.append({
+            "layer": layer, "title": title, "summary": subtitle, "status": status,
+            "status_label": ("已确认" if status == "confirmed" else "当前设计" if layer == current else "待确认") if locale == "zh-CN" else ("Confirmed" if status == "confirmed" else "Current" if layer == current else "Pending"),
+            "current": layer == current, "alt_text": f"{title} — {subtitle}",
+            "data_uri": "data:image/svg+xml;charset=utf-8," + urllib.parse.quote(svg.decode("utf-8")),
+            "generation_input": False,
+        })
+    return cards
 
 
 def present_element_layer(session_id: str, layer: str, *, project_root: Path) -> dict[str, Any]:
@@ -2411,6 +2511,8 @@ def present_element_layer(session_id: str, layer: str, *, project_root: Path) ->
         "layer_label": layer_spec["en"] if locale == "en" else layer_spec["zh"],
         "roles": list(LAYER_ROLES[layer]), "required_dna_types": list(LAYER_TYPES[layer]),
         "cards": cards, "status": session["layers"][layer]["status"],
+        "stage_previews": stage_preview_cards(session, theme, locale),
+        "preview_policy": "semantic_ui_only_never_generation_input",
     }
     if layer == "direction": result["emotion_taxonomy"] = load_creative_layers()["emotion_taxonomy"]
     return result
@@ -2571,17 +2673,20 @@ def commit_element_layer(
         if layer != "narrative": raise ValidationError("shot changes are only allowed in the narrative layer")
         _validate_shot_replacement(shots, session["shot_count"]); theme["shots"] = shots
 
-    bound_references: list[dict[str, Any]] = []; reference_changed = False
+    bound_references: list[dict[str, Any]] = []; reference_changed = False; requested_anchor_ids: list[str] = []
     if reference_path is not None:
         if layer != "worldbuilding": raise ValidationError("identity references belong to the worldbuilding layer")
         bound_references.append(store_private_reference(reference_path, home=home))
     for binding in reference_bindings or []:
         if not isinstance(binding, dict) or not binding.get("path"): raise ValidationError("reference binding requires a path")
-        bound_references.append(store_private_reference(
+        stored = store_private_reference(
             Path(binding["path"]), home=home, reference_id=binding.get("reference_id"), uses=binding.get("uses"),
             allowed_uses=binding.get("allowed_uses"), forbidden_uses=binding.get("forbidden_uses"),
             applies_to=binding.get("applies_to"), rights=binding.get("rights"), expected_sha256=binding.get("expected_sha256"),
-        ))
+        )
+        bound_references.append(stored)
+        if binding.get("core_visual_anchor") is True: requested_anchor_ids.append(stored["reference_id"])
+    if len(set(requested_anchor_ids)) > 1: raise ValidationError("only one reference may be the core visual anchor")
     for stored in bound_references:
         previous = next((item for item in session["private_references"] if item.get("reference_id") == stored["reference_id"]), None)
         if previous != stored:
@@ -2591,6 +2696,17 @@ def commit_element_layer(
         theme.setdefault("references", []); theme["references"] = [item for item in theme["references"] if item.get("reference_id") != stored["reference_id"]]
         theme["references"].append(public_metadata); theme["references"].sort(key=lambda item: item["reference_id"])
         if stored["rights"].get("redistribution_allowed") is not True: theme["distribution"] = "private_only"
+    if bound_references:
+        known_reference_ids = {item["reference_id"] for item in theme.get("references", [])}
+        existing_anchor = theme.get("core_visual_anchor_reference_id")
+        preferred = next(iter(set(requested_anchor_ids)), None)
+        if preferred is None and existing_anchor in known_reference_ids: preferred = existing_anchor
+        if preferred is None:
+            preferred = next((item["reference_id"] for item in theme["references"] if "identity" in item.get("uses", [])), None)
+        if preferred is None: preferred = theme["references"][0]["reference_id"]
+        if theme.get("core_visual_anchor_reference_id") != preferred: reference_changed = True
+        theme["core_visual_anchor_reference_id"] = preferred
+        session["core_visual_anchor_reference_id"] = preferred
 
     submitted = decisions or {}
     unknown_roles = set(submitted) - set(LAYER_ROLES[layer])
@@ -3643,12 +3759,50 @@ def build_reference_manifest(
             "packaged_sha256": hashlib.sha256(sanitized).hexdigest(), "metadata_sanitized": True,
         })
         packaged.append(packaged_ref); files[packaged_name] = sanitized
+    packaged_ids = {item["reference_id"] for item in packaged}
+    anchor = theme.get("core_visual_anchor_reference_id")
+    if anchor is not None and anchor not in packaged_ids:
+        raise ValidationError("core visual anchor does not resolve to a packaged reference")
+    if anchor is None and packaged:
+        anchor = next((item["reference_id"] for item in packaged if "identity" in item.get("uses", [])), None)
+        anchor = anchor or next((item["reference_id"] for item in packaged if "*" in item.get("applies_to", [])), None)
+        anchor = anchor or packaged[0]["reference_id"]
+    for item in packaged: item["core_visual_anchor"] = item["reference_id"] == anchor
     manifest = {
-        "schema_version": "0.5.0", "theme_id": theme["id"], "theme_version": theme["version"],
+        "schema_version": "0.6.0", "theme_id": theme["id"], "theme_version": theme["version"],
         "distribution": resolved_distribution, "private_media_included": bool(packaged) and resolved_distribution == "private_only",
-        "redistribution_allowed": redistributable, "reference_count": len(packaged), "references": packaged,
+        "redistribution_allowed": redistributable, "reference_count": len(packaged),
+        "core_visual_anchor_reference_id": anchor, "core_visual_anchor_status": "bound" if anchor else "not_bound",
+        "references": packaged,
     }
     manifest["reference_manifest_digest"] = digest(manifest)
+    return manifest, files
+
+
+def build_skill_preview_manifest(theme: dict[str, Any]) -> tuple[dict[str, Any], dict[str, bytes]]:
+    """Build localized semantic thumbnails with an integrity ledger separate from references."""
+    assets: list[dict[str, Any]] = []; files: dict[str, bytes] = {}
+    for locale in SUPPORTED_INTERFACE_LANGUAGES:
+        for index, layer in enumerate(CREATIVE_LAYERS, 1):
+            data = build_stage_preview_svg(theme, layer, locale=locale)
+            path = f"assets/previews/stages/{locale}/{index:02d}-{layer}.svg"
+            title, summary, _ = _stage_preview_copy(layer, locale)
+            files[path] = data
+            assets.append({
+                "preview_id": f"STAGE_{index:02d}_{locale}", "layer": layer, "locale": locale,
+                "title": title, "alt_text": f"{title} — {summary}", "file": path,
+                "mime_type": "image/svg+xml", "width": 768, "height": 576,
+                "sha256": hashlib.sha256(data).hexdigest(), "generation_input": False,
+                "visual_kind": "semantic_stage_summary", "qa_status": "deterministic_static_validated",
+            })
+    manifest = {
+        "schema_version": STAGE_PREVIEW_SCHEMA_VERSION, "theme_id": theme["id"], "theme_version": theme["version"],
+        "stage_count": len(CREATIVE_LAYERS), "asset_count": len(assets),
+        "generation_input": False, "relationship_to_reference_manifest": "strictly_separate",
+        "rights": {"license": "CC-BY-4.0", "attribution": "APSAL Open contributors", "status": "original_generated_vector_assets"},
+        "assets": assets,
+    }
+    manifest["preview_manifest_digest"] = digest(manifest)
     return manifest, files
 
 
@@ -3865,6 +4019,7 @@ def pack_theme(
     design = compile_theme(theme, "design", assets) if theme.get("schema_version") == "1.1.0" else None
     qa = compile_theme(theme, "qa", assets) if theme.get("schema_version") == "1.1.0" else None
     reference_manifest, reference_files = build_reference_manifest(theme, reference_paths, distribution=distribution)
+    preview_manifest, preview_files = build_skill_preview_manifest(theme)
     slug = f"{theme['id'].lower()}-{theme['version'].replace('.', '-')}"
     canonical_output = theme.get("output", {})
     output = codex_delivery_contract(canonical_output, len(theme["shots"]))
@@ -3887,7 +4042,7 @@ description: Generate the fixed APSAL Open photography set “{theme['name']}”
 
 # {theme['name']}
 
-Read `PROMPT_GUIDE.en.md` for English creators or `PROMPT_GUIDE.zh-CN.md` for Chinese creators, plus `references/theme.json`, `references/compiled.json`, `references/reference_manifest.json`, and `references/rendering_contract.json`. Also read `references/design_context.json` and `references/qa_checklist.json` when present. For a specific Job, use `prompts/SHOT_XX.full.txt` as the exact provider-neutral Prompt and pass every listed reference image from `assets/references/`; never replace the actual image with its text summary. Respect each reference's allowed and forbidden uses.
+Read `PROMPT_GUIDE.en.md` for English creators or `PROMPT_GUIDE.zh-CN.md` for Chinese creators, plus `references/theme.json`, `references/compiled.json`, `references/reference_manifest.json`, `references/preview_manifest.json`, and `references/rendering_contract.json`. Also read `references/design_context.json` and `references/qa_checklist.json` when present. For a specific Job, use `prompts/SHOT_XX.full.txt` as the exact provider-neutral Prompt and pass every listed reference image from `assets/references/`; never replace the actual image with its text summary. Respect each reference's allowed and forbidden uses. Files under `assets/previews/` are semantic progress thumbnails only and must never be sent to image generation.
 
 {medium_instruction}
 
@@ -3906,9 +4061,11 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         prompt_files[f"prompts/{shot_id}.full.txt"] = (shot["positive_prompt"] + "\n\nNegative constraints:\n" + shot["negative_prompt"] + "\n").encode()
     prompt_checksums = {name: hashlib.sha256(data).hexdigest() for name, data in prompt_files.items()}
     manifest = {
-        "schema_version": "0.9.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
+        "schema_version": "0.10.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
         "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],
         "reference_manifest_digest": reference_manifest["reference_manifest_digest"],
+        "preview_manifest_digest": preview_manifest["preview_manifest_digest"],
+        "core_visual_anchor_reference_id": reference_manifest["core_visual_anchor_reference_id"],
         "credentials_included": False, "api_key_required": False, "direct_api_calls": False,
         "generation_surface": "codex_imagegen", "private_media_included": reference_manifest["private_media_included"],
         "distribution": reference_manifest["distribution"], "redistribution_allowed": reference_manifest["redistribution_allowed"],
@@ -3934,6 +4091,8 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
 - Codex 管理实际图像模型、格式和像素尺寸；除非返回元数据明确报告，否则它们记为 `not_reported`。本包不承诺原生 4K。
 - 一次调用只生成一个 Job，不生成九宫格、拼图、联系表、文字、标志或水印。
 - `assets/references/` 中的图片必须按用途、禁止用途与权利清单实际传入；文字分析不能替代图片。
+- `references/reference_manifest.json` 会指定一张核心视觉锚点；它仍然只能用于各镜头明确允许的范围。若状态为 `not_bound`，表示本主题没有真实参考图，不能拿缩略图代替。
+- `assets/previews/` 是五阶段中文/英文语义缩略图，只帮助理解设计进度，绝不能传给图像生成。
 - 后续镜头若使用上一张图保持人物身份，只继承身份，不继承姿势、机位、背景、动作、服装或构图。
 
 Run `python3 scripts/validate_prompt_pack.py --list` to verify checksums and list every Job without making a network request.
@@ -3956,6 +4115,8 @@ This ZIP is both an installable Codex Skill and a directly readable Prompt packa
 - Codex manages the actual image model, format, and pixel dimensions. Unless returned metadata explicitly reports them, they remain `not_reported`. This package does not promise native 4K.
 - One call creates one Job. Never create a grid, collage, contact sheet, text, logo, or watermark.
 - Images under `assets/references/` must be passed according to their allowed uses, forbidden uses, and rights manifest. A prose analysis cannot replace the actual image.
+- `references/reference_manifest.json` designates one core visual anchor when real references exist. Its declared shot scope still applies. `not_bound` means no real reference is available; never substitute a thumbnail.
+- Files under `assets/previews/` are localized semantic thumbnails for reviewing the five design stages. Never send them to image generation.
 - A prior accepted shot may preserve identity only. It must not transfer pose, camera, background, action, wardrobe, or composition.
 
 Run `python3 scripts/validate_prompt_pack.py --list` to verify checksums and list every Job without making a network request.
@@ -3976,6 +4137,7 @@ Codex should open the guide that matches the current conversation language. The 
         prefix + "references/compiled.json": (json.dumps(compiled, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/manifest.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/reference_manifest.json": (json.dumps(reference_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
+        prefix + "references/preview_manifest.json": (json.dumps(preview_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/rendering_contract.json": (json.dumps(theme.get("rendering_contract", {"status": "not_declared_legacy"}), ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "scripts/validate_prompt_pack.py": (plugin_root() / "assets" / "templates" / "validate_prompt_pack.py").read_bytes(),
         prefix + "LICENSE-CONTENT.md": (
@@ -3986,6 +4148,7 @@ Codex should open the guide that matches the current conversation language. The 
     }
     for name, data in prompt_files.items(): files[prefix + name] = data
     for name, data in reference_files.items(): files[prefix + "assets/references/" + name] = data
+    for name, data in preview_files.items(): files[prefix + name] = data
     if design is not None and qa is not None:
         files[prefix + "references/design_context.json"] = (json.dumps(design, ensure_ascii=False, indent=2) + "\n").encode()
         files[prefix + "references/qa_checklist.json"] = (json.dumps(qa, ensure_ascii=False, indent=2) + "\n").encode()

@@ -60,7 +60,7 @@ flowchart LR
 
 ## The open system behind the idea
 
-The protocol defines 13 composable roles. The DNA Registry stores seven kinds of reusable visual knowledge. Studio exposes every role through five compact text-card layers so props, emotion, lighting, color, post-processing and QA cannot disappear inside a vague “Photo style” choice. The engine explains which DNA fits the scene, remembers only creator-approved personal knowledge, resolves versions and dependencies, and packages themes or standalone DNA without requiring a hosted service.
+The protocol defines 13 composable roles. The DNA Registry stores seven kinds of reusable visual knowledge. Studio exposes every role through five complete text-card layers and summarizes progress with five localized semantic thumbnails, so props, emotion, lighting, color, post-processing and QA cannot disappear inside a vague “Photo style” choice. DNA choice cards remain text-only; stage thumbnails explain progress and never become image-generation inputs. The engine explains which DNA fits the scene, remembers only creator-approved personal knowledge, resolves versions and dependencies, and packages themes or standalone DNA without requiring a hosted service.
 
 | Creator layer | Required APSAL roles | Registry DNA recommendations |
 |---|---|---|
@@ -99,9 +99,9 @@ APSAL Studio will:
 2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as complete proposal cards. Unless another subject is specified, APSAL proposes a poised East Asian adult female protagonist who supports classical, contemporary, editorial and ceremonial styling while keeping identity locked.
 3. Explicitly confirm the three-scene/three-look chapter plan or the single-scene continuous lock; nine distinct actions and body states; functional focal perspectives; props and ownership; light; color/post; and rejection rules. Revise any one element in natural language or click a proposed direction.
 4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
-5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, reference and usage guide. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
+5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, real reference, five-stage thumbnail and usage guide. If real references exist, one is designated as the rights-scoped core visual anchor; semantic thumbnails remain strictly separate. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.13 adds controlled set variation, clickable design directions and per-Job scene/look/body-state/focal plans while retaining proposal-complete cards, a poised styling-versatile default protagonist, strict Chinese presentation, complete Chinese/English interaction, the five-layer/thirteen-role method, Codex-native delivery and legacy package takeover. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
+Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.14 adds a five-stage semantic thumbnail strip, a rights-scoped core visual anchor for real references, and separate integrity manifests on top of the controlled set variation introduced in 0.13. APSAL retains proposal-complete cards, a poised styling-versatile default protagonist, strict Chinese presentation, complete bilingual interaction, the five-layer/thirteen-role method, Codex-native delivery and legacy package takeover. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
 
 For the complete installation, five-layer conversation, DNA/reference, generation, package-installation and troubleshooting workflow, follow the [APSAL Studio complete usage guide](docs/USAGE_GUIDE.md) or the [中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md).
 
@@ -122,7 +122,7 @@ Studio detects `run.json`, preserves its lineage but ignores historical API/mode
 | Extension | `~/.apsal/extensions/` | installed, immutable community DNA Packs |
 | Project | `<project>/.apsal/` | drafts, project DNA, frozen themes, exact Prompts, runs, outputs and QA |
 
-Resolution is project → personal → extension → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Selection and outcome memory stays locally under `~/.apsal/usage/`; raw briefs are not stored. Original references stay in `~/.apsal/vault/sha256/` and never enter DNA JSON or Git. A local exported Skill contains sanitized copies plus a purpose-and-rights manifest so the image model can actually see them. If redistribution rights are unresolved, the Skill is `private_only` and public export fails.
+Resolution is project → personal → extension → official. A confirmed draft becomes project DNA. It moves to personal DNA only when you explicitly choose “Save to My DNA.” Selection and outcome memory stays locally under `~/.apsal/usage/`; raw briefs are not stored. Original references stay in `~/.apsal/vault/sha256/` and never enter DNA JSON or Git. A local exported Skill contains sanitized copies plus a purpose-and-rights manifest and designates one real reference as its core visual anchor when available. If redistribution rights are unresolved, the Skill is `private_only` and public export fails. Localized SVGs under `assets/previews/` summarize the five stages but are marked as non-generation assets and never sent to the image model.
 
 Behind the interface, a finalized theme and each real run retain complete lineage:
 
@@ -203,7 +203,8 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Legacy run takeover RFC](protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
 - [Bilingual interaction RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
 - [Controlled variation and set strategy RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
-- [APSAL Studio 0.13.0 release and installation notes](docs/releases/0.13.0.md)
+- [Visual anchor and stage previews RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
+- [APSAL Studio 0.14.0 release and installation notes](docs/releases/0.14.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)

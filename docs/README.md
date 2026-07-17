@@ -9,7 +9,7 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 | Install and use APSAL Studio from first idea to nine images | [Complete usage guide](USAGE_GUIDE.md) | [完整使用手册](USAGE_GUIDE.zh-CN.md) |
 | Understand APSAL Elemental Photography | [Methodology monograph](monograph/README.md) | [《构建可见世界》](monograph/README.md) |
 | Build against the machine contract | [APSAL Open Protocol](../protocol/APSAL_OPEN_PROTOCOL.md) | [APSAL 开放协议](../protocol/APSAL_OPEN_PROTOCOL.md) |
-| See what changed in the current plugin | [APSAL Studio 0.13.0](releases/0.13.0.md) | [APSAL Studio 0.13.0](releases/0.13.0.md) |
+| See what changed in the current plugin | [APSAL Studio 0.14.0](releases/0.14.0.md) | [APSAL Studio 0.14.0](releases/0.14.0.md) |
 | Contribute original DNA or protocol work | [Contribution guide](../CONTRIBUTING.md) | [贡献指南](../CONTRIBUTING.md) |
 
 ## Creator paths
@@ -30,5 +30,6 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 - [Legacy run takeover](../protocol/RFC-0007-LEGACY-RUN-TAKEOVER.md)
 - [Bilingual creator interaction](../protocol/RFC-0008-BILINGUAL-INTERACTION.md)
 - [Controlled variation and set strategy](../protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
+- [Visual anchor and stage previews](../protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
 
 Static validation proves structure, lineage and reproducibility. Generated photographs still require Codex visual review and a separate human visual-QA decision.

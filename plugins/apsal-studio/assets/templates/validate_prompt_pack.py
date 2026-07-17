@@ -33,6 +33,8 @@ def sha256(path: Path) -> str:
 def validate() -> tuple[str, list[dict]]:
     manifest = read_json(REFERENCES / "manifest.json")
     references = read_json(REFERENCES / "reference_manifest.json")
+    preview_path = REFERENCES / "preview_manifest.json"
+    previews = read_json(preview_path) if preview_path.is_file() else None
     if manifest.get("direct_api_calls") is not False or manifest.get("generation_surface") != "codex_imagegen":
         raise RuntimeError("this package is not a Codex-native, no-direct-API Prompt Skill")
     claimed = references.pop("reference_manifest_digest", None)
@@ -43,6 +45,33 @@ def validate() -> tuple[str, list[dict]]:
         path = ROOT / item["packaged_file"]
         if not path.is_file(): raise RuntimeError(f"missing reference image: {item['reference_id']}")
         if sha256(path) != item["packaged_sha256"]: raise RuntimeError(f"reference digest mismatch: {item['reference_id']}")
+    anchor = references.get("core_visual_anchor_reference_id")
+    reference_ids = {item.get("reference_id") for item in references.get("references", [])}
+    marked_anchors = [item.get("reference_id") for item in references.get("references", []) if item.get("core_visual_anchor") is True]
+    if references.get("schema_version") == "0.6.0":
+        if anchor:
+            if anchor not in reference_ids or marked_anchors != [anchor]: raise RuntimeError("invalid core visual anchor")
+        elif reference_ids or marked_anchors:
+            raise RuntimeError("real references require exactly one core visual anchor")
+    if previews is None:
+        if manifest.get("schema_version") == "0.10.0": raise RuntimeError("missing preview manifest")
+    else:
+        preview_claimed = previews.pop("preview_manifest_digest", None)
+        if preview_claimed != digest(previews): raise RuntimeError("preview manifest digest mismatch")
+        previews["preview_manifest_digest"] = preview_claimed
+        if previews.get("generation_input") is not False or previews.get("stage_count") != 5:
+            raise RuntimeError("stage previews must be five semantic non-generation assets")
+        if manifest.get("preview_manifest_digest") != preview_claimed:
+            raise RuntimeError("package and preview manifest digests differ")
+        covered = {(item.get("locale"), item.get("layer")) for item in previews.get("assets", [])}
+        expected = {(locale, layer) for locale in ("zh-CN", "en") for layer in ("direction", "worldbuilding", "narrative", "image", "delivery")}
+        if covered != expected: raise RuntimeError("preview manifest does not cover all five stages in both languages")
+        for item in previews.get("assets", []):
+            if item.get("generation_input") is not False: raise RuntimeError(f"preview may not be a generation input: {item.get('preview_id')}")
+            path = ROOT / item["file"]
+            if not path.is_file(): raise RuntimeError(f"missing stage preview: {item.get('preview_id')}")
+            if sha256(path) != item.get("sha256"): raise RuntimeError(f"stage preview digest mismatch: {item.get('preview_id')}")
+            if "assets/references/" in item["file"]: raise RuntimeError("stage preview must remain separate from generation references")
     if manifest.get("source_kind") == "legacy_run_import":
         label = f"{manifest.get('theme_id', 'APSAL-IMPORTED-RUN')}@{manifest.get('theme_version', 'legacy')}"
         source_jobs = manifest.get("jobs", [])

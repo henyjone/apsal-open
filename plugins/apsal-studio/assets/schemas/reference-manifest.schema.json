@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/henyjone/apsal-open/schemas/reference-manifest.schema.json",
-  "title": "APSAL Reference Manifest 0.5",
+  "title": "APSAL Reference Manifest 0.6",
   "type": "object",
-  "required": ["schema_version", "theme_id", "theme_version", "distribution", "private_media_included", "redistribution_allowed", "reference_count", "references", "reference_manifest_digest"],
+  "required": ["schema_version", "theme_id", "theme_version", "distribution", "private_media_included", "redistribution_allowed", "reference_count", "core_visual_anchor_reference_id", "core_visual_anchor_status", "references", "reference_manifest_digest"],
   "$defs": {
     "rights": {
       "type": "object",
@@ -24,6 +24,7 @@
         "original_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "packaged_file": {"type": "string"},
         "packaged_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "core_visual_anchor": {"type": "boolean"},
         "uses": {"type": "array", "minItems": 1, "items": {"enum": ["style", "world", "prop", "wardrobe", "composition", "identity"]}},
         "allowed_uses": {"type": "array", "minItems": 1, "items": {"type": "string"}},
         "forbidden_uses": {"type": "array", "minItems": 1, "items": {"type": "string"}},
@@ -34,11 +35,13 @@
     }
   },
   "properties": {
-    "schema_version": {"const": "0.5.0"},
+    "schema_version": {"const": "0.6.0"},
     "distribution": {"enum": ["public", "private_only"]},
     "private_media_included": {"type": "boolean"},
     "redistribution_allowed": {"type": "boolean"},
     "reference_count": {"type": "integer", "minimum": 0},
+    "core_visual_anchor_reference_id": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "core_visual_anchor_status": {"enum": ["bound", "not_bound"]},
     "references": {"type": "array", "items": {"$ref": "#/$defs/reference"}},
     "reference_manifest_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },

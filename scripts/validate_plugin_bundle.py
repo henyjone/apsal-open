@@ -65,7 +65,7 @@ def main() -> int:
         elif responses[0].get("result", {}).get("serverInfo", {}).get("version") != manifest.get("version"): errors.append("MCP smoke test: server and manifest versions differ")
         elif len(responses[1].get("result", {}).get("tools", [])) != 21: errors.append("MCP smoke test: expected twenty-one tools")
         elif not {"set_session_language", "recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
-            errors.append("MCP smoke test: 0.13 controlled-variation authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
+            errors.append("MCP smoke test: 0.14 authoring, legacy import, Prompt delivery, Codex generation, memory, or exchange tools missing")
         elif "execute_generation_run" in {tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}:
             errors.append("MCP smoke test: direct provider execution must not be exposed")
         elif len(responses[2].get("result", {}).get("resources", [])) != 2:
@@ -80,13 +80,13 @@ def main() -> int:
             errors.append("MCP smoke test: bilingual thirteen-element card UI resource missing")
         elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--accent-strong", "card.role_label", "card.display_recommendation", "card.display_rationale", "card.display_options", "add(optionHost,\"button\",\"option\"", "card.display_values", "card.display_qa_expectations", "output.layer_label")):
             errors.append("MCP smoke test: element card proposal content, localization, or highlight hierarchy missing")
-        elif "<img" in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
-            errors.append("MCP smoke test: element decision UI must be text-only")
+        elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("#stage-previews", "preview.data_uri", "preview.generation_input")):
+            errors.append("MCP smoke test: five-stage semantic thumbnail strip missing")
 
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 21 MCP tools, two bilingual text-card resources")
+    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 21 MCP tools, text-only DNA cards and bilingual stage thumbnails")
     return 0
 
 
