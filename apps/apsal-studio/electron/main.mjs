@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { ApsalFrontendBridge } from './apsal-link.mjs'
 import { ApsalProtocolSidecar, APSAL_PROTOCOL_VERSION } from './apsal-protocol.mjs'
 import { publishToWindow } from './safe-publish.mjs'
+import { startupProjectRoot, wantsCodexLink } from './startup-args.mjs'
 
 let mainWindow
 let protocolSidecar
@@ -73,11 +74,14 @@ async function protocolStatus() {
   }
 }
 
-function startupProjectRoot() {
-  const inline = process.argv.find((value) => value.startsWith('--project-root='))
-  if (inline) return inline.slice('--project-root='.length)
-  const index = process.argv.indexOf('--project-root')
-  return index >= 0 ? process.argv[index + 1] : undefined
+async function handleCodexLaunch(commandLine = process.argv) {
+  const projectRoot = startupProjectRoot(commandLine)
+  if (projectRoot) await openProjectRoot(projectRoot)
+  if (wantsCodexLink(commandLine)) {
+    if (!projectRoot && !currentProjectRoot) throw new Error('Codex 联动需要一个 APSAL 项目目录')
+    const value = await getBridge().start()
+    publish('apsal-link:status', value)
+  }
 }
 
 async function openProjectRoot(projectRoot, mode = 'open') {
@@ -143,12 +147,9 @@ function createWindow() {
   mainWindow.webContents.once('did-finish-load', () => {
     void protocolStatus().then((value) => publish('apsal-protocol:status', value))
     void getBridge().status().then((value) => publish('apsal-link:status', value))
-    const projectRoot = startupProjectRoot()
-    if (projectRoot) {
-      void openProjectRoot(projectRoot).catch((error) => {
-        process.stderr.write(`[apsal-studio] Could not open --project-root: ${error instanceof Error ? error.message : String(error)}\n`)
-      })
-    }
+    void handleCodexLaunch().catch((error) => {
+      process.stderr.write(`[apsal-studio] Could not complete Codex launch: ${error instanceof Error ? error.message : String(error)}\n`)
+    })
   })
 }
 
@@ -157,19 +158,16 @@ function registerIpc() {
   ipcMain.handle('apsal-protocol:choose-project', (_event, mode) => chooseProject(mode))
   ipcMain.handle('apsal-protocol:call', (_event, message) => callProtocol(message))
   ipcMain.handle('apsal-link:status', () => getBridge().status())
-  ipcMain.handle('apsal-link:set-enabled', async (_event, enabled) => {
-    const bridge = getBridge()
-    const value = enabled ? await bridge.start() : await bridge.stop().then(() => bridge.status())
-    publish('apsal-link:status', value)
-    return value
-  })
 }
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, commandLine) => {
+    void handleCodexLaunch(commandLine).catch((error) => {
+      process.stderr.write(`[apsal-studio] Could not accept Codex launch ${JSON.stringify(commandLine)}: ${error instanceof Error ? error.message : String(error)}\n`)
+    })
     if (!mainWindow) return
     if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.focus()

@@ -360,12 +360,12 @@ Codex MCP
 → <project>/.apsal/
 ~~~
 
-Studio 未安装、关闭、联动未启用或桥描述文件不存在时，插件必须保持完整能力，不得要求用户启动 Studio。
+创作者在插件开始创作时选择“仅在 Codex 中继续”，或 Studio 未安装、关闭、桥描述文件不存在时，插件必须保持完整能力。独立打开的 Studio 不得让当前 Codex 创作自动改走联动路径。
 
 ### 11.2 已连接 Studio
 
 ~~~text
-Codex MCP
+Codex MCP（本次创作已明确选择 Studio）
 → 读取 ~/.apsal/frontend-link.json
 → Bearer Token 调用 127.0.0.1:<随机端口>/v1/rpc
 → Electron sidecar
@@ -374,6 +374,8 @@ Codex MCP
 ~~~
 
 一旦一次写操作选择了联动路径，途中断线必须返回错误，禁止静默改走进程内路径重试。否则同一个用户动作可能被执行两次。
+
+`start_design_session` 通过 `frontend_mode=studio|headless` 记录本次 MCP 创作进程的选择。新建项目先由统一 Engine 初始化，再由插件使用固定的 APSAL Studio 应用路径和 `--project-root ... --codex-link` 启动前端。只有插件本次明确选择的项目才能进入联动路由；磁盘上已有 descriptor 不等于本次创作已经授权。
 
 ### 11.3 七个前端联动工具
 
@@ -455,7 +457,7 @@ Codex 对话仍然发生在 Codex，不在 Studio 内复制聊天窗口。
 
 ## 13. 本地认证桥
 
-联动默认关闭。用户在 Studio 设置中显式开启后：
+联动默认关闭，Studio 不提供手动联动开关。只有创作者在 Codex 的 APSAL 插件开始或恢复创作时选择“打开并联动”，插件才使用当前项目启动 Studio。启动后：
 
 - 仅监听 <code>127.0.0.1</code>；
 - 使用随机端口；
@@ -599,17 +601,17 @@ codex plugin list
 ### 18.3 升级 Studio
 
 1. 安装或替换为 APSAL Studio 0.2.0。
-2. 第一次启动时保持“Codex 联动”关闭。
-3. 在 Agent 联动页选择“新建项目”，选择一个新的项目目录。
+2. 单独启动一次，确认 Agent 联动页显示“等待 Codex 启动”，且没有手动联动开关。
+3. 可以在 Studio 中打开项目做只读投影检查，但不要把这一步当作 Codex 联动。
 4. 确认界面显示 Engine 0.15.0、Protocol 0.15.0 和 revision 0。
 5. 关闭并重新打开项目，确认 project_id 不变。
 
 ### 18.4 首次联调
 
-1. 在 Codex 中读取或创建同一个项目。
-2. 在 Studio 中确认 project_id、session_id 和 revision 与 Codex 一致。
-3. 在 Studio 设置中开启“Codex 联动”。
-4. 调用 apsal_frontend_status，必须返回 connected、compatible 和当前项目。
+1. 在 Codex 中打开 APSAL 插件并开始创作。
+2. 对“是否同时打开 APSAL Studio 前端？”选择“打开并联动（推荐）”。
+3. 插件通过 `start_design_session(frontend_mode=studio)` 创建或恢复项目，并自动启动 Studio。
+4. 调用 apsal_frontend_status，必须返回 connected、compatible、selected_for_codex 和当前项目。
 5. 先做一个 Direction 层 preview，不要直接升级完整主题。
 6. 确认 Studio 出现幽灵节点和受影响层。
 7. 在 Studio 确认整层，再从 Codex 读取快照。
@@ -619,8 +621,8 @@ codex plugin list
 
 如果联动异常：
 
-- 先关闭 Studio 的 Codex 联动；
-- Codex 0.15.0 应继续通过进程内 Engine 操作项目；
+- 当前已选择联动的写操作必须报错，不得自动重放；
+- 明确恢复同一 session 并选择“仅在 Codex 中继续”后，Codex 0.15.0 才通过进程内 Engine 继续；
 - 不要使用 0.14 插件或旧 Studio 写入已经创建的 0.15 项目；
 - 保留项目目录和 operation ledger，修复版本后重新 snapshot；
 - 不要通过复制旧 Workflow 或手工编辑 project.json“修复”项目。

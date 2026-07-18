@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('apsalProtocol', {
   chooseProject: (mode) => ipcRenderer.invoke('apsal-protocol:choose-project', mode),
   call: (method, params) => ipcRenderer.invoke('apsal-protocol:call', { method, params }),
   getLinkStatus: () => ipcRenderer.invoke('apsal-link:status'),
-  setLinkEnabled: (enabled) => ipcRenderer.invoke('apsal-link:set-enabled', enabled),
   onStatus: (listener) => subscription('apsal-protocol:status', listener),
   onSnapshot: (listener) => subscription('apsal-protocol:snapshot', listener),
   onChange: (listener) => subscription('apsal-protocol:change', listener),

@@ -268,9 +268,7 @@ function ElementInspector({ selected }: { selected?: ProjectedNode }) {
 
 function CodexLinkPanel() {
   const linkStatus = useStudioStore((state) => state.linkStatus)
-  const busy = useStudioStore((state) => state.busy)
   const snapshot = useStudioStore((state) => state.snapshot)
-  const setLinkEnabled = useStudioStore((state) => state.setLinkEnabled)
 
   return (
     <section className="link-card">
@@ -280,24 +278,15 @@ function CodexLinkPanel() {
         </span>
         <div>
           <span className="eyebrow">CODEX LINK</span>
-          <h2>{linkStatus?.connected ? 'Codex 已连接' : 'Codex 联动'}</h2>
+          <h2>{linkStatus?.connected ? 'Codex 已连接' : '等待 Codex 启动'}</h2>
         </div>
-        <button
-          type="button"
-          className={`switch ${linkStatus?.enabled ? 'enabled' : ''}`}
-          aria-label={linkStatus?.enabled ? '关闭 Codex 联动' : '开启 Codex 联动'}
-          aria-pressed={linkStatus?.enabled ?? false}
-          disabled={busy}
-          onClick={() => void setLinkEnabled(!linkStatus?.enabled)}
-        >
-          <span />
-        </button>
+        <span className="link-origin">由插件启动</span>
       </div>
       <div className={`connection-state ${linkStatus?.connected ? 'connected' : ''}`}>
         <span className="pulse" />
-        {linkStatus?.connected ? '正在联动当前 APSAL 项目' : linkStatus?.enabled ? '联动已开启，等待当前项目' : '联动默认关闭'}
+        {linkStatus?.connected ? '正在联动当前 APSAL 项目' : '单独打开 Studio 不会连接 Codex'}
       </div>
-      <p>开启后，Codex 插件通过本机认证桥访问当前项目。它不能代理任意路径，也不能绕过协议 revision。</p>
+      <p>{linkStatus?.connected ? 'Codex 插件正通过本机认证桥访问当前项目。它不能代理任意路径，也不能绕过协议 revision。' : '请在 Codex 中打开 APSAL 插件并开始创作；选择“打开并联动 APSAL Studio”后，插件会自动打开并绑定此界面。'}</p>
       <div className="link-project">
         <span>绑定项目</span>
         <strong>{snapshot?.project.project_id ?? '未选择'}</strong>

@@ -8,6 +8,7 @@ This guide covers the complete creator workflow: installation, natural-language 
 
 ```text
 One natural-language idea
+→ choose linked Studio or Codex-only creation
 → Chaptered Variation or Continuous Narrative
 → five creator layers
 → scene-matched DNA recommendations
@@ -70,6 +71,12 @@ Reference role: identity only; do not copy pose, background or composition.
 ```
 
 Unspecified decisions can remain open; Studio proposes them in the appropriate layer.
+
+Before the five layers begin, the plugin asks:
+
+> Open the APSAL Studio frontend for this creation?
+
+Choose **Open and link (Recommended)** to let the plugin initialize the current `.apsal/` project, launch Studio with that project, and establish the authenticated bridge. Choose **Continue in Codex only** to keep the complete headless design, packaging, and generation path without launching the desktop frontend. Opening the app independently does not opt a Codex creation into linkage.
 
 ### How interface language works
 

@@ -752,6 +752,8 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.15.0")
             self.assertEqual(len(responses[1]["result"]["tools"]), 28)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
+            start_tool = next(item for item in responses[1]["result"]["tools"] if item["name"] == "start_design_session")
+            self.assertEqual(start_tool["inputSchema"]["properties"]["frontend_mode"]["enum"], ["headless", "studio"])
             self.assertIn("set_session_language", names)
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,9 @@ from apsal_engine import ValidationError
 
 
 class ProtocolTests(unittest.TestCase):
+    def tearDown(self):
+        apsal_mcp.ACTIVE_FRONTEND_PROJECTS.clear()
+
     def _rpc(self, method, params, env=None):
         completed = subprocess.run(
             [sys.executable, str(SCRIPTS / "apsal_rpc.py")],
@@ -353,17 +357,91 @@ class ProtocolTests(unittest.TestCase):
             try:
                 status = apsal_mcp.call_tool("apsal_frontend_status", {})["structuredContent"]
                 self.assertEqual(status["code"], "frontend_not_linked")
+                self.assertFalse(status["selected_for_codex"])
                 started = apsal_mcp.call_tool(
                     "start_design_session",
-                    {"project_root": str(project), "brief": "offline project", "language": "en"},
+                    {"project_root": str(project), "brief": "offline project", "language": "en", "frontend_mode": "headless"},
                 )["structuredContent"]
                 self.assertEqual(started["revision"], 1)
+                self.assertEqual(started["frontend"]["routing_mode"], "headless")
                 self.assertTrue((project / ".apsal" / "project.json").is_file())
             finally:
                 if previous is None:
                     os.environ.pop("APSAL_FRONTEND_DESCRIPTOR", None)
                 else:
                     os.environ["APSAL_FRONTEND_DESCRIPTOR"] = previous
+
+    def test_frontend_launcher_opens_only_the_fixed_studio_app_for_the_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            protocol.init_protocol_project(project)
+            connected = {
+                "connected": True,
+                "compatible": True,
+                "project_root": str(project.resolve()),
+                "project_id": "PROJECT-TEST",
+            }
+            with (
+                mock.patch.object(apsal_frontend, "studio_executable", return_value=Path("/Applications/APSAL Studio.app/Contents/MacOS/APSAL Studio")),
+                mock.patch.object(apsal_frontend, "frontend_status", side_effect=[{"connected": False}, connected]),
+                mock.patch.object(apsal_frontend.time, "sleep"),
+                mock.patch.object(apsal_frontend.subprocess, "Popen") as popen,
+            ):
+                result = apsal_frontend.launch_frontend(project, timeout=0.2)
+            self.assertTrue(result["connected"])
+            self.assertTrue(result["launched"])
+            command = popen.call_args.args[0]
+            self.assertEqual(command[0], "/Applications/APSAL Studio.app/Contents/MacOS/APSAL Studio")
+            self.assertEqual(command[1:], ["--project-root", str(project.resolve()), "--codex-link"])
+            self.assertNotIn("shell", popen.call_args.kwargs)
+
+    def test_start_design_session_records_explicit_studio_or_headless_choice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            studio_project = Path(tmp) / "studio"
+            connected = {
+                "connected": True,
+                "compatible": True,
+                "project_root": str(studio_project.resolve()),
+                "project_id": "PROJECT-STUDIO",
+            }
+            with mock.patch.object(apsal_mcp, "launch_frontend", return_value=connected) as launch:
+                studio = apsal_mcp.call_tool("start_design_session", {
+                    "project_root": str(studio_project),
+                    "brief": "studio project",
+                    "language": "en",
+                    "frontend_mode": "studio",
+                })["structuredContent"]
+            launch.assert_called_once_with(studio_project.resolve())
+            self.assertEqual(studio["frontend"]["routing_mode"], "studio")
+            self.assertIn(str(studio_project.resolve()), apsal_mcp.ACTIVE_FRONTEND_PROJECTS)
+
+            with mock.patch.object(apsal_mcp, "frontend_status", side_effect=AssertionError("headless must not probe or route through Studio")):
+                headless = apsal_mcp.call_tool("start_design_session", {
+                    "project_root": str(studio_project),
+                    "brief": "new headless session",
+                    "language": "en",
+                    "frontend_mode": "headless",
+                })["structuredContent"]
+            self.assertEqual(headless["frontend"]["routing_mode"], "headless")
+            self.assertNotIn(str(studio_project.resolve()), apsal_mcp.ACTIVE_FRONTEND_PROJECTS)
+
+    def test_explicit_new_project_does_not_inherit_a_parent_apsal_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp) / "parent"
+            child = parent / "new-project"
+            protocol.init_protocol_project(parent)
+            started = apsal_mcp.call_tool("start_design_session", {
+                "project_root": str(child),
+                "brief": "new nested project",
+                "language": "en",
+                "frontend_mode": "headless",
+            })["structuredContent"]
+            self.assertTrue((child / ".apsal" / "project.json").is_file())
+            self.assertEqual(started["revision"], 1)
+            self.assertNotEqual(
+                protocol.project_snapshot(parent)["project"]["project_id"],
+                protocol.project_snapshot(child)["project"]["project_id"],
+            )
 
     def test_golden_contract_replays_every_step_and_final_zip_identically(self):
         with tempfile.TemporaryDirectory() as tmp:
