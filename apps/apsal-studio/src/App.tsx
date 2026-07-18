@@ -36,14 +36,23 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from 'react'
 import apsalIcon from './assets/apsal-icon.png'
-import { LAYERS, nodesToStudioView, projectSnapshot, type ProjectedNode } from './protocol/projection'
+import {
+  LAYERS,
+  nodesToStudioView,
+  projectSnapshot,
+  projectWorkflowEdges,
+  type ProjectedNode,
+} from './protocol/projection'
 import { useStudioStore } from './protocol/store'
 import type { ApsalLayerId, ApsalPreview } from './protocol/types'
 
 const WORLD_WIDTH = 1540
 const WORLD_HEIGHT = 900
+const NODE_WIDTH = 236
+const NODE_HEIGHT = 112
 const LEFT_MIN = 232
 const LEFT_MAX = 360
 const RIGHT_MIN = 320
@@ -51,6 +60,7 @@ const RIGHT_MAX = 520
 
 type RightTab = 'properties' | 'agent'
 type ResizeSide = 'left' | 'right'
+type CanvasViewport = { x: number; y: number; zoom: number }
 
 const METHOD_LABELS: Record<string, string> = {
   'design.start': '开始设计',
@@ -84,6 +94,25 @@ function statusLabel(status: string): string {
   if (status === 'pending') return '待处理'
   if (status === 'proposed') return '草稿'
   return status
+}
+
+function studioTypeLabel(studioType: string): string {
+  const labels: Record<string, string> = {
+    global_control: '全局控制',
+    character: '人物元素',
+    scene: '场景元素',
+    styling: '造型元素',
+    custom_prompt: '创作元素',
+    generate_container: '生成容器',
+    camera: '摄影元素',
+    light: '灯光元素',
+    postprocess: '后期元素',
+  }
+  return labels[studioType] ?? '创作元素'
+}
+
+function studioToneClass(studioType: string): string {
+  return `tone-${studioType.replace(/_/g, '-')}`
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -153,8 +182,8 @@ function ProjectPanel() {
         {snapshot ? (
           <div className="project-meta">
             <strong title={snapshot.project.project_id}>{snapshot.project.project_id}</strong>
-            <span>revision {snapshot.revision}</span>
-            <span>Engine {snapshot.engine_version} · Protocol {snapshot.protocol_version}</span>
+            <span>项目版本 {snapshot.revision}</span>
+            <span>引擎 {snapshot.engine_version} · 协议 {snapshot.protocol_version}</span>
             <span title={snapshot.project_root}>{snapshot.project_root}</span>
           </div>
         ) : (
@@ -363,8 +392,8 @@ function RightPanel({ selected, tab, setTab }: { selected?: ProjectedNode; tab: 
 function ProtocolCanvas({
   nodes,
   setNodes,
-  zoom,
-  setZoom,
+  viewport,
+  setViewport,
   leftOpen,
   rightOpen,
   onToggleLeft,
@@ -374,8 +403,8 @@ function ProtocolCanvas({
 }: {
   nodes: ProjectedNode[]
   setNodes: (nodes: ProjectedNode[]) => void
-  zoom: number
-  setZoom: (zoom: number) => void
+  viewport: CanvasViewport
+  setViewport: (viewport: CanvasViewport) => void
   leftOpen: boolean
   rightOpen: boolean
   onToggleLeft: () => void
@@ -388,40 +417,121 @@ function ProtocolCanvas({
   const focusElementIds = useStudioStore((state) => state.focusElementIds)
   const selectElement = useStudioStore((state) => state.selectElement)
   const saveView = useStudioStore((state) => state.saveView)
-  const drag = useRef<null | { id: string; startX: number; startY: number; originX: number; originY: number }>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<null |
+    { kind: 'node'; id: string; startX: number; startY: number; originX: number; originY: number } |
+    { kind: 'pan'; startX: number; startY: number; originX: number; originY: number }
+  >(null)
+  const latestNodes = useRef(nodes)
+  const latestViewport = useRef(viewport)
+  const persistTimer = useRef<number | null>(null)
+  latestNodes.current = nodes
+  latestViewport.current = viewport
 
-  const save = (nextNodes: ProjectedNode[], nextZoom = zoom) => {
-    if (!snapshot?.read_only) void saveView(nodesToStudioView(nextNodes, selectedElementId, nextZoom))
+  const edges = useMemo(() => projectWorkflowEdges(nodes), [nodes])
+
+  const save = (nextNodes = latestNodes.current, nextViewport = latestViewport.current) => {
+    if (!snapshot?.read_only) void saveView(nodesToStudioView(nextNodes, selectedElementId, nextViewport))
   }
 
+  const saveSoon = (nextNodes = latestNodes.current, nextViewport = latestViewport.current) => {
+    if (persistTimer.current !== null) window.clearTimeout(persistTimer.current)
+    persistTimer.current = window.setTimeout(() => {
+      persistTimer.current = null
+      save(nextNodes, nextViewport)
+    }, 180)
+  }
+
+  useEffect(() => () => {
+    if (persistTimer.current !== null) window.clearTimeout(persistTimer.current)
+  }, [])
+
   const beginDrag = (event: ReactPointerEvent, node: ProjectedNode) => {
+    event.preventDefault()
+    event.stopPropagation()
     selectElement(node.protocolElementId)
     onInspect()
     if (node.ghost || snapshot?.read_only) return
-    drag.current = { id: node.id, startX: event.clientX, startY: event.clientY, originX: node.x, originY: node.y }
+    drag.current = { kind: 'node', id: node.id, startX: event.clientX, startY: event.clientY, originX: node.x, originY: node.y }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const beginPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    drag.current = {
+      kind: 'pan',
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: viewport.x,
+      originY: viewport.y,
+    }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   const moveDrag = (event: ReactPointerEvent) => {
     if (!drag.current) return
     const current = drag.current
-    setNodes(nodes.map((node) => node.id === current.id ? {
+    if (current.kind === 'pan') {
+      const nextViewport = {
+        ...viewport,
+        x: current.originX + event.clientX - current.startX,
+        y: current.originY + event.clientY - current.startY,
+      }
+      latestViewport.current = nextViewport
+      setViewport(nextViewport)
+      return
+    }
+    const nextNodes = nodes.map((node) => node.id === current.id ? {
       ...node,
-      x: current.originX + (event.clientX - current.startX) / zoom,
-      y: current.originY + (event.clientY - current.startY) / zoom,
-    } : node))
+      x: current.originX + (event.clientX - current.startX) / viewport.zoom,
+      y: current.originY + (event.clientY - current.startY) / viewport.zoom,
+    } : node)
+    latestNodes.current = nextNodes
+    setNodes(nextNodes)
   }
 
   const endDrag = () => {
     if (!drag.current) return
     drag.current = null
-    save(nodes)
+    save()
   }
 
   const changeZoom = (value: number) => {
-    const next = Math.max(0.65, Math.min(1.15, Number(value.toFixed(2))))
-    setZoom(next)
-    save(nodes, next)
+    const nextZoom = Math.max(0.45, Math.min(1.7, Number(value.toFixed(2))))
+    const rect = canvasRef.current?.getBoundingClientRect()
+    const localX = (rect?.width ?? 800) / 2
+    const localY = (rect?.height ?? 600) / 2
+    const worldX = (localX - viewport.x) / viewport.zoom
+    const worldY = (localY - viewport.y) / viewport.zoom
+    const nextViewport = {
+      x: localX - worldX * nextZoom,
+      y: localY - worldY * nextZoom,
+      zoom: nextZoom,
+    }
+    latestViewport.current = nextViewport
+    setViewport(nextViewport)
+    saveSoon(nodes, nextViewport)
+  }
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const nextZoom = Math.max(0.45, Math.min(1.7, Number((viewport.zoom - event.deltaY * 0.001).toFixed(2))))
+    if (nextZoom === viewport.zoom) return
+    const localX = event.clientX - rect.left
+    const localY = event.clientY - rect.top
+    const worldX = (localX - viewport.x) / viewport.zoom
+    const worldY = (localY - viewport.y) / viewport.zoom
+    const nextViewport = {
+      x: localX - worldX * nextZoom,
+      y: localY - worldY * nextZoom,
+      zoom: nextZoom,
+    }
+    latestViewport.current = nextViewport
+    setViewport(nextViewport)
+    saveSoon(nodes, nextViewport)
   }
 
   const moveNodeWithKeyboard = (event: ReactKeyboardEvent, node: ProjectedNode) => {
@@ -433,9 +543,53 @@ function ProtocolCanvas({
       x: item.x + (event.key === 'ArrowLeft' ? -distance : event.key === 'ArrowRight' ? distance : 0),
       y: item.y + (event.key === 'ArrowUp' ? -distance : event.key === 'ArrowDown' ? distance : 0),
     } : item)
+    latestNodes.current = next
     setNodes(next)
     save(next)
     return true
+  }
+
+  const moveCanvasWithKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key === '+' || event.key === '=') {
+      event.preventDefault()
+      changeZoom(viewport.zoom + 0.1)
+      return
+    }
+    if (event.key === '-') {
+      event.preventDefault()
+      changeZoom(viewport.zoom - 0.1)
+      return
+    }
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+    event.preventDefault()
+    const distance = event.shiftKey ? 96 : 32
+    const nextViewport = {
+      ...viewport,
+      x: viewport.x + (event.key === 'ArrowLeft' ? distance : event.key === 'ArrowRight' ? -distance : 0),
+      y: viewport.y + (event.key === 'ArrowUp' ? distance : event.key === 'ArrowDown' ? -distance : 0),
+    }
+    latestViewport.current = nextViewport
+    setViewport(nextViewport)
+    saveSoon(nodes, nextViewport)
+  }
+
+  const edgePath = (source: ProjectedNode, target: ProjectedNode): string => {
+    const horizontal = Math.abs(target.x - source.x) > Math.abs(target.y - source.y) * 0.65
+    if (horizontal) {
+      const x1 = source.x + NODE_WIDTH
+      const y1 = source.y + NODE_HEIGHT / 2
+      const x2 = target.x
+      const y2 = target.y + NODE_HEIGHT / 2
+      const middleX = (x1 + x2) / 2
+      return `M ${x1} ${y1} C ${middleX} ${y1}, ${middleX} ${y2}, ${x2} ${y2}`
+    }
+    const x1 = source.x + NODE_WIDTH / 2
+    const y1 = source.y + NODE_HEIGHT
+    const x2 = target.x + NODE_WIDTH / 2
+    const y2 = target.y
+    const middleY = (y1 + y2) / 2
+    return `M ${x1} ${y1} C ${x1} ${middleY}, ${x2} ${middleY}, ${x2} ${y2}`
   }
 
   return (
@@ -447,7 +601,7 @@ function ProtocolCanvas({
           </button>
           <div>
             <strong>{snapshot ? `APSAL 项目 · ${snapshot.project.project_id}` : '工作流画布 3.1'}</strong>
-            <span>{snapshot ? `单一内核投影 · revision ${snapshot.revision}` : '方向 / 世界 / 叙事 / 影像 / 交付'}</span>
+            <span>{snapshot ? `原版卡片画布 · 项目版本 ${snapshot.revision}` : '方向 / 世界 / 叙事 / 影像 / 交付'}</span>
           </div>
         </div>
         <div className="canvas-actions">
@@ -457,9 +611,9 @@ function ProtocolCanvas({
           <span className="canvas-stat"><strong>{nodes.length}</strong> 节点</span>
           <span className="canvas-stat"><strong>5</strong> 层</span>
           <div className="zoom-controls" aria-label="画布缩放">
-            <button type="button" title="缩小" aria-label="缩小画布" onClick={() => changeZoom(zoom - 0.1)}><ZoomOut aria-hidden="true" /></button>
-            <span>{Math.round(zoom * 100)}%</span>
-            <button type="button" title="放大" aria-label="放大画布" onClick={() => changeZoom(zoom + 0.1)}><ZoomIn aria-hidden="true" /></button>
+            <button type="button" title="缩小" aria-label="缩小画布" onClick={() => changeZoom(viewport.zoom - 0.1)}><ZoomOut aria-hidden="true" /></button>
+            <span>{Math.round(viewport.zoom * 100)}%</span>
+            <button type="button" title="放大" aria-label="放大画布" onClick={() => changeZoom(viewport.zoom + 0.1)}><ZoomIn aria-hidden="true" /></button>
           </div>
           <button type="button" className="icon-button" title={rightOpen ? '收起右栏' : '展开右栏'} aria-label={rightOpen ? '收起右栏' : '展开右栏'} onClick={onToggleRight}>
             {rightOpen ? <PanelRightClose aria-hidden="true" /> : <PanelRightOpen aria-hidden="true" />}
@@ -467,30 +621,45 @@ function ProtocolCanvas({
         </div>
       </div>
       <div className="canvas-body">
-        <div className="canvas-stage-label"><span>阶段 01</span><strong>协议工作流</strong></div>
-        <div className="canvas-scroll" onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
+        <div className="canvas-stage-label"><span>阶段 01</span><strong>卡片工作流</strong></div>
+        <div
+          ref={canvasRef}
+          className={`canvas-scroll ${drag.current?.kind === 'pan' ? 'panning' : ''}`}
+          tabIndex={0}
+          aria-label="工作流卡片画布；拖动空白处平移，滚轮缩放，方向键浏览"
+          onPointerDown={beginPan}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onWheel={handleWheel}
+          onKeyDown={moveCanvasWithKeyboard}
+        >
           {!nodes.length ? (
             <EmptyCanvas hasProject={Boolean(snapshot)} hasSession={Boolean(snapshot?.session)} />
           ) : (
-            <div className="world-scale" style={{ width: WORLD_WIDTH * zoom, height: WORLD_HEIGHT * zoom }}>
-              <div className="world" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transform: `scale(${zoom})` }}>
-                {LAYERS.map((layer, index) => {
-                  const Icon = LAYER_ICONS[layer.id]
-                  return (
-                    <div className="layer-column" key={layer.id} style={{ left: 24 + index * 300 }}>
-                      <div><span>{String(index + 1).padStart(2, '0')}</span><Icon aria-hidden="true" /></div>
-                      <strong>{layer.label}</strong>
-                      <em>{layer.short}</em>
-                    </div>
-                  )
-                })}
+            <div
+              className="world"
+              style={{
+                width: WORLD_WIDTH,
+                height: WORLD_HEIGHT,
+                transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+              }}
+            >
+                <svg className="workflow-edges" width={WORLD_WIDTH} height={WORLD_HEIGHT} aria-hidden="true">
+                  {edges.map((edge) => (
+                    <g key={edge.id}>
+                      <path d={edgePath(edge.source, edge.target)} />
+                      <circle cx={edge.target.x} cy={edge.target.y + NODE_HEIGHT / 2} r="3" />
+                    </g>
+                  ))}
+                </svg>
                 {nodes.map((node) => {
                   const selected = selectedElementId === node.protocolElementId
                   const focused = focusElementIds.includes(node.protocolElementId)
                   const Icon = LAYER_ICONS[node.layerId]
                   return (
                     <div
-                      className={`protocol-node ${node.status} ${node.ghost ? 'ghost' : ''} ${selected ? 'selected' : ''} ${focused ? 'focused' : ''}`}
+                      className={`protocol-node ${studioToneClass(node.studioType)} ${node.status} ${node.ghost ? 'ghost' : ''} ${selected ? 'selected' : ''} ${focused ? 'focused' : ''}`}
                       key={node.id}
                       style={{ left: node.x, top: node.y }}
                       role="button"
@@ -507,17 +676,22 @@ function ProtocolCanvas({
                         }
                       }}
                     >
-                      <div className="node-topline">
-                        <span className="node-role"><Icon aria-hidden="true" />创作元素</span>
+                      <div className="node-card-header">
+                        <span className="node-icon"><Icon aria-hidden="true" /></span>
+                        <div className="node-heading">
+                          <h3>{node.label}</h3>
+                          <span>{layerLabel(node.layerId)} · {studioTypeLabel(node.studioType)}</span>
+                        </div>
                         <em>{statusLabel(node.status)}</em>
                       </div>
-                      <h3>{node.label}</h3>
                       <p>{node.intent || '等待 Codex 定义该元素'}</p>
-                      <div className="node-footer"><span>{layerLabel(node.layerId)}</span><strong>{node.attributes.length} 属性</strong></div>
+                      <div className="node-footer">
+                        <span>属性 {node.attributes.length}</span>
+                        <span>约束 {node.mustPreserve.length + node.qaExpectations.length}</span>
+                      </div>
                     </div>
                   )
                 })}
-              </div>
             </div>
           )}
         </div>
@@ -540,7 +714,7 @@ export function App() {
   const linkStatus = useStudioStore((state) => state.linkStatus)
   const saveView = useStudioStore((state) => state.saveView)
   const [nodes, setNodes] = useState<ProjectedNode[]>([])
-  const [zoom, setZoom] = useState(0.82)
+  const [viewport, setViewport] = useState<CanvasViewport>({ x: 30, y: 36, zoom: 0.72 })
   const [leftOpen, setLeftOpen] = useState(true)
   const [rightOpen, setRightOpen] = useState(true)
   const [leftWidth, setLeftWidth] = useState(260)
@@ -552,7 +726,11 @@ export function App() {
   useEffect(() => { void initialize() }, [initialize])
   useEffect(() => {
     setNodes(snapshot ? projectSnapshot(snapshot, view) : [])
-    setZoom(Number(view?.viewport?.zoom ?? 0.82))
+    setViewport({
+      x: Number(view?.viewport?.x ?? 30),
+      y: Number(view?.viewport?.y ?? 36),
+      zoom: Number(view?.viewport?.zoom ?? 0.72),
+    })
   }, [snapshot, view])
   useEffect(() => {
     if (previews.length > 0) {
@@ -610,12 +788,12 @@ export function App() {
 
   const autoLayout = useCallback(() => {
     if (!snapshot) return
-    const nextZoom = 0.82
+    const nextViewport = { x: 30, y: 36, zoom: 0.72 }
     const nextNodes = projectSnapshot(snapshot)
     setNodes(nextNodes)
-    setZoom(nextZoom)
-    if (!snapshot.read_only) void saveView(nodesToStudioView(nextNodes, selectedElementId, nextZoom))
-    setNotice('画布已恢复为五层自动布局')
+    setViewport(nextViewport)
+    if (!snapshot.read_only) void saveView(nodesToStudioView(nextNodes, selectedElementId, nextViewport))
+    setNotice('画布已恢复为原版卡片布局')
     window.setTimeout(() => setNotice(''), 2600)
   }, [saveView, selectedElementId, snapshot])
 
@@ -638,10 +816,10 @@ export function App() {
       <header className="app-header">
         <div className="brand">
           <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
-          <div className="brand-copy"><strong>APSAL Studio</strong><span><Aperture aria-hidden="true" />Virtual Shoot Desk<i />Stage 01</span></div>
+          <div className="brand-copy"><strong>APSAL Studio</strong><span><Aperture aria-hidden="true" />虚拟摄影工作台<i />阶段 01</span></div>
         </div>
         <div className="scene-field" title={snapshot?.project_root}>
-          <span>PROJECT · 当前片场</span>
+          <span>当前项目 · 当前片场</span>
           <strong>{snapshot?.project.project_id ?? '未选择 APSAL 项目'}</strong>
         </div>
         <div className="header-stats">
@@ -671,8 +849,8 @@ export function App() {
           <ProtocolCanvas
             nodes={nodes}
             setNodes={setNodes}
-            zoom={zoom}
-            setZoom={setZoom}
+            viewport={viewport}
+            setViewport={setViewport}
             leftOpen={leftOpen}
             rightOpen={rightOpen}
             onToggleLeft={() => setLeftOpen((value) => !value)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nodesToStudioView, projectSnapshot } from './projection'
+import { nodesToStudioView, projectSnapshot, projectWorkflowEdges } from './projection'
 import type { ApsalLayerId, ApsalPreview, ApsalProjectSnapshot } from './types'
 
 function snapshot(): ApsalProjectSnapshot {
@@ -45,10 +45,13 @@ describe('APSAL Studio projection', () => {
     const nodes = projectSnapshot(snapshot())
     expect(nodes).toHaveLength(13)
     expect(new Set(nodes.map((node) => node.protocolElementId)).size).toBe(13)
+    expect(nodes.every((node) => node.studioType === 'custom_prompt')).toBe(true)
+    expect(projectWorkflowEdges(nodes)).toHaveLength(12)
     nodes[0].x = 777
     nodes[0].y = 333
-    const view = nodesToStudioView(nodes, nodes[0].protocolElementId)
+    const view = nodesToStudioView(nodes, nodes[0].protocolElementId, { x: 48, y: 36, zoom: 0.72 })
     expect(view.nodes[nodes[0].protocolElementId]).toEqual({ x: 777, y: 333, collapsed: false })
+    expect(view.viewport).toEqual({ x: 48, y: 36, zoom: 0.72 })
     expect(JSON.stringify(view)).not.toContain('intent')
     expect(JSON.stringify(view)).not.toContain('value')
   })
