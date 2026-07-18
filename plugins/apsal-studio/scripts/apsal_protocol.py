@@ -464,6 +464,7 @@ def _element_projection(session: dict[str, Any], theme: dict[str, Any]) -> list[
                 display_name, display_value = element_attribute_display(role, str(key), value, locale)
                 attributes.append({
                     "id": f"{theme_id}:{role}:{key}",
+                    "key": str(key),
                     "name": display_name,
                     "value": display_value if isinstance(display_value, str) else json.dumps(display_value, ensure_ascii=False),
                     "raw_value": value,
@@ -478,6 +479,7 @@ def _element_projection(session: dict[str, Any], theme: dict[str, Any]) -> list[
                 "studio_type": ROLE_TO_STUDIO_TYPE[role],
                 "status": decision.get("status", "proposed"),
                 "intent": presentation["display_intent"],
+                "raw_intent": decision.get("intent", ""),
                 "attributes": attributes,
                 "observable": presentation["display_observable"],
                 "must_preserve": presentation["display_must_preserve"],
@@ -607,6 +609,35 @@ def _preview_projection(
     return ghosts
 
 
+def _preview_changes(
+    theme: dict[str, Any], layer: str, decisions: dict[str, Any]
+) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    for role, supplied in decisions.items():
+        if role not in LAYER_ROLES[layer] or not isinstance(supplied, dict):
+            continue
+        current = theme["element_decisions"][role]
+        for field in ("intent", "observable", "must_preserve", "qa_expectations", "basis"):
+            if field in supplied and digest(supplied[field]) != digest(current.get(field)):
+                changes.append({
+                    "role_id": role,
+                    "field": field,
+                    "before": current.get(field),
+                    "after": supplied[field],
+                })
+        if isinstance(supplied.get("values"), dict):
+            for key, value in supplied["values"].items():
+                before = current.get("values", {}).get(key)
+                if digest(value) != digest(before):
+                    changes.append({
+                        "role_id": role,
+                        "field": f"values.{key}",
+                        "before": before,
+                        "after": value,
+                    })
+    return changes
+
+
 def _saved_previews(
     project_root: Path,
     session: dict[str, Any],
@@ -633,6 +664,9 @@ def _saved_previews(
             "revision": revision,
             "status": status,
             "stale_reason": None if status == "pending" else "revision_changed",
+            "origin": proposal.get("origin", "codex"),
+            "summary": proposal.get("summary"),
+            "changes": proposal.get("changes", []),
             "invalidates_if_applied": list(CREATIVE_LAYERS[CREATIVE_LAYERS.index(layer) + 1 :]),
             "elements": _preview_projection(
                 session, theme, layer, proposal.get("decisions", {}), proposal["preview_id"]
@@ -654,9 +688,13 @@ def propose_changes(
     reference_path: str | None = None,
     reference_bindings: list[dict[str, Any]] | None = None,
     draft_assets: list[dict[str, Any]] | None = None,
+    origin: str = "codex",
+    summary: str | None = None,
 ) -> dict[str, Any]:
     if layer not in CREATIVE_LAYERS:
         raise ValidationError(f"unknown creative layer: {layer}")
+    if origin not in {"codex", "studio"}:
+        raise ValidationError("preview origin must be codex or studio")
     root = project_root.expanduser().resolve()
     def create_proposal() -> dict[str, Any]:
         session, theme = load_design_session(session_id, root)
@@ -664,6 +702,18 @@ def propose_changes(
         outside = set(submitted) - set(LAYER_ROLES[layer])
         if outside:
             raise ValidationError(f"{layer} decisions contain roles outside the layer: {sorted(outside)}")
+        if origin == "studio":
+            if session.get("state") in {"ready", "generating", "completed", "partial"}:
+                raise ValidationError("a finalized or generated theme cannot be edited; create a new theme version")
+            for prior in CREATIVE_LAYERS[:CREATIVE_LAYERS.index(layer)]:
+                if session.get("layers", {}).get(prior, {}).get("status") != "confirmed":
+                    raise ValidationError(f"confirm {prior} before editing {layer}")
+        changes = _preview_changes(theme, layer, submitted)
+        if origin == "studio" and not changes:
+            raise ValidationError("Studio edit does not contain a semantic change")
+        proposal_refs = refs
+        if origin == "studio" and refs is None:
+            proposal_refs = list(session.get("layers", {}).get(layer, {}).get("selection", []))
         preview_id = f"PREVIEW-{uuid.uuid4().hex[:12].upper()}"
         proposal = {
             "schema_version": "0.1.0",
@@ -673,8 +723,11 @@ def propose_changes(
             "layer": layer,
             "base_revision": expected_revision + 1,
             "status": "pending",
+            "origin": origin,
+            "summary": summary,
+            "changes": changes,
             "decisions": submitted,
-            "refs": refs or [],
+            "refs": proposal_refs or [],
             "shots": shots,
             "reference_path": reference_path,
             "reference_bindings": reference_bindings or [],
@@ -690,6 +743,9 @@ def propose_changes(
             "layer": layer,
             "base_revision": expected_revision + 1,
             "status": "pending",
+            "origin": origin,
+            "summary": summary,
+            "changes": changes,
             "invalidates_if_applied": later,
             "elements": _preview_projection(session, theme, layer, submitted, preview_id),
         }
@@ -708,6 +764,8 @@ def propose_changes(
             "reference_path": reference_path,
             "reference_bindings": reference_bindings,
             "draft_assets": draft_assets,
+            "origin": origin,
+            "summary": summary,
         },
         session_id=session_id,
         apply=create_proposal,
@@ -1031,6 +1089,8 @@ def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
             reference_path=params.get("reference_path", params.get("referencePath")),
             reference_bindings=params.get("reference_bindings"),
             draft_assets=params.get("draft_assets"),
+            origin=params.get("origin", "codex"),
+            summary=params.get("summary"),
         )
         return {**result, "snapshot": project_snapshot(root, params["session_id"])}
     if method == "design.commit_preview":

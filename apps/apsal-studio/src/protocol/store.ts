@@ -13,6 +13,7 @@ interface StudioState {
   initialized: boolean
   busy: boolean
   error: string
+  syncMessage: string
   status: ApsalProtocolStatus | null
   linkStatus: ApsalLinkStatus | null
   snapshot: ApsalProjectSnapshot | null
@@ -26,11 +27,19 @@ interface StudioState {
   refresh: () => Promise<void>
   confirmPreview: (preview: ApsalPreview) => Promise<void>
   rejectPreview: (preview: ApsalPreview) => Promise<void>
+  proposeElementChange: (input: {
+    layer: ApsalPreview['layer']
+    roleId: string
+    label: string
+    decision: { intent?: string; values?: Record<string, unknown> }
+    changeCount: number
+  }) => Promise<boolean>
   undoOperation: (operationId: string) => Promise<void>
   saveView: (view: Omit<ApsalStudioView, 'schema_version' | 'view_revision'>) => Promise<void>
   selectElement: (id: string | null) => void
   focusElements: (ids: string[]) => void
   clearError: () => void
+  clearSyncMessage: () => void
 }
 
 let unsubscribers: Array<() => void> = []
@@ -48,6 +57,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   initialized: false,
   busy: false,
   error: '',
+  syncMessage: '',
   status: null,
   linkStatus: null,
   snapshot: null,
@@ -97,7 +107,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   chooseProject: async (mode) => {
     const runtime = window.apsalProtocol
     if (!runtime) return
-    set({ busy: true, error: '', previews: [], operations: [], selectedElementId: null })
+    set({ busy: true, error: '', syncMessage: '', previews: [], operations: [], selectedElementId: null })
     try {
       const snapshot = await runtime.chooseProject(mode)
       if (!snapshot) return
@@ -161,21 +171,58 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     const runtime = window.apsalProtocol
     const snapshot = get().snapshot
     if (!runtime || !snapshot) return
-    if (preview.status !== 'pending' || snapshot.revision !== preview.base_revision) {
-      set({ error: '该变更已过期，请刷新项目。' })
-      return
-    }
     set({ busy: true, error: '' })
     try {
       const result = await runtime.call<{ snapshot: ApsalProjectSnapshot }>('design.reject_preview', {
         session_id: preview.session_id,
         preview_id: preview.preview_id,
-        expected_revision: preview.base_revision,
+        expected_revision: snapshot.revision,
         operation_id: operationId('REJECT'),
       })
       set({ snapshot: result.snapshot, previews: result.snapshot.previews ?? [] })
     } catch (error) {
       set({ error: message(error) })
+    } finally {
+      set({ busy: false })
+    }
+  },
+
+  proposeElementChange: async ({ layer, roleId, label, decision, changeCount }) => {
+    const runtime = window.apsalProtocol
+    const { snapshot, linkStatus, previews } = get()
+    if (!runtime || !snapshot?.session) return false
+    if (!linkStatus?.connected) {
+      set({ error: '请先从 Codex 插件打开并联动 APSAL Studio，再发送语义修改。' })
+      return false
+    }
+    if (snapshot.read_only) {
+      set({ error: '当前项目为只读模式，不能创建修改提案。' })
+      return false
+    }
+    if (previews.some((preview) => preview.status === 'pending' && preview.base_revision === snapshot.revision)) {
+      set({ error: '当前已有待处理变更，请先在 Agent 联动中确认或拒绝。' })
+      return false
+    }
+    set({ busy: true, error: '', syncMessage: '' })
+    try {
+      const result = await runtime.call<{ snapshot: ApsalProjectSnapshot }>('design.propose', {
+        session_id: snapshot.session.session_id,
+        layer,
+        decisions: { [roleId]: decision },
+        expected_revision: snapshot.revision,
+        operation_id: operationId('EDIT'),
+        origin: 'studio',
+        summary: `Studio 编辑“${label}”，修改 ${changeCount} 项`,
+      })
+      set({
+        snapshot: result.snapshot,
+        previews: result.snapshot.previews ?? [],
+        syncMessage: '修改已发送给 Codex，并进入待处理变更。',
+      })
+      return true
+    } catch (error) {
+      set({ error: message(error) })
+      return false
     } finally {
       set({ busy: false })
     }
@@ -214,4 +261,5 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   selectElement: (id) => set({ selectedElementId: id }),
   focusElements: (ids) => set({ focusElementIds: ids, selectedElementId: ids[0] ?? null }),
   clearError: () => set({ error: '' }),
+  clearSyncMessage: () => set({ syncMessage: '' }),
 }))

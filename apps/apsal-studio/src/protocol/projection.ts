@@ -32,6 +32,7 @@ export interface ProjectedNode {
   label: string
   status: string
   intent: string
+  rawIntent: string
   attributes: ApsalProtocolAttribute[]
   observable: string[]
   mustPreserve: string[]
@@ -65,6 +66,7 @@ function projectedNode(element: ApsalProtocolElement, view?: ApsalStudioView, pr
     label: element.label,
     status: element.status,
     intent: element.intent,
+    rawIntent: element.raw_intent ?? element.intent,
     attributes: element.attributes,
     observable: element.observable,
     mustPreserve: element.must_preserve,
