@@ -53,7 +53,7 @@ describe('APSAL Studio projection', () => {
     expect(JSON.stringify(view)).not.toContain('value')
   })
 
-  it('projects pending previews as non-prompt ghost nodes', () => {
+  it('keeps pending previews in the side panel without duplicating canvas nodes', () => {
     const source = snapshot()
     const preview: ApsalPreview = {
       preview_id: 'PREVIEW-1',
@@ -72,10 +72,11 @@ describe('APSAL Studio projection', () => {
         preview_element_id: `PREVIEW-1:${element.role_id}`,
       })),
     }
-    const nodes = projectSnapshot(source, null, [preview])
-    const ghosts = nodes.filter((node) => node.ghost)
-    expect(nodes).toHaveLength(15)
-    expect(ghosts).toHaveLength(2)
-    expect(ghosts.every((node) => node.participatesInPrompt === false)).toBe(true)
+    source.previews = [preview]
+    source.elements.push(preview.elements[0])
+    const nodes = projectSnapshot(source)
+    expect(nodes).toHaveLength(13)
+    expect(nodes.some((node) => node.ghost)).toBe(false)
+    expect(source.previews).toHaveLength(1)
   })
 })

@@ -82,16 +82,20 @@ def main() -> int:
             errors.append("MCP smoke test: expected DNA and element-card resources")
         elif "元素资源库" not in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA card UI resource missing")
-        elif not all(token in responses[3].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--celadon-strong", "card.type_label", "card.reference_label", "card.display_reasons")):
+        elif not all(token in responses[3].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--bg:#080606", "--accent:#f5a524", "--accent-soft:#f7c873", "card.type_label", "card.reference_label", "card.display_reasons")):
             errors.append("MCP smoke test: DNA card localization or highlight hierarchy missing")
         elif "<img" in responses[3].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: DNA selection UI must be text-only")
         elif "元素设计" not in responses[4].get("result", {}).get("contents", [{}])[0].get("text", ""):
             errors.append("MCP smoke test: bilingual thirteen-element card UI resource missing")
-        elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--accent-strong", "card.role_label", "card.display_recommendation", "card.display_rationale", "card.display_options", "add(optionHost,\"button\",\"option\"", "card.display_values", "card.display_qa_expectations", "output.layer_label")):
+        elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("--bg:#080606", "--accent:#f5a524", "--accent-soft:#f7c873", "card.role_label", "card.display_recommendation", "card.display_rationale", "card.display_options", "add(optionHost,\"button\",\"option\"", "card.display_values", "card.display_qa_expectations", "output.layer_label")):
             errors.append("MCP smoke test: element card proposal content, localization, or highlight hierarchy missing")
         elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("#stage-previews", "preview.data_uri", "preview.generation_input")):
             errors.append("MCP smoke test: five-stage semantic thumbnail strip missing")
+        elif not all(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("height:auto", "object-fit:contain", "aspect-ratio:4/3")):
+            errors.append("MCP smoke test: stage previews must preserve their responsive 4:3 geometry")
+        elif any(token in responses[4].get("result", {}).get("contents", [{}])[0].get("text", "") for token in ("#8fb3a5", "#b9dfd0", "--celadon")):
+            errors.append("MCP smoke test: legacy celadon card palette must not diverge from APSAL Studio")
 
     if errors:
         print("\n".join(errors))

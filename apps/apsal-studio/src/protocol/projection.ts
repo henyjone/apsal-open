@@ -1,6 +1,5 @@
 import type {
   ApsalLayerId,
-  ApsalPreview,
   ApsalProjectSnapshot,
   ApsalProtocolAttribute,
   ApsalProtocolElement,
@@ -72,12 +71,10 @@ function projectedNode(element: ApsalProtocolElement, view?: ApsalStudioView, pr
 export function projectSnapshot(
   snapshot: ApsalProjectSnapshot,
   view?: ApsalStudioView | null,
-  previews: ApsalPreview[] = snapshot.previews,
 ): ProjectedNode[] {
-  const nodes = snapshot.elements.map((element) => projectedNode(element, view ?? undefined))
-  for (const preview of previews.filter((item) => item.status === 'pending')) {
-    nodes.push(...preview.elements.map((element) => projectedNode(element, view ?? undefined, preview.preview_id)))
-  }
+  const nodes = snapshot.elements
+    .filter((element) => element.ghost !== true)
+    .map((element) => projectedNode(element, view ?? undefined))
   return nodes.sort((left, right) => {
     const layerDifference = LAYERS.findIndex((layer) => layer.id === left.layerId) - LAYERS.findIndex((layer) => layer.id === right.layerId)
     if (layerDifference !== 0) return layerDifference
