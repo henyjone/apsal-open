@@ -33,7 +33,7 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.14.0"
+ENGINE_VERSION = "0.15.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -520,9 +520,28 @@ def load_document(path: Path) -> dict[str, Any]:
     return value
 
 
-def write_canonical_json(value: dict[str, Any], path: Path) -> None:
+def _atomic_write_bytes(path: Path, data: bytes, mode: int | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if mode is not None:
+            os.chmod(temporary, mode)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _atomic_write_text(path: Path, value: str, mode: int | None = None) -> None:
+    _atomic_write_bytes(path, value.encode("utf-8"), mode)
+
+
+def write_canonical_json(value: dict[str, Any], path: Path) -> None:
+    _atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
 def load_semantic_registry() -> dict[str, Any]:
@@ -617,7 +636,7 @@ def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, st
         }, project_file)
     ignore = workspace / ".gitignore"
     if not ignore.exists():
-        ignore.write_text("drafts/\nruns/\ncache/\nvault/\n", encoding="utf-8")
+        ignore.write_text("drafts/\nruns/\ncache/\nvault/\nstudio/\n", encoding="utf-8")
     return {"project_root": str(project_root), "workspace": str(workspace), "apsal_home": str(home)}
 
 
@@ -2318,7 +2337,7 @@ def _write_session(session: dict[str, Any], theme: dict[str, Any], project_root:
     _mkdir_private(root)
     session["updated_at"] = _utc_now()
     session["theme_digest"] = digest(theme)
-    theme_path.write_text(dump_yaml(theme), encoding="utf-8")
+    _atomic_write_text(theme_path, dump_yaml(theme), 0o600)
     _write_private_json(session, session_path)
 
 
@@ -4060,6 +4079,24 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         prompt_files[f"prompts/{shot_id}.negative.txt"] = (shot["negative_prompt"] + "\n").encode()
         prompt_files[f"prompts/{shot_id}.full.txt"] = (shot["positive_prompt"] + "\n\nNegative constraints:\n" + shot["negative_prompt"] + "\n").encode()
     prompt_checksums = {name: hashlib.sha256(data).hexdigest() for name, data in prompt_files.items()}
+    run_manifest = {
+        "schema_version": "0.15.0",
+        "theme_id": theme["id"],
+        "theme_version": theme["version"],
+        "theme_digest": digest(theme),
+        "status": "not_started",
+        "generation_surface": "codex_imagegen",
+        "jobs": [
+            {
+                "shot_id": shot["shot_id"],
+                "prompt_digest": shot["prompt_digest"],
+                "generation_status": "pending",
+                "model_visual_qa": "pending",
+                "human_visual_qa": "pending",
+            }
+            for shot in compiled["shots"]
+        ],
+    }
     manifest = {
         "schema_version": "0.10.0", "engine_version": ENGINE_VERSION, "skill_id": theme["id"],
         "skill_version": theme["version"], "theme_digest": digest(theme), "compiled_digest": compiled["compiled_digest"],
@@ -4071,6 +4108,7 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         "distribution": reference_manifest["distribution"], "redistribution_allowed": reference_manifest["redistribution_allowed"],
         "output_request": output, "returned_dimensions_guaranteed": False,
         "rendering_contract_required": bool(theme.get("rendering_contract")), "prompt_files": prompt_checksums,
+        "run_manifest_digest": digest(run_manifest),
     }
     if theme.get("semantic_contract_version"): manifest["semantic_contract_version"] = theme["semantic_contract_version"]
     guide_zh = f'''# {theme['name']} — Codex Prompt 使用包
@@ -4139,6 +4177,7 @@ Codex should open the guide that matches the current conversation language. The 
         prefix + "references/reference_manifest.json": (json.dumps(reference_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/preview_manifest.json": (json.dumps(preview_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "references/rendering_contract.json": (json.dumps(theme.get("rendering_contract", {"status": "not_declared_legacy"}), ensure_ascii=False, indent=2) + "\n").encode(),
+        prefix + "references/run_manifest.json": (json.dumps(run_manifest, ensure_ascii=False, indent=2) + "\n").encode(),
         prefix + "scripts/validate_prompt_pack.py": (plugin_root() / "assets" / "templates" / "validate_prompt_pack.py").read_bytes(),
         prefix + "LICENSE-CONTENT.md": (
             "Theme specification content is licensed CC BY 4.0. Attribution: APSAL Open contributors.\n"
@@ -4154,6 +4193,11 @@ Codex should open the guide that matches the current conversation language. The 
         files[prefix + "references/qa_checklist.json"] = (json.dumps(qa, ensure_ascii=False, indent=2) + "\n").encode()
     if source_yaml is not None:
         files[prefix + "references/theme.apsal.yaml"] = source_yaml
+    checksum_ledger = "".join(
+        f"{hashlib.sha256(data).hexdigest()}  {name[len(prefix):]}\n"
+        for name, data in sorted(files.items())
+    )
+    files[prefix + "checksums.sha256"] = checksum_ledger.encode("utf-8")
     content = _zip_bytes(files); sha = hashlib.sha256(content).hexdigest()
     output_dir.mkdir(parents=True, exist_ok=True)
     suffix = "-private" if reference_manifest["distribution"] == "private_only" else ""

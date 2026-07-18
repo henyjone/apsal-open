@@ -87,6 +87,20 @@ APSAL Studio is fully bilingual. It follows the language of the current Codex co
 
 New nine-image themes default to **Chaptered Variation**: three related scenes, three coordinated looks, nine action-led body states and functional multi-focal coverage, held together by one identity, live-action medium, world grammar and color system. Choose **Continuous Narrative** when the same scene, look and event state should persist. Both choices appear as accessible buttons in the first card; selecting one revises the proposal before confirmation.
 
+### APSAL Studio Desktop 0.2.0
+
+This repository now includes [`apps/apsal-studio`](apps/apsal-studio), the visual frontend for the Codex plugin. It shows the five layers, thirteen roles, pending changes, revision, and read-only semantics from the same `.apsal/` project. It contains no legacy AiPhoto workflow, second IndexedDB project state, ComfyUI, MLX, model runtime, provider configuration, or local image-generation action.
+
+```bash
+cd apps/apsal-studio
+npm ci
+npm run build
+npm run test:electron
+npm run desktop:start
+```
+
+The link is disabled by default. After the creator opens a project and explicitly enables it, the Codex plugin connects through an authenticated loopback-only bridge. Codex retains its complete direct-Engine path when Studio is closed or unlinked.
+
 ## 30-second start
 
 Ask Codex:
@@ -101,7 +115,7 @@ APSAL Studio will:
 4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
 5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, real reference, five-stage thumbnail and usage guide. If real references exist, one is designated as the rights-scoped core visual anchor; semantic thumbnails remain strictly separate. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. Protocol and Semantic Contract remain 0.3. Studio/Engine 0.14 adds a five-stage semantic thumbnail strip, a rights-scoped core visual anchor for real references, and separate integrity manifests on top of the controlled set variation introduced in 0.13. APSAL retains proposal-complete cards, a poised styling-versatile default protagonist, strict Chinese presentation, complete bilingual interaction, the five-layer/thirteen-role method, Codex-native delivery and legacy package takeover. APSAL never calls an image API. Finalization always creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex itself performs image generation after one explicit confirmation. Each Codex turn generates one Job; say “continue” for the next image.
+Creators never need to see JSON or YAML. The open asset Protocol and Semantic Contract remain 0.3; APSAL Project Protocol, Engine, and Codex plugin are 0.15.0, while the desktop frontend is 0.2.0. Codex and Studio read one `.apsal/` source of truth. Finalization creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex performs image generation one Job at a time.
 
 For the complete installation, five-layer conversation, DNA/reference, generation, package-installation and troubleshooting workflow, follow the [APSAL Studio complete usage guide](docs/USAGE_GUIDE.md) or the [中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md).
 
@@ -204,10 +218,12 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Bilingual interaction RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
 - [Controlled variation and set strategy RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [Visual anchor and stage previews RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
-- [APSAL Studio 0.14.0 release and installation notes](docs/releases/0.14.0.md)
+- [Single project kernel and Codex/Studio dual entry RFC](protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
+- [APSAL Studio 0.15.0 release and installation notes](docs/releases/0.15.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
+- [APSAL Studio Desktop 0.2.0](apps/apsal-studio)
 - [Starter DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
 - [Semantic example theme](examples/quiet-window/theme.apsal.yaml)
 - [Contribution guide](CONTRIBUTING.md)

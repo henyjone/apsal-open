@@ -10,5 +10,8 @@ dist/
 private/
 references/private/
 generated/
+apps/apsal-studio/node_modules/
+apps/apsal-studio/.build/
+apps/apsal-studio/release/
 # Local rights-unresolved APSAL-006 migration and its bundled reference media.
 examples/crayon-reverie/

@@ -23,6 +23,12 @@ The importer treats old provider/model/API fields as historical lineage only, re
 
 If the creator already asked to generate the set, a ready import is sufficient to generate SHOT_01 immediately through Codex built-in image generation. Otherwise ask once: “现在生成第一张吗？”
 
+## Use the optional Studio projection
+
+Call `apsal_frontend_status` when the creator asks to coordinate with APSAL Studio. If it reports `connected`, read the current canonical snapshot with `apsal_frontend_get_project`; create revisions with `apsal_frontend_preview_changes`, then use `apsal_frontend_apply_preview` or `apsal_frontend_reject_preview` only after explicit confirmation. Use `apsal_frontend_focus_elements` for visual location and `apsal_frontend_undo_operation` only for an operation the creator chose to undo.
+
+If Studio linkage is unconfigured, disabled, or offline, continue through the ordinary design tools. They call the same Python Engine in-process; do not make Studio availability a prerequisite for five-layer design, DNA, generation, QA, or final packaging. Never silently retry a linked write through the direct path after a bridge error, because that could cross a project switch or stale revision boundary.
+
 ## Create through five complete layers
 
 1. Call `start_design_session` with the creator's natural-language brief and the clear current conversation language. Default to nine independent 9:16 high-quality image requests, a live-action photography Rendering Contract, and `chaptered_variation` unless the brief explicitly asks for one continuous scene/look/event. Treat 2160×3840 as a requested delivery target only; Codex-managed generation does not guarantee returned pixel dimensions or format.

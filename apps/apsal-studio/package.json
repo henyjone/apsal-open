@@ -1,0 +1,73 @@
+{
+  "name": "@apsal/studio",
+  "private": true,
+  "version": "0.2.0",
+  "description": "APSAL Open Codex plugin visual frontend",
+  "author": "henyjone",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/henyjone/apsal-open.git",
+    "directory": "apps/apsal-studio"
+  },
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "prepare:engine": "node scripts/prepare-engine.mjs",
+    "dev": "vite",
+    "build": "npm run prepare:engine && tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:electron": "npm run prepare:engine && node --test electron/*.node-test.mjs",
+    "desktop:start": "npm run build && electron .",
+    "desktop:pack": "npm run build && electron-builder --mac dir --arm64"
+  },
+  "dependencies": {
+    "lucide-react": "^1.25.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5",
+    "vitest": "^3.0.5"
+  },
+  "build": {
+    "appId": "studio.apsal.desktop",
+    "productName": "APSAL Studio",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".build/apsal-engine",
+        "to": "apsal-engine"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": null
+    }
+  }
+}

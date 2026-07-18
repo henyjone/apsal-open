@@ -5,12 +5,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
-VERSION = "0.14.0"
+VERSION = "0.15.0"
 DENY = re.compile("(" + "|".join(("gh" + "o_", "github" + "_pat_", "s" + "k-[A-Za-z0-9]", "BEGIN (RSA|OPENSSH|EC)" + " PRIVATE KEY", "APSAL_ACCESS" + r"_TOKEN\s*=")) + ")")
 
 def check_tree() -> list[str]:
     errors = []
-    listed = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True).stdout
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
     for encoded in listed.split(b"\0"):
         if not encoded: continue
         rel = Path(encoded.decode("utf-8")); path = ROOT / rel

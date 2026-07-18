@@ -110,6 +110,7 @@ class EngineTests(unittest.TestCase):
                 self.assertTrue(any(name.endswith("scripts/validate_prompt_pack.py") for name in z.namelist()))
                 self.assertFalse(any(name.endswith("scripts/generate_set.py") for name in z.namelist()))
                 self.assertTrue(any(name.endswith("PROMPT_GUIDE.md") for name in z.namelist()))
+                self.assertTrue(any(name.endswith("references/run_manifest.json") for name in z.namelist()))
                 skill = next(name for name in z.namelist() if name.endswith("SKILL.md"))
                 skill_text = z.read(skill).decode()
                 self.assertIn("built-in image-generation", skill_text)
@@ -482,7 +483,7 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(home.stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE((home / "vault").stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE((project / ".apsal").stat().st_mode), 0o700)
-            self.assertEqual((project / ".apsal/.gitignore").read_text(), "drafts/\nruns/\ncache/\nvault/\n")
+            self.assertEqual((project / ".apsal/.gitignore").read_text(), "drafts/\nruns/\ncache/\nvault/\nstudio/\n")
             first = (project / ".apsal/project.json").read_bytes()
             engine.init_workspace(project, home)
             self.assertEqual((project / ".apsal/project.json").read_bytes(), first)
@@ -722,10 +723,19 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_twenty_one_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_twenty_eight_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
+            project_manifest = engine.load_json(project / ".apsal/project.json")
+            project_manifest.update({
+                "schema_version": "0.15.0",
+                "protocol_version": "0.15.0",
+                "engine_version": "0.15.0",
+                "active_session_id": session["session_id"],
+                "revision": 1,
+            })
+            engine.write_canonical_json(project_manifest, project / ".apsal/project.json")
             reference = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
             engine.store_private_reference(reference, home=home)
             legacy_archive, _ = self._legacy_run_zip(Path(tmp), reference)
@@ -739,13 +749,15 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.14.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 21)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.15.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 28)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             self.assertIn("set_session_language", names)
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)
             self.assertIn("bind_import_reference", names)
+            self.assertIn("apsal_frontend_preview_changes", names)
+            self.assertIn("apsal_frontend_focus_elements", names)
             self.assertNotIn("execute_generation_run", names)
             cards = responses[2]["result"]["structuredContent"]["cards"]
             self.assertEqual(len(cards), 1)
@@ -947,6 +959,11 @@ class EngineTests(unittest.TestCase):
             archive, _ = engine.pack_theme(theme, root / "packed", reference_paths={"TEST_STYLE_REF_001": source})
             with zipfile.ZipFile(archive) as package: package.extractall(root / "unpacked")
             skill_root = next((root / "unpacked").iterdir())
+            ledger_lines = (skill_root / "checksums.sha256").read_text(encoding="utf-8").splitlines()
+            self.assertGreater(len(ledger_lines), 0)
+            for line in ledger_lines:
+                declared, relative = line.split("  ", 1)
+                self.assertEqual(hashlib.sha256((skill_root / relative).read_bytes()).hexdigest(), declared)
             result = subprocess.run([sys.executable, "scripts/validate_prompt_pack.py", "--list"], cwd=skill_root, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             listing = json.loads(result.stdout)
