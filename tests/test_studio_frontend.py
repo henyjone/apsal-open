@@ -69,6 +69,12 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertIn("timingSafeEqual", bridge)
         self.assertNotIn("filesystem.read", bridge)
 
+    def test_existing_project_can_be_opened_from_the_command_line(self) -> None:
+        main = (STUDIO / "electron" / "main.mjs").read_text()
+        self.assertIn("--project-root", main)
+        self.assertIn("openProjectRoot(projectRoot)", main)
+        self.assertIn(".apsal', 'project.json", main)
+
 
 if __name__ == "__main__":
     unittest.main()

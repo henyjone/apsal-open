@@ -71,14 +71,15 @@ async function protocolStatus() {
   }
 }
 
-async function chooseProject(mode = 'open') {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title: mode === 'new' ? '选择新的 APSAL 项目目录' : '打开 APSAL 项目目录',
-    buttonLabel: mode === 'new' ? '在这里创建项目' : '打开项目',
-    properties: ['openDirectory', 'createDirectory'],
-  })
-  if (result.canceled || !result.filePaths[0]) return null
-  const root = resolve(result.filePaths[0])
+function startupProjectRoot() {
+  const inline = process.argv.find((value) => value.startsWith('--project-root='))
+  if (inline) return inline.slice('--project-root='.length)
+  const index = process.argv.indexOf('--project-root')
+  return index >= 0 ? process.argv[index + 1] : undefined
+}
+
+async function openProjectRoot(projectRoot, mode = 'open') {
+  const root = resolve(projectRoot)
   if (mode === 'open' && !existsSync(join(root, '.apsal', 'project.json'))) {
     throw new Error('所选目录不是 APSAL 0.15 项目；旧 AiPhoto 项目不受支持。')
   }
@@ -90,6 +91,16 @@ async function chooseProject(mode = 'open') {
   publish('apsal-protocol:status', await protocolStatus())
   publish('apsal-link:status', await getBridge().status())
   return snapshot
+}
+
+async function chooseProject(mode = 'open') {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: mode === 'new' ? '选择新的 APSAL 项目目录' : '打开 APSAL 项目目录',
+    buttonLabel: mode === 'new' ? '在这里创建项目' : '打开项目',
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  if (result.canceled || !result.filePaths[0]) return null
+  return openProjectRoot(result.filePaths[0], mode)
 }
 
 async function callProtocol(message = {}) {
@@ -129,6 +140,12 @@ function createWindow() {
   mainWindow.webContents.once('did-finish-load', () => {
     void protocolStatus().then((value) => publish('apsal-protocol:status', value))
     void getBridge().status().then((value) => publish('apsal-link:status', value))
+    const projectRoot = startupProjectRoot()
+    if (projectRoot) {
+      void openProjectRoot(projectRoot).catch((error) => {
+        process.stderr.write(`[apsal-studio] Could not open --project-root: ${error instanceof Error ? error.message : String(error)}\n`)
+      })
+    }
   })
 }
 
