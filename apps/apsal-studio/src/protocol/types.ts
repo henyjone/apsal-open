@@ -72,6 +72,7 @@ export interface ApsalProjectSnapshot {
     state: string
     brief: string
     shot_count: number
+    authoring_mode?: 'automatic' | 'guided'
     set_strategy?: string
     language?: { code?: 'zh-CN' | 'en'; status?: string }
     layers: Partial<Record<ApsalLayerId, ApsalSessionLayer>>

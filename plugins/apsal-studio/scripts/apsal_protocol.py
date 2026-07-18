@@ -36,6 +36,7 @@ from apsal_engine import (
     record_generation_result,
     record_model_visual_qa,
     session_interface_language,
+    set_authoring_mode,
     set_session_language,
     stage_preview_cards,
     start_design_session,
@@ -413,6 +414,9 @@ def start_project_design(
     shot_count: int = 9,
     language: str = "auto",
     set_strategy: str | None = None,
+    authoring_mode: str = "guided",
+    reference_path: str | None = None,
+    reference_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return _mutation(
         project_root,
@@ -426,6 +430,9 @@ def start_project_design(
             "shot_count": shot_count,
             "language": language,
             "set_strategy": set_strategy,
+            "authoring_mode": authoring_mode,
+            "reference_path": reference_path,
+            "reference_bindings": reference_bindings,
         },
         session_id=None,
         apply=lambda: start_design_session(
@@ -436,8 +443,31 @@ def start_project_design(
             shot_count=shot_count,
             language=language,
             set_strategy=set_strategy,
+            authoring_mode=authoring_mode,
+            reference_path=Path(reference_path) if reference_path else None,
+            reference_bindings=reference_bindings,
         ),
+        recovery_paths=("themes",),
     )
+
+
+def set_project_authoring_mode(
+    *, project_root: Path, session_id: str, authoring_mode: str,
+    expected_revision: int, operation_id: str, language: str | None = None,
+) -> dict[str, Any]:
+    result = _mutation(
+        project_root,
+        expected_revision=expected_revision,
+        operation_id=operation_id,
+        operation_kind="design.authoring_mode",
+        operation_payload={"session_id": session_id, "authoring_mode": authoring_mode, "language": language},
+        session_id=session_id,
+        apply=lambda: set_authoring_mode(
+            session_id, authoring_mode, project_root=project_root, language=language,
+        ),
+        recovery_paths=("themes",),
+    )
+    return {**result, "snapshot": project_snapshot(project_root, session_id)}
 
 
 def _active_session_id(project_root: Path, requested: str | None = None) -> str:
@@ -516,6 +546,7 @@ def _project_snapshot_unlocked(
             "state": session["state"],
             "brief": session["brief"],
             "shot_count": session["shot_count"],
+            "authoring_mode": session.get("authoring_mode", "guided"),
             "set_strategy": session.get("set_strategy"),
             "language": session.get("language"),
             "layers": session.get("layers", {}),
@@ -1054,8 +1085,21 @@ def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
             shot_count=int(params.get("shot_count", 9)),
             language=params.get("language", "auto"),
             set_strategy=params.get("set_strategy"),
+            authoring_mode=params.get("authoring_mode", "guided"),
+            reference_path=params.get("reference_path"),
+            reference_bindings=params.get("reference_bindings"),
         )
         return {**result, "snapshot": project_snapshot(root, result["session_id"])}
+    if method == "design.authoring_mode":
+        expected, operation_id = _meta(params, root, "AUTHORING-MODE")
+        return set_project_authoring_mode(
+            project_root=root,
+            session_id=params["session_id"],
+            authoring_mode=params["authoring_mode"],
+            language=params.get("language"),
+            expected_revision=expected,
+            operation_id=operation_id,
+        )
     if method == "design.present":
         return present_project_layer(root, params["session_id"], params["layer"])
     if method == "design.language":
@@ -1073,6 +1117,7 @@ def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
             apply=lambda: set_session_language(
                 params["session_id"], params["language"], project_root=root
             ),
+            recovery_paths=("themes",),
         )
         return {**result, "snapshot": project_snapshot(root, params["session_id"])}
     if method == "design.propose":

@@ -362,6 +362,67 @@ class EngineTests(unittest.TestCase):
             self.assertIn("Optics: 28 mm environmental wide", image["shots"][0]["positive_prompt"])
             self.assertTrue(any(check["id"].startswith("set_strategy.variation_checks") for check in qa["global_checks"]))
 
+    def test_automatic_authoring_confirms_all_layers_and_packages_without_layer_prompts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session(
+                "雨夜窗边等待重逢的九张人像",
+                project_root=project,
+                home=home,
+                theme_id="TEST-AUTOMATIC",
+                language="zh-CN",
+                authoring_mode="automatic",
+            )
+            self.assertEqual(session["authoring_mode"], "automatic")
+            self.assertEqual(session["state"], "ready")
+            self.assertTrue(all(layer["status"] == "confirmed" for layer in session["layers"].values()))
+            self.assertTrue(Path(session["theme_artifact"]["prompt_package"]["path"]).is_file())
+            self.assertNotIn("automatic_reference_path", session)
+            self.assertNotIn("automatic_reference_bindings", session)
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertTrue(all(decision["source"] == "automatic_default" for decision in theme["element_decisions"].values()))
+            self.assertTrue(all("automatic_mode_selection" in decision["basis"] for decision in theme["element_decisions"].values()))
+
+    def test_guided_authoring_remains_the_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"; project.mkdir()
+            session = engine.start_design_session("安静的人像", project_root=project, language="zh-CN")
+            self.assertEqual(session["authoring_mode"], "guided")
+            self.assertEqual(session["state"], "direction_pending")
+            self.assertTrue(all(layer["status"] == "pending" for layer in session["layers"].values()))
+
+    def test_automatic_authoring_resumes_after_ambiguous_language_is_resolved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"; project.mkdir()
+            pending = engine.start_design_session("APSAL", project_root=project, authoring_mode="automatic")
+            self.assertEqual(pending["language"]["status"], "pending")
+            self.assertEqual(pending["state"], "direction_pending")
+            ready = engine.set_session_language(pending["session_id"], "zh-CN", project_root=project)
+            self.assertEqual(ready["state"], "ready")
+            self.assertTrue(Path(ready["theme_artifact"]["prompt_package"]["path"]).is_file())
+
+    def test_automatic_authoring_binds_resolved_reference_during_worldbuilding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            source = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            ready = engine.start_design_session(
+                "参考图只用于锁定人物身份",
+                project_root=project,
+                home=home,
+                language="zh-CN",
+                authoring_mode="automatic",
+                reference_bindings=[{
+                    "path": str(source),
+                    "reference_id": "AUTO_IDENTITY_REF",
+                    "uses": ["identity"],
+                    "core_visual_anchor": True,
+                }],
+            )
+            self.assertEqual(ready["state"], "ready")
+            self.assertEqual(ready["core_visual_anchor_reference_id"], "AUTO_IDENTITY_REF")
+            self.assertEqual(ready["theme_artifact"]["reference_count"], 1)
+            self.assertEqual(ready["theme_artifact"]["distribution"], "private_only")
+
     def test_direction_can_switch_to_continuous_narrative_and_rebuild_downstream(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
@@ -754,6 +815,7 @@ class EngineTests(unittest.TestCase):
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             start_tool = next(item for item in responses[1]["result"]["tools"] if item["name"] == "start_design_session")
             self.assertEqual(start_tool["inputSchema"]["properties"]["frontend_mode"]["enum"], ["headless", "studio"])
+            self.assertEqual(start_tool["inputSchema"]["properties"]["authoring_mode"]["enum"], ["automatic", "guided"])
             self.assertIn("set_session_language", names)
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)

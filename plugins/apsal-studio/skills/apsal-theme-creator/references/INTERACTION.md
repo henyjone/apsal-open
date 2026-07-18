@@ -1,8 +1,16 @@
-# APSAL Studio 0.14 interaction and delivery contract
+# APSAL Studio 0.15 interaction and delivery contract
 
 ## Language before creative decisions
 
 Follow the current Codex conversation language automatically when it is clearly Chinese or English. Do not insert a mandatory language screen at installation or first use. If the first usable message is genuinely ambiguous, ask the one-line bilingual question “English or 中文?” and persist the answer with `set_session_language`. Switching language later changes presentation only and does not invalidate confirmed layers or recompile the theme.
+
+## Authoring mode choice
+
+Before the frontend question, ask once whether this creation uses “全自动创作（推荐）” or “逐步确认”. Store the choice as session-only `authoring_mode`; it is independent from `frontend_mode` and does not enter theme or Prompt digests.
+
+`automatic` is up-front permission to select the top valid explained Registry recommendation for every required DNA type, confirm the five layers in protocol order, and finalize the Prompt/Skill package in one project revision. The resulting element source is `automatic_default`, not `creator_confirmed`. `guided` preserves the existing cards, revisions, explicit layer confirmations and final overview confirmation. Existing sessions without the field behave as guided.
+
+Automatic mode may pause only for information that cannot be safely inferred: interface language, reference role/rights/consent, a missing required DNA type, protocol incompatibility or validation failure. Reference bindings that have already been resolved are passed with `start_design_session` and applied at Worldbuilding. Automatic mode never broadens image rights, bypasses QA, generates collages, or claims human visual QA. Image generation remains a separate delivery action after the automatically created package.
 
 ## Codex-first frontend choice
 
@@ -80,6 +88,9 @@ Use this order:
 ```text
 brief
 → language auto-detected, or one concise choice if ambiguous
+→ authoring_mode: automatic or guided
+→ automatic: ready (five layers confirmed and packaged in one revision)
+  or guided:
 → direction_pending
 → worldbuilding_pending
 → narrative_pending

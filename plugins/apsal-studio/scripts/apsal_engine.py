@@ -48,6 +48,7 @@ STAGE_TYPES = {
     "photo": ("style", "lighting"),
 }
 CREATIVE_LAYERS = ("direction", "worldbuilding", "narrative", "image", "delivery")
+AUTHORING_MODES = ("guided", "automatic")
 STAGE_PREVIEW_SCHEMA_VERSION = "0.1.0"
 STAGE_PREVIEW_COLORS = {
     "direction": ("#F7C873", "#583A14"),
@@ -184,6 +185,7 @@ ZH_UI_LABELS = {
     "source": {
         "proposed_from_brief": "根据创作描述提出", "derived_from_dna": "根据已选资源推导",
         "system_policy": "根据执行规则设定", "creator_confirmed": "创作者已确认",
+        "automatic_default": "全自动方案",
     },
     "qa": {
         "visual_qa_pending": "等待视觉检查", "static_validated": "结构检查通过",
@@ -1685,8 +1687,8 @@ def validate_element_decisions(decisions: Any, *, require_confirmed: bool = True
         expected_layer = next(layer for layer, roles in LAYER_ROLES.items() if role in roles)
         if decision.get("role") != role or decision.get("layer") != expected_layer: errors.append(f"{label}: role or layer mismatch")
         if decision.get("status") not in {"proposed", "confirmed"}: errors.append(f"{label}: invalid status")
-        if require_confirmed and decision.get("status") != "confirmed": errors.append(f"{label}: creator confirmation is required")
-        if decision.get("source") not in {"proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed"}: errors.append(f"{label}: invalid source")
+        if require_confirmed and decision.get("status") != "confirmed": errors.append(f"{label}: confirmation is required")
+        if decision.get("source") not in {"proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed", "automatic_default"}: errors.append(f"{label}: invalid source")
         if not isinstance(decision.get("intent"), str) or not decision["intent"].strip(): errors.append(f"{label}: intent is required")
         values = decision.get("values")
         if not isinstance(values, dict): errors.append(f"{label}: values must be an object"); values = {}
@@ -2384,11 +2386,15 @@ def _new_theme_id() -> str:
 def start_design_session(
     brief: str, *, project_root: Path, theme_id: str | None = None, name: str | None = None,
     shot_count: int = 9, home: Path | None = None, language: str | None = "auto",
-    set_strategy: str | None = None,
+    set_strategy: str | None = None, authoring_mode: str = "guided",
+    reference_path: Path | None = None, reference_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Start a resumable five-layer, thirteen-element natural-language design session."""
     brief = brief.strip()
     if not brief: raise ValidationError("creative brief cannot be empty")
+    if authoring_mode not in AUTHORING_MODES: raise ValidationError(f"authoring mode must be one of {list(AUTHORING_MODES)}")
+    if authoring_mode != "automatic" and (reference_path is not None or reference_bindings):
+        raise ValidationError("start-time reference bindings are only used by automatic authoring; guided mode binds them during worldbuilding confirmation")
     project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
     theme_id = theme_id or _new_theme_id()
     theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=False, live_action=True)
@@ -2401,7 +2407,7 @@ def start_design_session(
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
     session = {
         "schema_version": "0.7.0", "interaction_model": "five_layer_thirteen_element",
-        "session_id": session_id, "brief": brief, "set_strategy": theme["set_strategy"],
+        "session_id": session_id, "brief": brief, "set_strategy": theme["set_strategy"], "authoring_mode": authoring_mode,
         "project_root": str(project_root), "state": "direction_pending", "shot_count": shot_count,
         "language": resolve_interface_language(brief, language),
         "layers": {
@@ -2409,10 +2415,14 @@ def start_design_session(
             for layer in CREATIVE_LAYERS
         },
         "private_references": [], "core_visual_anchor_reference_id": None,
+        "automatic_reference_path": str(reference_path) if reference_path is not None else None,
+        "automatic_reference_bindings": list(reference_bindings or []),
         "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
         "theme_artifact": None,
     }
     _write_session(session, theme, project_root)
+    if authoring_mode == "automatic" and session_interface_language(session)["status"] == "confirmed":
+        return complete_design_session_automatically(session_id, project_root=project_root, home=home)
     return session
 
 
@@ -2422,7 +2432,57 @@ def set_session_language(session_id: str, language: str, *, project_root: Path) 
     session, theme = load_design_session(session_id, project_root)
     session["language"] = resolve_interface_language("", language)
     _write_session(session, theme, project_root)
+    if session.get("authoring_mode") == "automatic":
+        return complete_design_session_automatically(session_id, project_root=project_root)
     return session
+
+
+def set_authoring_mode(
+    session_id: str, authoring_mode: str, *, project_root: Path,
+    language: str | None = None, home: Path | None = None,
+) -> dict[str, Any]:
+    """Switch a resumable session between guided and automatic authoring."""
+    if authoring_mode not in AUTHORING_MODES: raise ValidationError(f"authoring mode must be one of {list(AUTHORING_MODES)}")
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session["state"] in {"generating", "completed", "partial"}: raise ValidationError("generation has already started; authoring mode can no longer change")
+    session["authoring_mode"] = authoring_mode
+    if language and language != "auto": session["language"] = resolve_interface_language("", language)
+    _write_session(session, theme, project_root)
+    if authoring_mode == "automatic" and session_interface_language(session)["status"] == "confirmed":
+        return complete_design_session_automatically(session_id, project_root=project_root, home=home)
+    return session
+
+
+def complete_design_session_automatically(
+    session_id: str, *, project_root: Path, home: Path | None = None,
+) -> dict[str, Any]:
+    """Choose the best valid DNA per layer, confirm all proposals, and package the theme."""
+    project_root = project_root.expanduser().resolve(); session, _ = load_design_session(session_id, project_root)
+    if session.get("authoring_mode") != "automatic": raise ValidationError("automatic completion requires authoring_mode=automatic")
+    if session_interface_language(session)["status"] != "confirmed": return session
+    if session["state"] == "ready": return session
+    if session["state"] in {"generating", "completed", "partial"}: raise ValidationError("generation has already started; automatic authoring cannot run")
+    for layer in CREATIVE_LAYERS:
+        if session["layers"][layer]["status"] == "confirmed": continue
+        recommendation = recommend_layer_dna(
+            session["brief"], layer, project_root=project_root, home=home,
+            session_id=session_id, limit_per_type=1,
+        )
+        refs = []
+        for asset_type in LAYER_TYPES[layer]:
+            candidates = recommendation["by_type"].get(asset_type, [])
+            if not candidates: raise ValidationError(f"automatic authoring could not find required {asset_type} DNA for {layer}")
+            refs.append(asset_ref(candidates[0]["record"]["asset"]))
+        session = commit_element_layer(
+            session_id, layer, refs, project_root=project_root, home=home,
+            reference_path=Path(session["automatic_reference_path"]) if layer == "worldbuilding" and session.get("automatic_reference_path") else None,
+            reference_bindings=session.get("automatic_reference_bindings") if layer == "worldbuilding" else None,
+        )
+        if layer == "worldbuilding":
+            session, theme = load_design_session(session_id, project_root)
+            session.pop("automatic_reference_path", None); session.pop("automatic_reference_bindings", None)
+            _write_session(session, theme, project_root)
+    return finalize_design_session(session_id, project_root=project_root, home=home)
 
 
 def _stage_preview_copy(layer: str, locale: str) -> tuple[str, str, str]:
@@ -2750,6 +2810,9 @@ def commit_element_layer(
         ref for prior in CREATIVE_LAYERS[:layer_index] for ref in session["layers"][prior].get("selection", [])
     ] + next_selection
     mapping = load_semantic_registry()["dna_to_protocol"]
+    automatic_confirmation = session.get("authoring_mode") == "automatic"
+    confirmation_source = "automatic_default" if automatic_confirmation else "creator_confirmed"
+    confirmation_basis = "automatic_mode_selection" if automatic_confirmation else "creator_confirmation"
     for role in LAYER_ROLES[layer]:
         current = json.loads(json.dumps(theme["element_decisions"][role])); supplied = submitted.get(role, {})
         if not isinstance(supplied, dict): raise ValidationError(f"{layer}.{role}: decision must be an object")
@@ -2760,10 +2823,10 @@ def commit_element_layer(
             current["values"] = {**current.get("values", {}), **supplied["values"]}
         role_refs = [ref for ref in confirmed_selections if role in mapping.get(ref["type"], [])]
         current.update({
-            "role": role, "layer": layer, "status": "confirmed", "source": "creator_confirmed",
+            "role": role, "layer": layer, "status": "confirmed", "source": confirmation_source,
             "dna_refs": role_refs, "confirmed_at": _utc_now(),
         })
-        if "creator_confirmation" not in current["basis"]: current["basis"].append("creator_confirmation")
+        if confirmation_basis not in current["basis"]: current["basis"].append(confirmation_basis)
         theme["element_decisions"][role] = current
     if layer == "direction":
         next_strategy = theme["element_decisions"]["content"].get("values", {}).get("set_strategy")

@@ -77,6 +77,7 @@ class StudioFrontendTests(unittest.TestCase):
 
     def test_codex_bridge_keeps_full_domain_route_without_arbitrary_proxy(self) -> None:
         bridge = (STUDIO / "electron" / "apsal-link.mjs").read_text()
+        self.assertIn("design.authoring_mode", bridge)
         self.assertIn("generation.start", bridge)
         self.assertIn("qa.record", bridge)
         self.assertIn("ui.focus_elements", bridge)
@@ -98,6 +99,7 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertNotIn("setLinkEnabled", preload)
         self.assertIn("单独打开 Studio 不会连接 Codex", app)
         self.assertIn("发送给 Codex", app)
+        self.assertIn("全自动创作", app)
         self.assertIn("origin: 'studio'", (STUDIO / "src" / "protocol" / "store.ts").read_text())
 
 

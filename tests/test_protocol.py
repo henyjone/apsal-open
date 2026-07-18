@@ -344,6 +344,27 @@ class ProtocolTests(unittest.TestCase):
                 else:
                     os.environ["APSAL_FRONTEND_DESCRIPTOR"] = previous
 
+    def test_design_start_can_complete_automatic_authoring_in_one_revision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            protocol.init_protocol_project(project)
+            started = protocol.handle_domain_method(
+                "design.start",
+                {
+                    "project_root": str(project),
+                    "brief": "雨夜窗边的九张叙事人像",
+                    "language": "zh-CN",
+                    "authoring_mode": "automatic",
+                    "expected_revision": 0,
+                    "operation_id": "AUTO-START",
+                },
+            )
+            self.assertEqual(started["revision"], 1)
+            self.assertEqual(started["state"], "ready")
+            self.assertEqual(started["snapshot"]["session"]["authoring_mode"], "automatic")
+            self.assertTrue(all(layer["status"] == "confirmed" for layer in started["snapshot"]["session"]["layers"].values()))
+            self.assertTrue(Path(started["theme_artifact"]["prompt_package"]["path"]).is_file())
+
     def test_incomplete_transaction_is_rolled_back_on_sidecar_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "project"

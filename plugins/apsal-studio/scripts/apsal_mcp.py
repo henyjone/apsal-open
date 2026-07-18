@@ -42,8 +42,8 @@ MUTATION_META = {
 
 TOOLS = [
     {
-        "name": "start_design_session", "description": "Start or resume an APSAL design after asking whether to open the optional APSAL Studio frontend. Use frontend_mode=studio only after explicit creator choice; headless keeps the complete direct Engine path.",
-        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}, "frontend_mode": {"enum": ["headless", "studio"]}, **MUTATION_META}, []),
+        "name": "start_design_session", "description": "Start or resume APSAL after the creator chooses automatic or guided authoring and optional Studio linkage. automatic completes all five layers and packaging without per-layer confirmation; guided preserves step-by-step review.",
+        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}, "authoring_mode": {"enum": ["automatic", "guided"]}, "frontend_mode": {"enum": ["headless", "studio"]}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}, **MUTATION_META}, []),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -295,6 +295,7 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
         "core_visual_anchor_reference_id": session.get("core_visual_anchor_reference_id"),
         "memory_offers": session.get("memory_offers", []),
         "language": session_interface_language(session),
+        "authoring_mode": session.get("authoring_mode", "guided"),
     }
     if session.get("set_strategy") in {"chaptered_variation", "continuous_narrative"}: value["set_strategy"] = session["set_strategy"]
     if session.get("schema_version") == "0.7.0":
@@ -314,7 +315,27 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
     elif (root / ".apsal" / "project.json").is_file():
         frontend = _frontend_choice(arguments, root)
     if arguments.get("session_id"):
-        if arguments.get("language") and arguments.get("language") != "auto":
+        requested_authoring_mode = arguments.get("authoring_mode")
+        if requested_authoring_mode:
+            current, _ = load_design_session(arguments["session_id"], root)
+            requested_language = arguments.get("language")
+            language_change = bool(requested_language and requested_language != "auto" and session_interface_language(current).get("code") != requested_language)
+            should_update = current.get("authoring_mode", "guided") != requested_authoring_mode or language_change
+            should_resume_automatic = requested_authoring_mode == "automatic" and current["state"] != "ready" and session_interface_language(current)["status"] == "confirmed"
+            if should_update or should_resume_automatic:
+                session = _domain(
+                    "design.authoring_mode",
+                    arguments,
+                    {
+                        "session_id": arguments["session_id"],
+                        "authoring_mode": requested_authoring_mode,
+                        "language": requested_language,
+                        **_mutation_params(arguments, root, "AUTHORING-MODE"),
+                    },
+                )
+            else:
+                session = current
+        elif arguments.get("language") and arguments.get("language") != "auto":
             result = _domain(
                 "design.language",
                 arguments,
@@ -327,7 +348,10 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
             session = result
         else: session, _ = load_design_session(arguments["session_id"], root)
         locale = session_interface_language(session)
-        next_action = (f"从 {session['state']} 恢复；只显示待确认或已失效的层。" if locale.get("code") == "zh-CN" else f"Resume at {session['state']}; present only the pending or invalidated layer.")
+        if session.get("authoring_mode") == "automatic" and session["state"] == "ready":
+            next_action = "全自动设计与打包已经完成；现在选择生成第一张或只交付使用包。" if locale.get("code") == "zh-CN" else "Automatic design and packaging are complete; choose whether to generate the first image or deliver the package only."
+        else:
+            next_action = (f"从 {session['state']} 恢复；只显示待确认或已失效的层。" if locale.get("code") == "zh-CN" else f"Resume at {session['state']}; present only the pending or invalidated layer.")
         if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
         return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action, "frontend": frontend or _frontend_choice(arguments, root)}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
@@ -341,11 +365,16 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
             "shot_count": arguments.get("shot_count", 9),
             "language": arguments.get("language", "auto"),
             "set_strategy": arguments.get("set_strategy"),
+            "authoring_mode": arguments.get("authoring_mode", "guided"),
+            "reference_path": arguments.get("reference_path"),
+            "reference_bindings": arguments.get("reference_bindings"),
             **_mutation_params(arguments, root, "START"),
         },
     )
     locale = session_interface_language(session)
     if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
+    elif session.get("authoring_mode") == "automatic" and session["state"] == "ready":
+        next_action = "全自动设计与打包已经完成；现在选择生成第一张或只交付使用包。" if locale["code"] == "zh-CN" else "Automatic design and packaging are complete; choose whether to generate the first image or deliver the package only."
     elif locale["code"] == "zh-CN": next_action = "展示“创作命题与情绪”元素卡，确认五层中的第一层。"
     else: next_action = "Present Direction and Emotion element cards, then confirm the first of five creative layers."
     value = {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action, "frontend": frontend or _frontend_choice(arguments, root)}

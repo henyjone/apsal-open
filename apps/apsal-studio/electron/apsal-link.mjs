@@ -8,14 +8,14 @@ import { APSAL_PROTOCOL_VERSION } from './apsal-protocol.mjs'
 const DESCRIPTOR_SCHEMA = '0.1.0'
 const ALLOWED_METHODS = new Set([
   'project.init', 'project.open', 'project.snapshot', 'project.undo',
-  'design.start', 'design.present', 'design.language', 'design.propose',
+  'design.start', 'design.present', 'design.language', 'design.authoring_mode', 'design.propose',
   'design.commit_preview', 'design.reject_preview', 'design.commit_layer',
   'design.finalize', 'finalize_theme',
   'generation.start', 'generation.next', 'generation.record', 'qa.record',
   'studio.view.get', 'studio.view.save', 'ui.focus_elements',
 ])
 const MUTATING_METHODS = new Set([
-  'project.init', 'project.undo', 'design.start', 'design.language', 'design.propose',
+  'project.init', 'project.undo', 'design.start', 'design.language', 'design.authoring_mode', 'design.propose',
   'design.commit_preview', 'design.reject_preview', 'design.commit_layer',
   'design.finalize', 'finalize_theme', 'generation.start', 'generation.record', 'qa.record',
 ])

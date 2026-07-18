@@ -1,4 +1,4 @@
-# APSAL Studio 0.14 Complete Usage Guide
+# APSAL Studio 0.15 Complete Usage Guide
 
 [中文](USAGE_GUIDE.zh-CN.md) · [Documentation hub](README.md) · [Project home](../README.md)
 
@@ -8,11 +8,10 @@ This guide covers the complete creator workflow: installation, natural-language 
 
 ```text
 One natural-language idea
+→ choose Automatic or Guided review
 → choose linked Studio or Codex-only creation
-→ Chaptered Variation or Continuous Narrative
-→ five creator layers
-→ scene-matched DNA recommendations
-→ creator confirmation or natural-language revision
+→ Automatic: select the top valid DNA, complete five layers, and package
+  or Guided: review and revise each layer
 → thirteen-element and nine-shot review
 → automatic Prompt/Skill package
 → one Codex-generated image per turn
@@ -72,11 +71,21 @@ Reference role: identity only; do not copy pose, background or composition.
 
 Unspecified decisions can remain open; Studio proposes them in the appropriate layer.
 
-Before the five layers begin, the plugin asks:
+Before the five layers begin, the plugin first asks:
+
+> Choose an authoring mode.
+
+Choose **Automatic (Recommended)** to let APSAL select the highest-ranked rights-valid DNA for every required type, confirm all five layers and thirteen roles in order, and create the Prompt/Skill package without per-layer confirmation. Choose **Guided review** to preserve the original cards, natural-language revisions, layer confirmations and final overview confirmation.
+
+Automatic decisions are recorded as `automatic_default`, not as individual creator confirmations. Automatic mode pauses only when language, reference purpose/rights, a required DNA type, protocol compatibility or validation cannot be resolved safely. Image generation remains a separate delivery action after packaging.
+
+The plugin then asks:
 
 > Open the APSAL Studio frontend for this creation?
 
 Choose **Open and link (Recommended)** to let the plugin initialize the current `.apsal/` project, launch Studio with that project, and establish the authenticated bridge. Choose **Continue in Codex only** to keep the complete headless design, packaging, and generation path without launching the desktop frontend. Opening the app independently does not opt a Codex creation into linkage.
+
+Studio shows **Automatic authoring** or **Guided review** in the current-project panel. Automatic mode still projects all five layers and thirteen elements for inspection after packaging.
 
 ### How interface language works
 
@@ -88,7 +97,7 @@ If the first usable message is genuinely ambiguous—such as only “APSAL”—
 
 Answer normally; Studio stores the choice in the local design session. To switch later, say “switch to Chinese” or “use English.” Switching changes presentation only. It does not restart the session, invalidate confirmed elements, or change DNA references, theme generation intent, canonical artifacts or Prompt digests.
 
-## 4. Confirm five layers and all thirteen roles
+## 4. Complete five layers and all thirteen roles
 
 | Layer | Protocol roles | Creator decision |
 |---|---|---|
