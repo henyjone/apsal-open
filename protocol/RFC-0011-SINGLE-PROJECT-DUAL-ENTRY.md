@@ -19,7 +19,9 @@ The same dispatcher is exposed in-process to the Codex MCP and as line-delimited
 
 ## Studio link
 
-Codex linkage is off by default. When enabled, Studio creates an authenticated HTTP bridge bound only to `127.0.0.1`. Its bearer token is stored in a mode-0600 descriptor, rotates on every bridge start, and disappears when the bridge stops. The bridge binds requests to Studio's current project and rejects project switching or protocol-incompatible writes.
+Codex linkage is off by default. Codex asks once at the start of a new or resumed creative workflow whether to open Studio. `frontend_mode=studio` initializes or resumes the canonical project, launches the fixed APSAL Studio application with `--project-root` and `--codex-link`, and opts that project into linked routing for the current MCP process. `frontend_mode=headless` keeps the complete in-process Engine path even if Studio is independently open. A descriptor on disk is not sufficient consent to link.
+
+When the plugin starts linkage, Studio creates an authenticated HTTP bridge bound only to `127.0.0.1`. Its bearer token is stored in a mode-0600 descriptor, rotates on every bridge start, and disappears when the bridge stops. The bridge binds requests to Studio's current project and rejects project switching or protocol-incompatible writes. Studio exposes no manual link switch; a standalone launch remains unlinked and instructs the creator to begin from Codex.
 
 The thirteen role nodes have stable `protocol_element_id`, `layer_id`, and `role_id`. They cannot be deleted or semantically edited inside the projection cache. Proposed changes appear as non-Prompt ghost nodes until the creator confirms the whole layer. Upstream confirmation invalidates downstream layers in the Engine, so Codex and Studio receive the same new snapshot.
 

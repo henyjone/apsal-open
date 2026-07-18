@@ -24,7 +24,6 @@ interface StudioState {
   initialize: () => Promise<void>
   chooseProject: (mode: 'new' | 'open') => Promise<void>
   refresh: () => Promise<void>
-  setLinkEnabled: (enabled: boolean) => Promise<void>
   confirmPreview: (preview: ApsalPreview) => Promise<void>
   rejectPreview: (preview: ApsalPreview) => Promise<void>
   undoOperation: (operationId: string) => Promise<void>
@@ -131,19 +130,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       }))
     } catch (error) {
       set({ error: message(error) })
-    }
-  },
-
-  setLinkEnabled: async (enabled) => {
-    const runtime = window.apsalProtocol
-    if (!runtime) return
-    set({ busy: true, error: '' })
-    try {
-      set({ linkStatus: await runtime.setLinkEnabled(enabled) })
-    } catch (error) {
-      set({ error: message(error) })
-    } finally {
-      set({ busy: false })
     }
   },
 

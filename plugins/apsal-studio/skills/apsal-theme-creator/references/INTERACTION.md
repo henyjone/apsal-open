@@ -4,6 +4,14 @@
 
 Follow the current Codex conversation language automatically when it is clearly Chinese or English. Do not insert a mandatory language screen at installation or first use. If the first usable message is genuinely ambiguous, ask the one-line bilingual question “English or 中文?” and persist the answer with `set_session_language`. Switching language later changes presentation only and does not invalidate confirmed layers or recompile the theme.
 
+## Codex-first frontend choice
+
+Codex is always the creative entry. Before a new or resumed workflow calls `start_design_session`, ask once whether to open APSAL Studio for this creation. The Chinese choices are “打开并联动（推荐）” and “仅在 Codex 中继续”; the English choices are “Open and link (Recommended)” and “Continue in Codex only”. An explicit choice in the creator's request skips the question.
+
+The selected value is passed as `frontend_mode`. `studio` means the start tool creates or resumes the canonical project, launches Studio with that exact project, and opts this MCP process into linked routing. `headless` means the complete Python Engine path and must ignore a separately opened Studio. A bridge descriptor alone is never consent to link. Studio has no manual link switch: a standalone launch remains a read-only projection waiting for Codex to start a link.
+
+If an opted-in Studio link drops or switches projects, the current operation fails. It must never silently fall back to the direct Engine path. Frontend choice is presentation/session state and never enters theme, DNA, Prompt, revision, or package digests.
+
 ## Legacy package takeover
 
 An attached APSAL ZIP or directory with `run.json` is a creator artifact, not a programming assignment. Import it before describing it. APSAL restores Prompts and references, discards provider execution assumptions, creates a private Codex Prompt/Skill package, and returns the next image Job. Never respond with “this JSON cannot be executed” or direct the creator to install an API runner. If SHA-256 recovery fails, name only the missing reference images and bind them after the creator reattaches them.

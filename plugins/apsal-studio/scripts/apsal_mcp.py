@@ -16,13 +16,14 @@ from apsal_engine import (
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
     resolve_interface_language, session_interface_language, set_session_language,
 )
-from apsal_frontend import frontend_call, frontend_status
+from apsal_frontend import frontend_call, frontend_status, launch_frontend
 from apsal_protocol import handle_domain_method, project_snapshot
 
 UI_URI = "ui://apsal/dna-cards.html"
 UI_PATH = Path(__file__).resolve().parents[1] / "assets" / "ui" / "dna-cards.html"
 ELEMENT_UI_URI = "ui://apsal/element-cards.html"
 ELEMENT_UI_PATH = Path(__file__).resolve().parents[1] / "assets" / "ui" / "element-cards.html"
+ACTIVE_FRONTEND_PROJECTS: set[str] = set()
 
 
 def _schema(properties: dict[str, Any], required: list[str]) -> dict[str, Any]:
@@ -41,8 +42,8 @@ MUTATION_META = {
 
 TOOLS = [
     {
-        "name": "start_design_session", "description": "Start or resume an APSAL design. New sets default to three-chapter controlled variation and may explicitly select continuous narrative.",
-        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}, **MUTATION_META}, []),
+        "name": "start_design_session", "description": "Start or resume an APSAL design after asking whether to open the optional APSAL Studio frontend. Use frontend_mode=studio only after explicit creator choice; headless keeps the complete direct Engine path.",
+        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}, "frontend_mode": {"enum": ["headless", "studio"]}, **MUTATION_META}, []),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -189,6 +190,8 @@ TOOLS = [
 
 def _root(arguments: dict[str, Any]) -> Path:
     supplied = arguments.get("project_root")
+    if supplied:
+        return Path(str(supplied)).expanduser().resolve()
     if not supplied:
         status = frontend_status()
         if status.get("connected") is True and status.get("project_root"):
@@ -216,8 +219,15 @@ def _mutation_params(arguments: dict[str, Any], root: Path, prefix: str) -> dict
 def _domain(method: str, arguments: dict[str, Any], params: dict[str, Any]) -> dict[str, Any]:
     root = _root(arguments)
     request = {"project_root": str(root), **params}
-    status = frontend_status()
-    if status.get("connected") is True:
+    root_key = str(root.resolve())
+    if root_key in ACTIVE_FRONTEND_PROJECTS:
+        status = frontend_status()
+        if status.get("connected") is not True:
+            raise ValidationError(
+                "APSAL Studio was selected for this Codex creation but the authenticated link is unavailable; reconnect Studio or explicitly resume in headless mode"
+            )
+        if not status.get("project_root") or Path(str(status["project_root"])).expanduser().resolve() != root:
+            raise ValidationError("APSAL Studio switched to another project; linked writes were stopped")
         if status.get("compatible") is False:
             raise ValidationError(
                 "APSAL Studio is connected with an incompatible Engine or Protocol version; linked writes are read-only"
@@ -227,6 +237,37 @@ def _domain(method: str, arguments: dict[str, Any], params: dict[str, Any]) -> d
             raise ValidationError(f"APSAL Studio link changed during the operation: {result.get('message') or result['code']}")
         return result
     return handle_domain_method(method, request)
+
+
+def _frontend_choice(arguments: dict[str, Any], root: Path) -> dict[str, Any]:
+    requested = arguments.get("frontend_mode", "headless")
+    root_key = str(root.resolve())
+    if requested == "headless":
+        ACTIVE_FRONTEND_PROJECTS.discard(root_key)
+        return {
+            "requested_mode": "headless",
+            "routing_mode": "headless",
+            "connected": False,
+            "code": "frontend_not_selected",
+        }
+    status = launch_frontend(root)
+    if status.get("connected") is True:
+        ACTIVE_FRONTEND_PROJECTS.add(root_key)
+        routing_mode = "studio"
+    else:
+        ACTIVE_FRONTEND_PROJECTS.discard(root_key)
+        routing_mode = "headless"
+    return {**status, "requested_mode": "studio", "routing_mode": routing_mode}
+
+
+def _selected_frontend_status() -> dict[str, Any]:
+    status = frontend_status()
+    if status.get("connected") is not True:
+        raise ValidationError("APSAL Studio is not connected; start or resume creation with frontend_mode=studio")
+    project_root = status.get("project_root")
+    if not project_root or str(Path(str(project_root)).expanduser().resolve()) not in ACTIVE_FRONTEND_PROJECTS:
+        raise ValidationError("APSAL Studio was opened independently and was not selected from this Codex creation")
+    return status
 
 
 def _with_protocol_metadata(summary: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
@@ -259,9 +300,16 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    root_key = str(root.resolve())
+    requested_frontend = arguments.get("frontend_mode", "headless")
+    frontend = None
+    if requested_frontend == "headless":
+        ACTIVE_FRONTEND_PROJECTS.discard(root_key)
+    elif (root / ".apsal" / "project.json").is_file():
+        frontend = _frontend_choice(arguments, root)
     if arguments.get("session_id"):
         if arguments.get("language") and arguments.get("language") != "auto":
-            root = _root(arguments)
             result = _domain(
                 "design.language",
                 arguments,
@@ -272,13 +320,12 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
                 },
             )
             session = result
-        else: session, _ = load_design_session(arguments["session_id"], _root(arguments))
+        else: session, _ = load_design_session(arguments["session_id"], root)
         locale = session_interface_language(session)
         next_action = (f"从 {session['state']} 恢复；只显示待确认或已失效的层。" if locale.get("code") == "zh-CN" else f"Resume at {session['state']}; present only the pending or invalidated layer.")
         if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
-        return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
+        return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action, "frontend": frontend or _frontend_choice(arguments, root)}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
-    root = _root(arguments)
     session = _domain(
         "design.start",
         arguments,
@@ -296,7 +343,7 @@ def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
     if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
     elif locale["code"] == "zh-CN": next_action = "展示“创作命题与情绪”元素卡，确认五层中的第一层。"
     else: next_action = "Present Direction and Emotion element cards, then confirm the first of five creative layers."
-    value = {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
+    value = {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action, "frontend": frontend or _frontend_choice(arguments, root)}
     return _with_protocol_metadata(value, session)
 
 
@@ -511,15 +558,20 @@ def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_frontend_status(arguments: dict[str, Any]) -> dict[str, Any]:
     del arguments
-    return frontend_status()
+    status = frontend_status()
+    project_root = status.get("project_root")
+    selected = bool(project_root) and str(Path(str(project_root)).expanduser().resolve()) in ACTIVE_FRONTEND_PROJECTS
+    return {**status, "selected_for_codex": selected}
 
 
 def _tool_frontend_get_project(arguments: dict[str, Any]) -> dict[str, Any]:
     del arguments
+    _selected_frontend_status()
     return frontend_call("project.snapshot", {})
 
 
 def _tool_frontend_preview(arguments: dict[str, Any]) -> dict[str, Any]:
+    _selected_frontend_status()
     return frontend_call("design.propose", {
         "session_id": arguments["session_id"], "layer": arguments["layer"],
         "decisions": arguments.get("decisions"), "refs": arguments.get("refs", []),
@@ -530,6 +582,7 @@ def _tool_frontend_preview(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_frontend_apply(arguments: dict[str, Any]) -> dict[str, Any]:
+    _selected_frontend_status()
     return frontend_call("design.commit_preview", {
         "session_id": arguments["session_id"], "preview_id": arguments["previewId"],
         "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
@@ -537,6 +590,7 @@ def _tool_frontend_apply(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_frontend_reject(arguments: dict[str, Any]) -> dict[str, Any]:
+    _selected_frontend_status()
     return frontend_call("design.reject_preview", {
         "session_id": arguments["session_id"], "preview_id": arguments["previewId"],
         "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
@@ -544,6 +598,7 @@ def _tool_frontend_reject(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_frontend_undo(arguments: dict[str, Any]) -> dict[str, Any]:
+    _selected_frontend_status()
     return frontend_call("project.undo", {
         "target_operation_id": arguments["targetOperationId"],
         "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
@@ -551,6 +606,7 @@ def _tool_frontend_undo(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_frontend_focus(arguments: dict[str, Any]) -> dict[str, Any]:
+    _selected_frontend_status()
     return frontend_call("ui.focus_elements", {
         "protocol_element_ids": arguments["protocolElementIds"], "preview_id": arguments.get("previewId"),
     })

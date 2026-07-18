@@ -99,7 +99,7 @@ npm run test:electron
 npm run desktop:start
 ```
 
-The link is disabled by default. After the creator opens a project and explicitly enables it, the Codex plugin connects through an authenticated loopback-only bridge. Codex retains its complete direct-Engine path when Studio is closed or unlinked.
+Codex is the only creative entry. When creation starts, the plugin asks whether to open the optional Studio frontend. Choosing it initializes the project, launches Studio with that exact project, and connects through an authenticated loopback-only bridge. Choosing Codex only keeps the complete direct-Engine path. Opening Studio independently never opts a Codex creation into linked routing.
 
 ## 30-second start
 
@@ -109,11 +109,12 @@ Ask Codex:
 
 APSAL Studio will:
 
-1. Confirm what the work is about, choose Chaptered Variation or Continuous Narrative, classify its emotional direction and define how that emotion evolves.
-2. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as complete proposal cards. Unless another subject is specified, APSAL proposes a poised East Asian adult female protagonist who supports classical, contemporary, editorial and ceremonial styling while keeping identity locked.
-3. Explicitly confirm the three-scene/three-look chapter plan or the single-scene continuous lock; nine distinct actions and body states; functional focal perspectives; props and ownership; light; color/post; and rejection rules. Revise any one element in natural language or click a proposed direction.
-4. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
-5. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, real reference, five-stage thumbnail and usage guide. If real references exist, one is designated as the rights-scoped core visual anchor; semantic thumbnails remain strictly separate. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
+1. Ask once whether to open and link the APSAL Studio frontend or continue only in Codex.
+2. Confirm what the work is about, choose Chaptered Variation or Continuous Narrative, classify its emotional direction and define how that emotion evolves.
+3. Move through Subject/World/Look, Event/Sequence, Camera/Light/Style/Color-Post and Job/Quality Control as complete proposal cards. Unless another subject is specified, APSAL proposes a poised East Asian adult female protagonist who supports classical, contemporary, editorial and ceremonial styling while keeping identity locked.
+4. Explicitly confirm the three-scene/three-look chapter plan or the single-scene continuous lock; nine distinct actions and body states; functional focal perspectives; props and ownership; light; color/post; and rejection rules. Revise any one element in natural language or click a proposed direction.
+5. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
+6. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, real reference, five-stage thumbnail and usage guide. If real references exist, one is designated as the rights-scoped core visual anchor; semantic thumbnails remain strictly separate. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
 Creators never need to see JSON or YAML. The open asset Protocol and Semantic Contract remain 0.3; APSAL Project Protocol, Engine, and Codex plugin are 0.15.0, while the desktop frontend is 0.2.0. Codex and Studio read one `.apsal/` source of truth. Finalization creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex performs image generation one Job at a time.
 

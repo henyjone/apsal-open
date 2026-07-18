@@ -21,6 +21,8 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertTrue(package["private"])
         self.assertEqual(package["version"], frontend["version"])
         self.assertEqual(frontend["mode"], "codex_plugin_visual_frontend")
+        self.assertEqual(frontend["launch_owner"], "codex_plugin_after_creator_choice")
+        self.assertFalse(frontend["standalone_link"])
         self.assertFalse(frontend["local_generation"])
         self.assertFalse(frontend["legacy_aiphoto_mode"])
         self.assertEqual(
@@ -83,9 +85,17 @@ class StudioFrontendTests(unittest.TestCase):
 
     def test_existing_project_can_be_opened_from_the_command_line(self) -> None:
         main = (STUDIO / "electron" / "main.mjs").read_text()
-        self.assertIn("--project-root", main)
-        self.assertIn("openProjectRoot(projectRoot)", main)
+        startup = (STUDIO / "electron" / "startup-args.mjs").read_text()
+        preload = (STUDIO / "electron" / "preload.cjs").read_text()
+        app = (STUDIO / "src" / "App.tsx").read_text()
+        self.assertIn("--project-root", startup)
+        self.assertIn("--codex-link", startup)
+        self.assertIn("handleCodexLaunch(commandLine)", main)
+        self.assertTrue((STUDIO / "electron" / "startup-args.node-test.mjs").is_file())
         self.assertIn(".apsal', 'project.json", main)
+        self.assertNotIn("apsal-link:set-enabled", main)
+        self.assertNotIn("setLinkEnabled", preload)
+        self.assertIn("单独打开 Studio 不会连接 Codex", app)
 
 
 if __name__ == "__main__":

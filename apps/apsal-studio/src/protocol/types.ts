@@ -135,7 +135,6 @@ export interface ApsalProtocolRuntime {
   chooseProject(mode: 'new' | 'open'): Promise<ApsalProjectSnapshot | null>
   call<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T>
   getLinkStatus(): Promise<ApsalLinkStatus>
-  setLinkEnabled(enabled: boolean): Promise<ApsalLinkStatus>
   onStatus(listener: (status: ApsalProtocolStatus) => void): () => void
   onSnapshot(listener: (snapshot: ApsalProjectSnapshot) => void): () => void
   onChange(listener: (event: { method: string; result: Record<string, unknown> & { snapshot?: ApsalProjectSnapshot } }) => void): () => void

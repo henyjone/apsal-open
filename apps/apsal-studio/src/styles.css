@@ -472,10 +472,7 @@ button:disabled {
 .link-icon.connected { background: rgba(62, 207, 122, 0.09); color: var(--ok); }
 .link-icon svg { width: 17px; height: 17px; stroke-width: 1.8; }
 .link-heading h2 { margin: 4px 0 0; color: var(--text); font-size: 12px; }
-.switch { width: 42px; height: 24px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 99px; background: rgba(0, 0, 0, 0.25); cursor: pointer; }
-.switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--muted-dark); transition: transform 180ms ease, background 180ms ease; }
-.switch.enabled { border-color: rgba(62, 207, 122, 0.32); background: rgba(62, 207, 122, 0.10); }
-.switch.enabled span { transform: translateX(17px); background: var(--ok); }
+.link-origin { padding: 5px 7px; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); font: 8px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; }
 .connection-state { display: flex; align-items: center; gap: 7px; margin-top: 11px; color: var(--muted); font-size: 9px; }
 .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-dark); }
 .connection-state.connected { color: var(--ok); }
