@@ -7,11 +7,11 @@ import type {
 } from './types'
 
 export const LAYERS: Array<{ id: ApsalLayerId; label: string; short: string }> = [
-  { id: 'direction', label: '方向', short: 'Direction' },
-  { id: 'worldbuilding', label: '世界构建', short: 'World' },
-  { id: 'narrative', label: '叙事', short: 'Narrative' },
-  { id: 'image', label: '影像', short: 'Image' },
-  { id: 'delivery', label: '交付', short: 'Delivery' },
+  { id: 'direction', label: '方向', short: '创作方向' },
+  { id: 'worldbuilding', label: '世界构建', short: '人物与世界' },
+  { id: 'narrative', label: '叙事', short: '事件与序列' },
+  { id: 'image', label: '影像', short: '摄影与后期' },
+  { id: 'delivery', label: '交付', short: '执行与验收' },
 ]
 
 const LAYER_X: Record<ApsalLayerId, number> = {
@@ -28,6 +28,7 @@ export interface ProjectedNode {
   previewId?: string
   layerId: ApsalLayerId
   roleId: string
+  studioType: string
   label: string
   status: string
   intent: string
@@ -39,6 +40,12 @@ export interface ProjectedNode {
   participatesInPrompt: boolean
   x: number
   y: number
+}
+
+export interface ProjectedEdge {
+  id: string
+  source: ProjectedNode
+  target: ProjectedNode
 }
 
 function projectedNode(element: ApsalProtocolElement, view?: ApsalStudioView, previewId?: string): ProjectedNode {
@@ -54,6 +61,7 @@ function projectedNode(element: ApsalProtocolElement, view?: ApsalStudioView, pr
     previewId: actualPreviewId,
     layerId: element.layer_id,
     roleId: element.role_id,
+    studioType: element.studio_type,
     label: element.label,
     status: element.status,
     intent: element.intent,
@@ -66,6 +74,18 @@ function projectedNode(element: ApsalProtocolElement, view?: ApsalStudioView, pr
     x: position.x + (ghost ? 24 : 0),
     y: position.y + (ghost ? 24 : 0),
   }
+}
+
+export function projectWorkflowEdges(nodes: ProjectedNode[]): ProjectedEdge[] {
+  const stableNodes = nodes.filter((node) => !node.ghost)
+  return stableNodes.slice(1).map((target, index) => {
+    const source = stableNodes[index]
+    return {
+      id: `workflow-edge:${source.protocolElementId}:${target.protocolElementId}`,
+      source,
+      target,
+    }
+  })
 }
 
 export function projectSnapshot(
@@ -86,15 +106,18 @@ export function projectSnapshot(
 export function nodesToStudioView(
   nodes: ProjectedNode[],
   selectedElementId: string | null,
-  zoom = 1,
+  viewport: ApsalStudioView['viewport'] | number = 1,
 ): Omit<ApsalStudioView, 'schema_version' | 'view_revision'> {
+  const resolvedViewport = typeof viewport === 'number'
+    ? { x: 0, y: 0, zoom: viewport }
+    : viewport
   return {
     nodes: Object.fromEntries(
       nodes
         .filter((node) => !node.ghost)
         .map((node) => [node.protocolElementId, { x: node.x, y: node.y, collapsed: false }]),
     ),
-    viewport: { x: 0, y: 0, zoom },
+    viewport: resolvedViewport,
     selected_element_id: selectedElementId,
     expanded_cards: selectedElementId ? [selectedElementId] : [],
   }
