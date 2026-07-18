@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
 MANIFEST = PLUGIN / ".codex-plugin" / "plugin.json"
+STUDIO_ICON = ROOT / "apps" / "apsal-studio" / "src" / "assets" / "apsal-icon.png"
 
 
 def main() -> int:
@@ -24,7 +25,7 @@ def main() -> int:
     if manifest.get("name") != "apsal-studio": errors.append("plugin manifest: name must be apsal-studio")
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", str(manifest.get("version", ""))): errors.append("plugin manifest: invalid semantic version")
     interface = manifest.get("interface", {})
-    for key in ("displayName", "shortDescription", "longDescription", "developerName", "category", "capabilities", "defaultPrompt"):
+    for key in ("displayName", "shortDescription", "longDescription", "developerName", "category", "capabilities", "defaultPrompt", "composerIcon", "logo"):
         if not interface.get(key): errors.append(f"plugin interface: missing {key}")
     prompts = interface.get("defaultPrompt", [])
     if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3 or any(not isinstance(item, str) or len(item) > 128 for item in prompts):
@@ -34,6 +35,15 @@ def main() -> int:
         if isinstance(value, str) and not (PLUGIN / value).exists(): errors.append(f"plugin manifest: missing path {value}")
     for key in ("websiteURL", "privacyPolicyURL"):
         if interface.get(key) and not interface[key].startswith("https://"): errors.append(f"plugin interface: {key} must use https")
+    if interface.get("composerIcon") != interface.get("logo"):
+        errors.append("plugin interface: composerIcon and logo must use the same APSAL Studio icon")
+    for key in ("composerIcon", "logo"):
+        value = interface.get(key)
+        path = PLUGIN / value if isinstance(value, str) else None
+        if path is not None and not path.is_file():
+            errors.append(f"plugin interface: missing {key} path {value}")
+        elif path is not None and STUDIO_ICON.is_file() and path.read_bytes() != STUDIO_ICON.read_bytes():
+            errors.append(f"plugin interface: {key} must be byte-identical to the APSAL Studio icon")
 
     mcp_config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))
     server = mcp_config.get("mcpServers", {}).get("apsal-studio", {})
