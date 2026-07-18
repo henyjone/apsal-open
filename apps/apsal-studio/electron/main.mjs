@@ -13,11 +13,11 @@ let currentProjectRoot
 let isQuitting = false
 
 const PROTOCOL_MUTATIONS = new Set([
-  'project.undo', 'design.commit_preview', 'design.reject_preview',
+  'project.undo', 'design.propose', 'design.commit_preview', 'design.reject_preview',
 ])
 const RENDERER_METHODS = new Set([
   'project.snapshot', 'project.undo', 'design.present',
-  'design.commit_preview', 'design.reject_preview',
+  'design.propose', 'design.commit_preview', 'design.reject_preview',
   'studio.view.get', 'studio.view.save',
 ])
 

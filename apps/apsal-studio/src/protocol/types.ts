@@ -2,6 +2,7 @@ export type ApsalLayerId = 'direction' | 'worldbuilding' | 'narrative' | 'image'
 
 export interface ApsalProtocolAttribute {
   id: string
+  key?: string
   name: string
   value: string
   raw_value?: unknown
@@ -15,6 +16,7 @@ export interface ApsalProtocolElement {
   studio_type: string
   status: string
   intent: string
+  raw_intent?: string
   attributes: ApsalProtocolAttribute[]
   observable: string[]
   must_preserve: string[]
@@ -35,6 +37,9 @@ export interface ApsalPreview {
   revision: number
   status: string
   stale_reason?: string | null
+  origin?: 'codex' | 'studio'
+  summary?: string | null
+  changes?: Array<{ role_id: string; field: string; before: unknown; after: unknown }>
   invalidates_if_applied: ApsalLayerId[]
   elements: ApsalProtocolElement[]
 }

@@ -161,8 +161,13 @@ TOOLS = [
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
     },
     {
+        "name": "apsal_frontend_get_updates", "description": "Read Studio-origin semantic edit proposals waiting for Codex attention, including revision-bound field diffs and downstream impact.",
+        "inputSchema": _schema({}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
         "name": "apsal_frontend_preview_changes", "description": "Create a revision-bound APSAL draft preview and ghost-node projection in linked Studio without committing theme semantics.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_bindings": {"type": "array", "items": {"type": "object"}}, "draft_assets": {"type": "array", "items": {"type": "object"}}, **MUTATION_META}, ["session_id", "layer", "expectedRevision", "operationId"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_bindings": {"type": "array", "items": {"type": "object"}}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "summary": {"type": "string"}, **MUTATION_META}, ["session_id", "layer", "expectedRevision", "operationId"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -567,7 +572,44 @@ def _tool_frontend_status(arguments: dict[str, Any]) -> dict[str, Any]:
 def _tool_frontend_get_project(arguments: dict[str, Any]) -> dict[str, Any]:
     del arguments
     _selected_frontend_status()
-    return frontend_call("project.snapshot", {})
+    snapshot = frontend_call("project.snapshot", {})
+    return {**snapshot, "studio_updates": _studio_updates(snapshot)}
+
+
+def _studio_updates(snapshot: dict[str, Any], *, compact: bool = False) -> dict[str, Any]:
+    previews = [
+        preview for preview in snapshot.get("previews", [])
+        if preview.get("origin") == "studio" and preview.get("status") in {"pending", "stale"}
+    ]
+    updates = []
+    for preview in previews:
+        item = {
+            "preview_id": preview.get("preview_id"),
+            "session_id": preview.get("session_id"),
+            "layer": preview.get("layer"),
+            "base_revision": preview.get("base_revision"),
+            "status": preview.get("status"),
+            "summary": preview.get("summary"),
+            "invalidates_if_applied": preview.get("invalidates_if_applied", []),
+            "change_count": len(preview.get("changes", [])),
+        }
+        if not compact:
+            item["changes"] = preview.get("changes", [])
+            item["elements"] = preview.get("elements", [])
+        updates.append(item)
+    return {
+        "revision": snapshot.get("revision"),
+        "session_id": (snapshot.get("session") or {}).get("session_id"),
+        "count": len(updates),
+        "requires_creator_attention": bool(updates),
+        "updates": updates,
+    }
+
+
+def _tool_frontend_updates(arguments: dict[str, Any]) -> dict[str, Any]:
+    del arguments
+    _selected_frontend_status()
+    return _studio_updates(frontend_call("project.snapshot", {}))
 
 
 def _tool_frontend_preview(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -577,6 +619,7 @@ def _tool_frontend_preview(arguments: dict[str, Any]) -> dict[str, Any]:
         "decisions": arguments.get("decisions"), "refs": arguments.get("refs", []),
         "shots": arguments.get("shots"), "reference_bindings": arguments.get("reference_bindings"),
         "draft_assets": arguments.get("draft_assets"),
+        "origin": "codex", "summary": arguments.get("summary"),
         "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
     })
 
@@ -625,6 +668,7 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "record_generation_result": _tool_record,
     "apsal_frontend_status": _tool_frontend_status,
     "apsal_frontend_get_project": _tool_frontend_get_project,
+    "apsal_frontend_get_updates": _tool_frontend_updates,
     "apsal_frontend_preview_changes": _tool_frontend_preview,
     "apsal_frontend_apply_preview": _tool_frontend_apply,
     "apsal_frontend_reject_preview": _tool_frontend_reject,
@@ -636,6 +680,16 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
 def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name not in HANDLERS: raise ValidationError(f"unknown MCP tool: {name}")
     value = HANDLERS[name](arguments)
+    if ACTIVE_FRONTEND_PROJECTS and name not in {
+        "apsal_frontend_status", "apsal_frontend_get_project", "apsal_frontend_get_updates",
+    }:
+        try:
+            _selected_frontend_status()
+            updates = _studio_updates(frontend_call("project.snapshot", {}), compact=True)
+            if updates["count"]:
+                value = {**value, "frontend_updates": updates}
+        except (OSError, RuntimeError, ValidationError):
+            pass
     if name in {"present_dna_cards", "recommend_dna", "recommend_layer_dna"}:
         cards = value["cards"] if name in {"present_dna_cards", "recommend_layer_dna"} else value["recommendations"]
         zh = value.get("language") == "zh-CN"

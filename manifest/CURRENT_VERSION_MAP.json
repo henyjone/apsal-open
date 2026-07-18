@@ -3,7 +3,7 @@
   "project": "APSAL Open",
   "protocol": {"id": "apsal-open", "version": "0.3.0", "license": "Apache-2.0", "compatibility": ["0.2.0"]},
   "project_protocol": {"id": "apsal-project", "version": "0.15.0", "engine_version": "0.15.0", "studio_version": "0.2.0", "view_schema_version": "0.1.0", "compatibility_mode": "strict_read_only_on_mismatch"},
-  "studio_frontend": {"id": "apsal-studio-desktop", "version": "0.2.0", "path": "apps/apsal-studio", "mode": "codex_plugin_visual_frontend", "launch_owner": "codex_plugin_after_creator_choice", "standalone_link": false, "project_source": ".apsal", "local_generation": false, "legacy_aiphoto_mode": false},
+  "studio_frontend": {"id": "apsal-studio-desktop", "version": "0.2.0", "path": "apps/apsal-studio", "mode": "codex_plugin_visual_frontend", "launch_owner": "codex_plugin_after_creator_choice", "standalone_link": false, "project_source": ".apsal", "semantic_editing": "revision_bound_preview", "studio_to_codex_updates": "pending_preview_inbox", "local_generation": false, "legacy_aiphoto_mode": false},
   "semantic_contract": {"version": "0.3.0", "status": "pilot_validated"},
   "reference_engine": {"version": "0.15.0", "license": "Apache-2.0"},
   "plugin": {"id": "apsal-studio", "version": "0.15.0", "authoring_compatibility": ["0.3.0"], "runtime_compatibility": ["0.4.0", "0.5.0", "0.6.0", "0.7.0", "0.8.0", "0.9.0", "0.10.0", "0.11.0", "0.12.0", "0.13.0", "0.14.0", "0.15.0"]},

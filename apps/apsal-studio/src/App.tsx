@@ -16,12 +16,14 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  Pencil,
   Plus,
   Redo2,
   RefreshCw,
   RotateCcw,
   ScanSearch,
   Sparkles,
+  Send,
   Undo2,
   X,
   ZoomIn,
@@ -46,6 +48,7 @@ import {
   projectWorkflowEdges,
   type ProjectedNode,
 } from './protocol/projection'
+import { attributeKey, buildStudioEdit, createStudioEditDraft, type StudioEditDraft } from './protocol/editor'
 import { useStudioStore } from './protocol/store'
 import type { ApsalLayerId, ApsalPreview } from './protocol/types'
 
@@ -64,7 +67,7 @@ type CanvasViewport = { x: number; y: number; zoom: number }
 
 const METHOD_LABELS: Record<string, string> = {
   'design.start': '开始设计',
-  'design.propose': 'Codex 提交预览',
+  'design.propose': '创建变更提案',
   'design.commit_preview': '确认变更',
   'design.reject_preview': '拒绝变更',
   'design.commit_layer': '确认层',
@@ -162,7 +165,7 @@ function ProjectPanel() {
         <div className="projection-icon"><GitBranch aria-hidden="true" /></div>
         <div>
           <strong>APSAL 协议投影</strong>
-          <p>五层与十三个角色由 Engine 管理；Studio 只保存画布位置、缩放和选中状态。</p>
+          <p>五层与十三个角色由 Engine 管理；Studio 的语义修改会作为 revision 绑定提案发送给 Codex。</p>
         </div>
       </section>
 
@@ -216,7 +219,7 @@ function ProjectPanel() {
 
       <section className="panel-section workflow-note">
         <span className="eyebrow">使用方式</span>
-        <p>创作对话与语义编辑在 Codex 中进行。Studio 用于观察项目、定位元素、确认预览和回看操作。</p>
+        <p>Codex 与 Studio 共享同一项目内核。你可以在属性面板编辑，再发送给 Codex 继续确认或调整。</p>
       </section>
     </div>
   )
@@ -229,38 +232,85 @@ function PreviewCard({ preview }: { preview: ApsalPreview }) {
   const rejectPreview = useStudioStore((state) => state.rejectPreview)
   const focusElements = useStudioStore((state) => state.focusElements)
   const current = preview.status === 'pending' && snapshot?.revision === preview.base_revision
+  const fromStudio = preview.origin === 'studio'
+  const changedCount = preview.changes?.length ?? preview.elements.length
 
   return (
     <article className={`preview-card ${current ? '' : 'stale'}`}>
       <div className="preview-heading">
-        <div><Sparkles aria-hidden="true" /><strong>{layerLabel(preview.layer)}</strong></div>
+        <div><Sparkles aria-hidden="true" /><strong>{layerLabel(preview.layer)}</strong><small>{fromStudio ? '来自 Studio' : '来自 Codex'}</small></div>
         <span>{current ? `r${preview.base_revision}` : '已过期'}</span>
       </div>
-      <p>{current ? `Codex 提议更新 ${preview.elements.length} 个元素。` : '项目 revision 已变化，需要由 Codex 重新创建预览。'}</p>
+      <p>{current ? (preview.summary || `${fromStudio ? 'Studio' : 'Codex'} 提议修改 ${changedCount} 项。`) : '项目 revision 已变化，请拒绝这条旧提案后重新编辑。'}</p>
       {preview.invalidates_if_applied.length > 0 && current && (
         <div className="impact">影响下游：{preview.invalidates_if_applied.map(layerLabel).join('、')}</div>
       )}
       <div className="preview-actions">
         <button type="button" onClick={() => focusElements(preview.elements.map((item) => item.protocol_element_id))}><LocateFixed aria-hidden="true" />定位</button>
-        <button type="button" className="accept" disabled={busy || !current || snapshot?.read_only} onClick={() => void confirmPreview(preview)}><Check aria-hidden="true" />确认</button>
-        <button type="button" className="reject" disabled={busy || !current || snapshot?.read_only} onClick={() => void rejectPreview(preview)}><X aria-hidden="true" />拒绝</button>
+        {fromStudio ? (
+          <button type="button" className="accept" disabled><Link2 aria-hidden="true" />等待 Codex</button>
+        ) : (
+          <button type="button" className="accept" disabled={busy || !current || snapshot?.read_only} onClick={() => void confirmPreview(preview)}><Check aria-hidden="true" />确认</button>
+        )}
+        <button type="button" className="reject" disabled={busy || snapshot?.read_only} onClick={() => void rejectPreview(preview)}><X aria-hidden="true" />{fromStudio && current ? '撤回' : current ? '拒绝' : '清除'}</button>
       </div>
     </article>
   )
 }
 
 function ElementInspector({ selected }: { selected?: ProjectedNode }) {
+  const busy = useStudioStore((state) => state.busy)
+  const snapshot = useStudioStore((state) => state.snapshot)
+  const linkStatus = useStudioStore((state) => state.linkStatus)
+  const previews = useStudioStore((state) => state.previews)
+  const proposeElementChange = useStudioStore((state) => state.proposeElementChange)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<StudioEditDraft | null>(null)
+  const editResult = useMemo(() => {
+    if (!selected || !draft) return { value: null, error: '' }
+    try {
+      return { value: buildStudioEdit(selected, draft), error: '' }
+    } catch (error) {
+      return { value: null, error: error instanceof Error ? error.message : String(error) }
+    }
+  }, [draft, selected])
+
+  useEffect(() => {
+    setEditing(false)
+    setDraft(selected ? createStudioEditDraft(selected) : null)
+  }, [selected?.id])
+
   if (!selected) {
     return (
       <div className="inspector-empty">
         <span><MousePointer2 aria-hidden="true" /></span>
         <strong>选择一个工作流节点</strong>
-        <p>这里显示由 APSAL Engine 管理的只读语义和 QA 约束。</p>
+        <p>这里可以查看语义与 QA，也可以把属性修改发送给 Codex。</p>
       </div>
     )
   }
 
   const Icon = LAYER_ICONS[selected.layerId]
+  const hasCurrentPreview = previews.some((preview) => preview.status === 'pending' && preview.base_revision === snapshot?.revision)
+  const priorLayersReady = LAYERS.slice(0, LAYERS.findIndex((layer) => layer.id === selected.layerId))
+    .every((layer) => snapshot?.session?.layers[layer.id]?.status === 'confirmed')
+  const themeIsEditable = !['ready', 'generating', 'completed', 'partial'].includes(snapshot?.session?.state ?? '')
+  const canEdit = !selected.ghost && !snapshot?.read_only && Boolean(linkStatus?.connected) && !hasCurrentPreview && priorLayersReady && themeIsEditable
+  const beginEdit = () => {
+    setDraft(createStudioEditDraft(selected))
+    setEditing(true)
+  }
+  const submitEdit = async () => {
+    if (!editResult.value || editResult.value.changes.length === 0) return
+    const sent = await proposeElementChange({
+      layer: selected.layerId,
+      roleId: selected.roleId,
+      label: selected.label,
+      decision: editResult.value.decision,
+      changeCount: editResult.value.changes.length,
+    })
+    if (sent) setEditing(false)
+  }
   return (
     <div className="element-inspector">
       <header className="element-header">
@@ -269,28 +319,60 @@ function ElementInspector({ selected }: { selected?: ProjectedNode }) {
           <span>创作元素 · {layerLabel(selected.layerId)}</span>
           <h2>{selected.label}</h2>
         </div>
-        <em className={selected.ghost ? 'ghost-label' : ''}>{selected.ghost ? '待确认' : statusLabel(selected.status)}</em>
+        <div className="element-header-actions">
+          <em className={selected.ghost ? 'ghost-label' : ''}>{selected.ghost ? '待确认' : statusLabel(selected.status)}</em>
+          {!editing && <button type="button" className="edit-element-button" disabled={busy || !canEdit} title={!linkStatus?.connected ? '请先从 Codex 联动 Studio' : hasCurrentPreview ? '请先处理待确认变更' : !priorLayersReady ? '请先确认前面的创作层' : !themeIsEditable ? '已最终化主题需要创建新版本' : '编辑属性'} onClick={beginEdit}><Pencil aria-hidden="true" />编辑</button>}
+        </div>
       </header>
-      <section className="read-only-block">
-        <div className="block-heading"><span>元素意图</span><span>只读</span></div>
-        <p>{selected.intent || '尚未定义'}</p>
-      </section>
-      {selected.attributes.length > 0 && (
-        <section className="attribute-section">
-          <div className="block-heading"><span>属性</span><span>{selected.attributes.length}</span></div>
-          <dl>
-            {selected.attributes.map((attribute) => (
-              <div className="attribute" key={attribute.id}>
-                <dt>{attribute.name}</dt>
-                <dd>{attribute.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+      {editing && draft ? (
+        <form className="element-edit-form" onSubmit={(event) => { event.preventDefault(); void submitEdit() }}>
+          <label className="edit-field">
+            <span>元素意图</span>
+            <textarea rows={5} value={draft.intent} onChange={(event) => setDraft({ ...draft, intent: event.target.value })} />
+          </label>
+          {selected.attributes.map((attribute) => (
+            <label className="edit-field" key={attribute.id}>
+              <span>{attribute.name}</span>
+              <textarea rows={typeof attribute.raw_value === 'object' ? 4 : 2} value={draft.values[attributeKey(attribute)] ?? ''} onChange={(event) => setDraft({ ...draft, values: { ...draft.values, [attributeKey(attribute)]: event.target.value } })} />
+            </label>
+          ))}
+          {editResult.error && <p className="edit-error" role="alert">{editResult.error}</p>}
+          {editResult.value && editResult.value.changes.length > 0 && (
+            <section className="edit-diff" aria-label="修改摘要">
+              <div className="block-heading"><span>将发送给 Codex</span><span>{editResult.value.changes.length} 项</span></div>
+              {editResult.value.changes.map((change) => <div key={change.field}><strong>{change.label}</strong><span>{change.before || '空'} → {change.after || '空'}</span></div>)}
+            </section>
+          )}
+          <p className="edit-help">列表或结构属性请保持 JSON 格式。发送后不会直接覆盖项目，而是进入双方共享的待处理变更。</p>
+          <div className="edit-actions">
+            <button type="button" onClick={() => { setEditing(false); setDraft(createStudioEditDraft(selected)) }}>取消</button>
+            <button type="submit" className="button-primary" disabled={busy || Boolean(editResult.error) || !editResult.value?.changes.length}><Send aria-hidden="true" />发送给 Codex</button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <section className="read-only-block">
+            <div className="block-heading"><span>元素意图</span><span>项目语义</span></div>
+            <p>{selected.intent || '尚未定义'}</p>
+          </section>
+          {selected.attributes.length > 0 && (
+            <section className="attribute-section">
+              <div className="block-heading"><span>属性</span><span>{selected.attributes.length}</span></div>
+              <dl>
+                {selected.attributes.map((attribute) => (
+                  <div className="attribute" key={attribute.id}>
+                    <dt>{attribute.name}</dt>
+                    <dd>{attribute.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+        </>
       )}
       {selected.mustPreserve.length > 0 && <div className="detail-list"><strong>必须保持</strong>{selected.mustPreserve.map((item) => <span key={item}>{item}</span>)}</div>}
       {selected.qaExpectations.length > 0 && <div className="detail-list qa"><strong>视觉 QA</strong>{selected.qaExpectations.map((item) => <span key={item}>{item}</span>)}</div>}
-      <p className="readonly-note">需要修改时，请在 Codex 中描述意图；Studio 不创建第二份语义状态。</p>
+      {!editing && <p className="readonly-note">{!linkStatus?.connected ? '请从 Codex 插件联动 Studio 后编辑。' : hasCurrentPreview ? '当前有待处理变更，请先到 Agent 联动中确认或拒绝。' : !priorLayersReady ? '请先确认前面的创作层，再编辑这里。' : !themeIsEditable ? '当前主题已最终化或进入生成，请创建新版本后修改。' : '编辑会创建 revision 绑定提案，不会产生第二份语义状态。'}</p>}
     </div>
   )
 }
@@ -298,6 +380,7 @@ function ElementInspector({ selected }: { selected?: ProjectedNode }) {
 function CodexLinkPanel() {
   const linkStatus = useStudioStore((state) => state.linkStatus)
   const snapshot = useStudioStore((state) => state.snapshot)
+  const studioUpdates = useStudioStore((state) => state.previews).filter((preview) => preview.origin === 'studio')
 
   return (
     <section className="link-card">
@@ -317,8 +400,8 @@ function CodexLinkPanel() {
       </div>
       <p>{linkStatus?.connected ? 'Codex 插件正通过本机认证桥访问当前项目。它不能代理任意路径，也不能绕过协议 revision。' : '请在 Codex 中打开 APSAL 插件并开始创作；选择“打开并联动 APSAL Studio”后，插件会自动打开并绑定此界面。'}</p>
       <div className="link-project">
-        <span>绑定项目</span>
-        <strong>{snapshot?.project.project_id ?? '未选择'}</strong>
+        <div><span>绑定项目</span><strong>{snapshot?.project.project_id ?? '未选择'}</strong></div>
+        <em>{studioUpdates.length ? `${studioUpdates.length} 条已发往 Codex` : '双方已同步'}</em>
       </div>
     </section>
   )
@@ -362,7 +445,7 @@ function AgentPanel() {
           <span className="eyebrow">待确认变更</span>
           <span className="section-count warm">{previews.length}</span>
         </div>
-        {previews.length ? previews.map((preview) => <PreviewCard key={preview.preview_id} preview={preview} />) : <p className="muted">等待 Codex 提交变更预览。</p>}
+        {previews.length ? previews.map((preview) => <PreviewCard key={preview.preview_id} preview={preview} />) : <p className="muted">双方没有待处理变更。</p>}
       </section>
       <OperationsPanel />
     </div>
@@ -712,6 +795,8 @@ export function App() {
   const busy = useStudioStore((state) => state.busy)
   const clearError = useStudioStore((state) => state.clearError)
   const linkStatus = useStudioStore((state) => state.linkStatus)
+  const syncMessage = useStudioStore((state) => state.syncMessage)
+  const clearSyncMessage = useStudioStore((state) => state.clearSyncMessage)
   const saveView = useStudioStore((state) => state.saveView)
   const [nodes, setNodes] = useState<ProjectedNode[]>([])
   const [viewport, setViewport] = useState<CanvasViewport>({ x: 30, y: 36, zoom: 0.72 })
@@ -738,6 +823,11 @@ export function App() {
       setRightTab('agent')
     }
   }, [previews.length])
+  useEffect(() => {
+    if (!syncMessage) return
+    const timer = window.setTimeout(clearSyncMessage, 3200)
+    return () => window.clearTimeout(timer)
+  }, [clearSyncMessage, syncMessage])
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -874,7 +964,7 @@ export function App() {
         </div>
       </div>
       {busy && <div className="working-indicator" role="status" aria-live="polite"><RefreshCw aria-hidden="true" />APSAL 正在处理</div>}
-      {notice && <div className="notice-toast" role="status" aria-live="polite"><BadgeCheck aria-hidden="true" />{notice}</div>}
+      {(notice || syncMessage) && <div className="notice-toast" role="status" aria-live="polite"><BadgeCheck aria-hidden="true" />{notice || syncMessage}</div>}
       {error && <button type="button" className="error-toast" role="alert" aria-live="assertive" onClick={clearError}>{error}<span>关闭</span></button>}
     </div>
   )

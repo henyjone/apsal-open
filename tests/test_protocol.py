@@ -194,6 +194,81 @@ class ProtocolTests(unittest.TestCase):
                     },
                 )
 
+    def test_studio_edit_is_a_revision_bound_codex_update_and_commits_to_the_same_kernel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            protocol.init_protocol_project(project)
+            started = protocol.handle_domain_method(
+                "design.start",
+                {
+                    "project_root": str(project),
+                    "brief": "雨夜重逢的人像组照",
+                    "language": "zh-CN",
+                    "expected_revision": 0,
+                    "operation_id": "STUDIO-ROUNDTRIP-START",
+                },
+            )
+            session_id = started["session_id"]
+            before = next(item for item in started["snapshot"]["elements"] if item["role_id"] == "content")
+            self.assertIn("raw_intent", before)
+            self.assertIn("key", before["attributes"][0])
+
+            proposed = protocol.handle_domain_method(
+                "design.propose",
+                {
+                    "project_root": str(project),
+                    "session_id": session_id,
+                    "layer": "direction",
+                    "decisions": {"content": {"intent": "让创作命题围绕雨夜重逢展开"}},
+                    "origin": "studio",
+                    "summary": "Studio 编辑“创作命题”，修改 1 项",
+                    "expected_revision": 1,
+                    "operation_id": "STUDIO-ROUNDTRIP-EDIT",
+                },
+            )
+            self.assertEqual(proposed["revision"], 2)
+            self.assertEqual(proposed["origin"], "studio")
+            self.assertEqual(proposed["changes"], [{
+                "role_id": "content",
+                "field": "intent",
+                "before": before["raw_intent"],
+                "after": "让创作命题围绕雨夜重逢展开",
+            }])
+            updates = apsal_mcp._studio_updates(proposed["snapshot"])
+            self.assertTrue(updates["requires_creator_attention"])
+            self.assertEqual(updates["updates"][0]["preview_id"], proposed["preview_id"])
+            self.assertEqual(updates["updates"][0]["changes"], proposed["changes"])
+            apsal_mcp.ACTIVE_FRONTEND_PROJECTS.add(str(project.resolve()))
+            linked_status = {"connected": True, "compatible": True, "project_root": str(project.resolve())}
+            with (
+                mock.patch.object(apsal_mcp, "frontend_status", return_value=linked_status),
+                mock.patch.object(
+                    apsal_mcp,
+                    "frontend_call",
+                    side_effect=lambda method, _params: proposed["snapshot"] if method == "project.snapshot" else {"focused": True},
+                ),
+            ):
+                reminded = apsal_mcp.call_tool(
+                    "apsal_frontend_focus_elements",
+                    {"protocolElementIds": [before["protocol_element_id"]]},
+                )["structuredContent"]
+            self.assertEqual(reminded["frontend_updates"]["count"], 1)
+            self.assertEqual(reminded["frontend_updates"]["updates"][0]["preview_id"], proposed["preview_id"])
+
+            committed = protocol.handle_domain_method(
+                "design.commit_preview",
+                {
+                    "project_root": str(project),
+                    "session_id": session_id,
+                    "preview_id": proposed["preview_id"],
+                    "expected_revision": 2,
+                    "operation_id": "CODEX-ROUNDTRIP-APPLY",
+                },
+            )
+            content = next(item for item in committed["snapshot"]["elements"] if item["role_id"] == "content")
+            self.assertEqual(content["raw_intent"], "让创作命题围绕雨夜重逢展开")
+            self.assertEqual(committed["snapshot"]["previews"], [])
+
     def test_incompatible_project_is_read_only_and_never_upgraded_in_place(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "legacy"

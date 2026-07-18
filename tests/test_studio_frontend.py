@@ -68,6 +68,7 @@ class StudioFrontendTests(unittest.TestCase):
         )
         self.assertIsNotNone(renderer_methods)
         renderer_contract = renderer_methods.group(1)
+        self.assertIn("design.propose", renderer_contract)
         self.assertIn("design.commit_preview", renderer_contract)
         self.assertIn("studio.view.save", renderer_contract)
         self.assertNotIn("generation.start", renderer_contract)
@@ -96,6 +97,8 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertNotIn("apsal-link:set-enabled", main)
         self.assertNotIn("setLinkEnabled", preload)
         self.assertIn("单独打开 Studio 不会连接 Codex", app)
+        self.assertIn("发送给 Codex", app)
+        self.assertIn("origin: 'studio'", (STUDIO / "src" / "protocol" / "store.ts").read_text())
 
 
 if __name__ == "__main__":
