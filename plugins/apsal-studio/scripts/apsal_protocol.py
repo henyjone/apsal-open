@@ -25,6 +25,8 @@ from apsal_engine import (
     ValidationError,
     commit_element_layer,
     digest,
+    element_attribute_display,
+    element_display_projection,
     finalize_design_session,
     get_next_codex_job,
     init_workspace,
@@ -456,15 +458,16 @@ def _element_projection(session: dict[str, Any], theme: dict[str, Any]) -> list[
             decision = theme["element_decisions"][role]
             label = ROLE_LABELS[role].get(locale, ROLE_LABELS[role]["en"])
             values = decision.get("values", {})
-            attributes = [
-                {
+            presentation = element_display_projection(role, decision, session.get("brief", ""), locale)
+            attributes = []
+            for key, value in values.items():
+                display_name, display_value = element_attribute_display(role, str(key), value, locale)
+                attributes.append({
                     "id": f"{theme_id}:{role}:{key}",
-                    "name": str(key),
-                    "value": value if isinstance(value, str) else json.dumps(value, ensure_ascii=False),
+                    "name": display_name,
+                    "value": display_value if isinstance(display_value, str) else json.dumps(display_value, ensure_ascii=False),
                     "raw_value": value,
-                }
-                for key, value in values.items()
-            ]
+                })
             elements.append({
                 "protocol_element_id": f"{theme_id}:{role}",
                 "ghost": False,
@@ -474,11 +477,11 @@ def _element_projection(session: dict[str, Any], theme: dict[str, Any]) -> list[
                 "label": label,
                 "studio_type": ROLE_TO_STUDIO_TYPE[role],
                 "status": decision.get("status", "proposed"),
-                "intent": decision.get("intent", ""),
+                "intent": presentation["display_intent"],
                 "attributes": attributes,
-                "observable": decision.get("observable", []),
-                "must_preserve": decision.get("must_preserve", []),
-                "qa_expectations": decision.get("qa_expectations", []),
+                "observable": presentation["display_observable"],
+                "must_preserve": presentation["display_must_preserve"],
+                "qa_expectations": presentation["display_qa_expectations"],
                 "order": CREATIVE_LAYERS.index(layer) * 100 + index * 10,
             })
     return elements

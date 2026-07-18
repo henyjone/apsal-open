@@ -97,7 +97,7 @@ function EmptyCanvas({ hasProject, hasSession }: { hasProject: boolean; hasSessi
   return (
     <div className="empty-canvas">
       <div className="empty-aperture"><Aperture aria-hidden="true" /></div>
-      <span className="eyebrow">VIRTUAL SHOOT DESK</span>
+      <span className="eyebrow">虚拟摄影工作台</span>
       <h2>{!hasProject ? '打开一个 APSAL 片场' : !hasSession ? '片场已经就位' : '等待工作流元素'}</h2>
       <p>
         {!hasProject
@@ -140,7 +140,7 @@ function ProjectPanel() {
       <section className="panel-section project-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">PROJECT</span>
+            <span className="eyebrow">当前项目</span>
             <h2>当前片场</h2>
           </div>
           <span className={`status-dot ${status?.running ? 'online' : ''}`} title={status?.running ? 'Engine 在线' : 'Engine 未启动'} />
@@ -164,7 +164,7 @@ function ProjectPanel() {
 
       <section className="panel-section layers-section">
         <div className="section-heading compact">
-          <span className="eyebrow">WORKFLOW LAYERS</span>
+          <span className="eyebrow">创作流程</span>
           <span className="section-count">05</span>
         </div>
         <div className="layer-list">
@@ -186,7 +186,7 @@ function ProjectPanel() {
       </section>
 
       <section className="panel-section workflow-note">
-        <span className="eyebrow">WORKFLOW</span>
+        <span className="eyebrow">使用方式</span>
         <p>创作对话与语义编辑在 Codex 中进行。Studio 用于观察项目、定位元素、确认预览和回看操作。</p>
       </section>
     </div>
@@ -237,13 +237,13 @@ function ElementInspector({ selected }: { selected?: ProjectedNode }) {
       <header className="element-header">
         <span className="element-icon"><Icon aria-hidden="true" /></span>
         <div>
-          <span>{selected.roleId} · {layerLabel(selected.layerId)}</span>
+          <span>创作元素 · {layerLabel(selected.layerId)}</span>
           <h2>{selected.label}</h2>
         </div>
         <em className={selected.ghost ? 'ghost-label' : ''}>{selected.ghost ? '待确认' : statusLabel(selected.status)}</em>
       </header>
       <section className="read-only-block">
-        <div className="block-heading"><span>元素意图</span><span>READ ONLY</span></div>
+        <div className="block-heading"><span>元素意图</span><span>只读</span></div>
         <p>{selected.intent || '尚未定义'}</p>
       </section>
       {selected.attributes.length > 0 && (
@@ -277,7 +277,7 @@ function CodexLinkPanel() {
           {linkStatus?.connected ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
         </span>
         <div>
-          <span className="eyebrow">CODEX LINK</span>
+          <span className="eyebrow">CODEX 联动</span>
           <h2>{linkStatus?.connected ? 'Codex 已连接' : '等待 Codex 启动'}</h2>
         </div>
         <span className="link-origin">由插件启动</span>
@@ -303,7 +303,7 @@ function OperationsPanel() {
   return (
     <section className="operations-section">
       <div className="section-heading compact">
-        <span className="eyebrow">RECENT OPERATIONS</span>
+        <span className="eyebrow">最近操作</span>
         <span className="section-count">{operations.length}</span>
       </div>
       {operations.length ? (
@@ -330,7 +330,7 @@ function AgentPanel() {
       <CodexLinkPanel />
       <section className="pending-section">
         <div className="section-heading compact">
-          <span className="eyebrow">PENDING CHANGES</span>
+          <span className="eyebrow">待确认变更</span>
           <span className="section-count warm">{previews.length}</span>
         </div>
         {previews.length ? previews.map((preview) => <PreviewCard key={preview.preview_id} preview={preview} />) : <p className="muted">等待 Codex 提交变更预览。</p>}
@@ -467,7 +467,7 @@ function ProtocolCanvas({
         </div>
       </div>
       <div className="canvas-body">
-        <div className="canvas-stage-label"><span>STAGE 01</span><strong>PROTOCOL WORKFLOW</strong></div>
+        <div className="canvas-stage-label"><span>阶段 01</span><strong>协议工作流</strong></div>
         <div className="canvas-scroll" onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
           {!nodes.length ? (
             <EmptyCanvas hasProject={Boolean(snapshot)} hasSession={Boolean(snapshot?.session)} />
@@ -508,8 +508,8 @@ function ProtocolCanvas({
                       }}
                     >
                       <div className="node-topline">
-                        <span className="node-role"><Icon aria-hidden="true" />{node.roleId}</span>
-                        <em>{node.ghost ? 'PREVIEW' : statusLabel(node.status)}</em>
+                        <span className="node-role"><Icon aria-hidden="true" />创作元素</span>
+                        <em>{statusLabel(node.status)}</em>
                       </div>
                       <h3>{node.label}</h3>
                       <p>{node.intent || '等待 Codex 定义该元素'}</p>
@@ -551,9 +551,9 @@ export function App() {
 
   useEffect(() => { void initialize() }, [initialize])
   useEffect(() => {
-    setNodes(snapshot ? projectSnapshot(snapshot, view, previews) : [])
+    setNodes(snapshot ? projectSnapshot(snapshot, view) : [])
     setZoom(Number(view?.viewport?.zoom ?? 0.82))
-  }, [snapshot, view, previews])
+  }, [snapshot, view])
   useEffect(() => {
     if (previews.length > 0) {
       setRightOpen(true)
@@ -611,19 +611,19 @@ export function App() {
   const autoLayout = useCallback(() => {
     if (!snapshot) return
     const nextZoom = 0.82
-    const nextNodes = projectSnapshot(snapshot, undefined, previews)
+    const nextNodes = projectSnapshot(snapshot)
     setNodes(nextNodes)
     setZoom(nextZoom)
     if (!snapshot.read_only) void saveView(nodesToStudioView(nextNodes, selectedElementId, nextZoom))
     setNotice('画布已恢复为五层自动布局')
     window.setTimeout(() => setNotice(''), 2600)
-  }, [previews, saveView, selectedElementId, snapshot])
+  }, [saveView, selectedElementId, snapshot])
 
   if (!available) {
     return (
       <div className="desktop-required">
         <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
-        <span className="eyebrow">VIRTUAL SHOOT DESK</span>
+        <span className="eyebrow">虚拟摄影工作台</span>
         <h1>APSAL Studio 0.2.0</h1>
         <p>此界面只在 APSAL Studio Desktop 中运行，用于连接 Codex APSAL 插件。</p>
       </div>

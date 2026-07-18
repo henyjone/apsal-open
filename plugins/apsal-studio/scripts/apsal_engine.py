@@ -50,11 +50,11 @@ STAGE_TYPES = {
 CREATIVE_LAYERS = ("direction", "worldbuilding", "narrative", "image", "delivery")
 STAGE_PREVIEW_SCHEMA_VERSION = "0.1.0"
 STAGE_PREVIEW_COLORS = {
-    "direction": ("#B8E2D2", "#365E50"),
-    "worldbuilding": ("#E4CFA8", "#66513A"),
-    "narrative": ("#D9B7C6", "#624653"),
-    "image": ("#AFC7E2", "#3C536D"),
-    "delivery": ("#D7D3B0", "#56543C"),
+    "direction": ("#F7C873", "#583A14"),
+    "worldbuilding": ("#EDB44E", "#523513"),
+    "narrative": ("#E6A13A", "#4C2F0E"),
+    "image": ("#F5A524", "#5B350A"),
+    "delivery": ("#D98A0E", "#4B2B08"),
 }
 LAYER_ROLES = {
     "direction": ("content", "emotion"),
@@ -363,6 +363,12 @@ def _display_value(role: str, key: str, value: Any, locale: str) -> Any:
     return _zh_ui_value(value) if locale == "zh-CN" else value
 
 
+def element_attribute_display(role: str, key: str, value: Any, locale: str) -> tuple[str, Any]:
+    """Return one localized Studio attribute without changing its canonical key or value."""
+    label = ZH_UI_LABELS["value_keys"].get(key, "创作参数") if locale == "zh-CN" else key
+    return label, _display_value(role, key, value, locale)
+
+
 def _decision_set_strategy(role: str, values: dict[str, Any]) -> str | None:
     for key in ("set_strategy", "scene_strategy", "styling_strategy"):
         if values.get(key) in SET_STRATEGIES: return values[key]
@@ -472,10 +478,10 @@ def _zh_element_presentation(role: str, decision: dict[str, Any], brief: str) ->
         if role in strategy_copy: observable, preserve, qa = strategy_copy[role]
     if role == "subject" and not decision.get("values", {}).get("styling_versatility"):
         observable, preserve, qa = ["全部镜头都能识别为同一个真实成年人物。"], ["稳定身份", "成年年龄", "自然人体结构"], ["全部输出中的人物身份保持连续。"]
-    values = {
-        ZH_UI_LABELS["value_keys"].get(str(key), "创作参数"): _display_value(role, str(key), value, "zh-CN")
+    values = dict(
+        element_attribute_display(role, str(key), value, "zh-CN")
         for key, value in decision.get("values", {}).items()
-    }
+    )
     recommendation, rationale, options = _element_proposal_copy(role, decision, brief, "zh-CN")
     return {
         "role_label": load_semantic_registry()["roles"][role]["zh"],
@@ -484,6 +490,24 @@ def _zh_element_presentation(role: str, decision: dict[str, Any], brief: str) ->
         "display_recommendation": recommendation, "display_rationale": rationale, "display_options": options,
         "display_intent": intent, "display_values": values, "display_observable": observable,
         "display_must_preserve": preserve, "display_qa_expectations": qa,
+    }
+
+
+def element_display_projection(role: str, decision: dict[str, Any], brief: str, locale: str) -> dict[str, Any]:
+    """Return localized, creator-facing element copy for cards and the Studio projection."""
+    if locale == "zh-CN":
+        return _zh_element_presentation(role, decision, brief)
+    recommendation, rationale, options = _element_proposal_copy(role, decision, brief, "en")
+    return {
+        "role_label": role, "status_label": decision["status"], "source_label": decision["source"],
+        "display_recommendation": recommendation, "display_rationale": rationale, "display_options": options,
+        "display_intent": decision["intent"],
+        "display_values": {
+            key: element_attribute_display(role, key, value, "en")[1]
+            for key, value in decision["values"].items()
+        },
+        "display_observable": decision["observable"], "display_must_preserve": decision["must_preserve"],
+        "display_qa_expectations": decision["qa_expectations"],
     }
 
 
@@ -2446,26 +2470,26 @@ def build_stage_preview_svg(
         nodes.append(f'<circle cx="{x}" cy="{y}" r="{radius}" fill="{accent}" fill-opacity="{0.38 + index * 0.07:.2f}"/>')
     progress = []
     for index, item in enumerate(CREATIVE_LAYERS):
-        fill = STAGE_PREVIEW_COLORS[item][0] if index <= layer_index else "#39413D"
+        fill = STAGE_PREVIEW_COLORS[item][0] if index <= layer_index else "#3D3427"
         progress.append(f'<circle cx="{112 + index * 136}" cy="505" r="8" fill="{fill}"/>')
         if index < len(CREATIVE_LAYERS) - 1:
-            progress.append(f'<path d="M{120 + index * 136} 505 H{240 + index * 136}" stroke="#39413D" stroke-width="2"/>')
+            progress.append(f'<path d="M{120 + index * 136} 505 H{240 + index * 136}" stroke="#3D3427" stroke-width="2"/>')
     escaped = [html.escape(item, quote=True) for item in (title, subtitle, roles, state_label, disclaimer)]
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="768" height="576" viewBox="0 0 768 576" role="img" aria-labelledby="title desc" data-generation-input="false">
 <title id="title">{escaped[0]}</title><desc id="desc">{escaped[1]}. {escaped[4]}</desc>
-<rect width="768" height="576" rx="34" fill="#101411"/>
-<rect x="28" y="28" width="712" height="520" rx="26" fill="#171C18" stroke="#39433E"/>
-<path d="M66 76 H702 M66 468 H702" stroke="#2C3530"/>
+<rect width="768" height="576" rx="34" fill="#080606"/>
+<rect x="28" y="28" width="712" height="520" rx="26" fill="#110D09" stroke="#3D3427"/>
+<path d="M66 76 H702 M66 468 H702" stroke="#2F281E"/>
 <rect x="66" y="76" width="8" height="176" rx="4" fill="{accent}"/>
 <text x="98" y="112" fill="{accent}" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" font-weight="700" letter-spacing="2">APSAL · {layer_index + 1:02d}</text>
-<text x="98" y="169" fill="#F2EEE3" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="34" font-weight="760">{escaped[0]}</text>
-<text x="98" y="211" fill="#B8C1BC" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="18">{escaped[1]}</text>
+<text x="98" y="169" fill="#F0E9DA" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="34" font-weight="760">{escaped[0]}</text>
+<text x="98" y="211" fill="#C9BDA2" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="18">{escaped[1]}</text>
 <rect x="98" y="244" width="544" height="42" rx="21" fill="{accent_dark}"/>
 <text x="120" y="271" fill="{accent}" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" font-weight="650">{escaped[2]}</text>
 <g>{''.join(nodes)}</g><path d="M95 400 C200 330 298 452 410 371 S598 330 650 397" fill="none" stroke="{accent}" stroke-opacity=".44" stroke-width="2"/>
 <rect x="570" y="95" width="110" height="34" rx="17" fill="{accent}"/><text x="625" y="117" text-anchor="middle" fill="#101411" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" font-weight="800">{escaped[3]}</text>
 <g>{''.join(progress)}</g>
-<text x="66" y="535" fill="#8F9A94" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="12">{escaped[4]}</text>
+<text x="66" y="535" fill="#8E8368" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="12">{escaped[4]}</text>
 </svg>'''
     return svg.encode("utf-8")
 
@@ -2511,17 +2535,7 @@ def present_element_layer(session_id: str, layer: str, *, project_root: Path) ->
             "must_preserve": decision["must_preserve"], "qa_expectations": decision["qa_expectations"],
             "basis": decision["basis"], "dna_refs": decision.get("dna_refs", []),
         }
-        if locale == "zh-CN": card.update(_zh_element_presentation(role, decision, session["brief"]))
-        else:
-            recommendation, rationale, options = _element_proposal_copy(role, decision, session["brief"], "en")
-            card.update({
-                "role_label": role, "status_label": decision["status"], "source_label": decision["source"],
-                "display_recommendation": recommendation, "display_rationale": rationale, "display_options": options,
-                "display_intent": decision["intent"],
-                "display_values": {key: _display_value(role, key, value, "en") for key, value in decision["values"].items()},
-                "display_observable": decision["observable"], "display_must_preserve": decision["must_preserve"],
-                "display_qa_expectations": decision["qa_expectations"],
-            })
+        card.update(element_display_projection(role, decision, session["brief"], locale))
         cards.append(card)
     result = {
         "session_id": session_id, "layer": layer, "language": locale,

@@ -58,6 +58,14 @@ class ProtocolTests(unittest.TestCase):
             session_id = started["session_id"]
             self.assertEqual(started["revision"], 1)
             self.assertEqual(len(started["snapshot"]["elements"]), 13)
+            content = next(item for item in started["snapshot"]["elements"] if item["role_id"] == "content")
+            self.assertEqual(content["label"], "创作命题")
+            self.assertEqual(content["attributes"][0]["name"], "主题命题")
+            self.assertIn("创作描述", content["intent"])
+            strategy = next(item for item in content["attributes"] if item["id"].endswith(":set_strategy"))
+            self.assertEqual(strategy["name"], "套片组织策略")
+            self.assertEqual(strategy["value"], "章节式丰富变化")
+            self.assertEqual(strategy["raw_value"], "chaptered_variation")
 
             preview = protocol.handle_domain_method(
                 "design.propose",
