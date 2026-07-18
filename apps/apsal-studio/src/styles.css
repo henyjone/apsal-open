@@ -141,14 +141,14 @@ button:disabled {
   height: 40px;
   flex: 0 0 40px;
   place-items: center;
-  border: 1px solid rgba(255, 228, 174, 0.28);
+  overflow: hidden;
+  border: 0;
   border-radius: 11px;
-  background: linear-gradient(160deg, #f8c766, #ef9a10 62%, #c97e08);
-  color: #1f1302;
-  box-shadow: 0 8px 22px rgba(245, 165, 36, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: transparent;
+  box-shadow: 0 8px 22px rgba(245, 165, 36, 0.28);
 }
 
-.brand-mark svg { width: 20px; height: 20px; stroke-width: 1.9; }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .brand-copy { min-width: 0; }
 .brand-copy > strong { display: block; overflow: hidden; color: #fffaf1; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .brand-copy > span { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: var(--muted); font: 8px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.20em; text-transform: uppercase; white-space: nowrap; }
@@ -518,7 +518,6 @@ button:disabled {
 
 .desktop-required { display: grid; height: 100%; align-content: center; justify-items: center; padding: 40px; text-align: center; }
 .desktop-required .brand-mark { width: 76px; height: 76px; margin-bottom: 16px; border-radius: 19px; }
-.desktop-required .brand-mark svg { width: 34px; height: 34px; }
 .desktop-required h1 { margin: 9px 0 0; color: var(--text); font-size: 23px; }
 .desktop-required p { max-width: 440px; margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
 

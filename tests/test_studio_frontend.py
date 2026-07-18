@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unittest
@@ -25,6 +26,17 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertEqual(
             package["build"]["extraResources"],
             [{"from": ".build/apsal-engine", "to": "apsal-engine"}],
+        )
+        self.assertEqual(package["build"]["mac"]["icon"], "assets/icon.icns")
+        icon = STUDIO / "assets" / "icon.icns"
+        self.assertEqual(
+            hashlib.sha256(icon.read_bytes()).hexdigest(),
+            "f9ca13d319fb069818f2696299c6ab3cbf258cc21564fd172b3479d383569e89",
+        )
+        renderer_icon = STUDIO / "src" / "assets" / "apsal-icon.png"
+        self.assertEqual(
+            hashlib.sha256(renderer_icon.read_bytes()).hexdigest(),
+            "1cbe79912cef5286560df5f655cd452b675c0039400496649e775f7790507113",
         )
 
         preparation = (STUDIO / "scripts" / "prepare-engine.mjs").read_text()

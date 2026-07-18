@@ -3,11 +3,13 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { ApsalFrontendBridge } from './apsal-link.mjs'
 import { ApsalProtocolSidecar, APSAL_PROTOCOL_VERSION } from './apsal-protocol.mjs'
+import { publishToWindow } from './safe-publish.mjs'
 
 let mainWindow
 let protocolSidecar
 let frontendBridge
 let currentProjectRoot
+let isQuitting = false
 
 const PROTOCOL_MUTATIONS = new Set([
   'project.undo', 'design.commit_preview', 'design.reject_preview',
@@ -19,7 +21,7 @@ const RENDERER_METHODS = new Set([
 ])
 
 function publish(channel, value) {
-  mainWindow?.webContents.send(channel, value)
+  return publishToWindow(mainWindow, channel, value, { quitting: isQuitting })
 }
 
 function getSidecar() {
@@ -133,6 +135,7 @@ function createWindow() {
     },
   })
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  mainWindow.once('closed', () => { mainWindow = undefined })
   const devUrl = process.env.APSAL_STUDIO_DEV_URL
   if (devUrl) void mainWindow.loadURL(devUrl)
   else void mainWindow.loadFile(join(app.getAppPath(), 'dist', 'index.html'))
@@ -179,6 +182,7 @@ if (!gotLock) {
 }
 
 app.on('before-quit', () => {
+  isQuitting = true
   void frontendBridge?.stop()
   void protocolSidecar?.stop()
 })
