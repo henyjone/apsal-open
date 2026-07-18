@@ -37,6 +37,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import apsalIcon from './assets/apsal-icon.png'
 import { LAYERS, nodesToStudioView, projectSnapshot, type ProjectedNode } from './protocol/projection'
 import { useStudioStore } from './protocol/store'
 import type { ApsalLayerId, ApsalPreview } from './protocol/types'
@@ -632,7 +633,7 @@ export function App() {
   if (!available) {
     return (
       <div className="desktop-required">
-        <div className="brand-mark"><Clapperboard aria-hidden="true" /></div>
+        <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
         <span className="eyebrow">VIRTUAL SHOOT DESK</span>
         <h1>APSAL Studio 0.2.0</h1>
         <p>此界面只在 APSAL Studio Desktop 中运行，用于连接 Codex APSAL 插件。</p>
@@ -647,7 +648,7 @@ export function App() {
       <a className="skip-link" href="#protocol-canvas">跳到协议画布</a>
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark"><Clapperboard aria-hidden="true" /></div>
+          <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
           <div className="brand-copy"><strong>APSAL Studio</strong><span><Aperture aria-hidden="true" />Virtual Shoot Desk<i />Stage 01</span></div>
         </div>
         <div className="scene-field" title={snapshot?.project_root}>

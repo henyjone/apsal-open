@@ -59,6 +59,7 @@
     ],
     "mac": {
       "category": "public.app-category.graphics-design",
+      "icon": "assets/icon.icns",
       "target": [
         {
           "target": "dir",
