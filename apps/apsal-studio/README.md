@@ -35,6 +35,12 @@ npm run desktop:start
 
 `npm run prepare:engine` copies the tested Engine and Protocol from `plugins/apsal-studio` into the ignored `.build/apsal-engine` directory. The app never keeps an independently authored Engine copy.
 
+An existing APSAL 0.15 project can be opened directly when Studio starts. This is useful for Codex launchers and local integration checks; it does not enable the Codex link automatically.
+
+```bash
+open -a "APSAL Studio" --args --project-root "/absolute/path/to/project"
+```
+
 ## Codex link
 
 The link is disabled by default. When the creator enables it, Studio:
