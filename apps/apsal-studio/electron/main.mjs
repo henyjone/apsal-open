@@ -111,7 +111,7 @@ function createWindow() {
     height: 940,
     minWidth: 1080,
     minHeight: 680,
-    backgroundColor: '#0b1110',
+    backgroundColor: '#0d0a08',
     title: 'APSAL Studio',
     show: false,
     webPreferences: {

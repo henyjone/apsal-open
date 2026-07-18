@@ -5,6 +5,7 @@ APSAL Studio uses the following direct open-source dependencies. Their own licen
 | Package | License |
 |---|---|
 | React / React DOM | MIT |
+| Lucide React | ISC |
 | Zustand | MIT |
 | Electron | MIT |
 | Vite / `@vitejs/plugin-react` | MIT |

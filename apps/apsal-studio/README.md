@@ -10,6 +10,16 @@ APSAL Studio is the visual desktop frontend for the APSAL Open Codex plugin. It 
 - Node geometry is stored only in `.apsal/studio/view.json`; it cannot change the project revision, Prompt digest, or final ZIP.
 - Old AiPhoto projects, `.aiproject`, IndexedDB drafts, local workflow persistence, ComfyUI, MLX, models, and provider credentials are intentionally unsupported.
 
+## Interface model
+
+Studio 0.2.0 keeps the original APSAL Studio warm-light photography-desk visual language while narrowing the product to the Codex protocol frontend:
+
+- the top bar identifies the current APSAL set, Engine revision, and Codex connection;
+- the left panel shows project controls and the five protocol layers;
+- the center canvas projects the thirteen stable roles and supports selection, keyboard movement, zoom, and automatic layout;
+- the right panel separates read-only element properties from Codex link, preview confirmation, and operation history;
+- both side panels can be collapsed or resized with pointer drag or arrow keys.
+
 ## Development
 
 Requirements: Node.js 22 and Python 3.11+.
