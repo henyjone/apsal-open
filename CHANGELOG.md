@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0 - 2026-07-18
+
+- Added the open-source APSAL Studio Desktop 0.2.0 under `apps/apsal-studio` as a protocol-only visual frontend for the Codex plugin. It contains no AiPhoto legacy workflow, local image engine, model runtime, provider settings, or private case media.
+- Added a stable five-layer/thirteen-role canvas, Codex preview confirmation/rejection, protocol undo, read-only incompatibility state, view-only node layout, and the authenticated loopback link. Formal image generation remains in Codex.
+- Made Studio builds copy the tested Engine/Protocol from the same repository with a strict component-version check, eliminating the previous machine-specific source path and independently authored Engine bundle.
+- Added the APSAL Project Protocol 0.15.0: one `.apsal/` project source, stable project/session/element IDs, a monotonic revision, and one Python domain dispatcher shared by Codex and the Studio 0.2.0 sidecar.
+- Added project locking, atomic semantic files, crash journals, bounded operation replay, intent-bound `operationId`, stale-revision rejection, recovery history, and revision-incrementing undo.
+- Added revision-bound design previews with isolated ghost elements, whole-layer confirmation/rejection, downstream invalidation, and view-only state under `.apsal/studio/view.json`.
+- Added seven optional `apsal_frontend_*` MCP tools and a loopback-only authenticated Studio client. Linked writes never fall back after route selection; incompatible projects remain read-only and are not migrated in place.
+- Added deterministic Prompt/Skill packages with a run manifest and complete in-package SHA-256 ledger. Studio view state remains outside generation truth and package digests.
+- Added direct/stdio golden contract, concurrency, idempotency, recovery, view isolation, compatibility, path-safety, and deterministic ZIP tests. APSAL Open asset Protocol and Semantic Contract remain 0.3.0.
+
 ## 0.14.0 - 2026-07-17
 
 - Added a localized five-stage semantic thumbnail strip above the complete element text cards. DNA selection cards remain text-only. The 4:3 thumbnails show Direction, Worldbuilding, Narrative, Image and Delivery progress in Chinese or English without replacing the proposals.

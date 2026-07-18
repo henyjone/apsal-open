@@ -1,6 +1,6 @@
 [project]
 name = "apsal-open"
-version = "0.14.0"
+version = "0.15.0"
 description = "Proposal-complete bilingual APSAL authoring, legacy-run takeover, local DNA Registry, Prompt/Skill delivery, and Codex-native image generation"
 requires-python = ">=3.11"
 license = "Apache-2.0"

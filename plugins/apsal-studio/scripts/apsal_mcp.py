@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Callable
 
@@ -15,6 +16,8 @@ from apsal_engine import (
     resolve_dna_memory_offer, record_dna_feedback, export_dna_pack, install_dna_pack,
     resolve_interface_language, session_interface_language, set_session_language,
 )
+from apsal_frontend import frontend_call, frontend_status
+from apsal_protocol import handle_domain_method, project_snapshot
 
 UI_URI = "ui://apsal/dna-cards.html"
 UI_PATH = Path(__file__).resolve().parents[1] / "assets" / "ui" / "dna-cards.html"
@@ -31,15 +34,20 @@ REF_SCHEMA = _schema({
     "version": {"type": "string"}, "content_digest": {"type": "string"},
 }, ["namespace", "id", "type", "version"])
 
+MUTATION_META = {
+    "expectedRevision": {"type": "integer", "minimum": 0},
+    "operationId": {"type": "string", "minLength": 1},
+}
+
 TOOLS = [
     {
         "name": "start_design_session", "description": "Start or resume an APSAL design. New sets default to three-chapter controlled variation and may explicitly select continuous narrative.",
-        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}}, []),
+        "inputSchema": _schema({"brief": {"type": "string"}, "session_id": {"type": "string"}, "project_root": {"type": "string"}, "theme_id": {"type": "string"}, "name": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["auto", "zh-CN", "en"]}, "set_strategy": {"enum": ["chaptered_variation", "continuous_narrative"]}, **MUTATION_META}, []),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "set_session_language", "description": "Confirm or switch the creator-facing session language. This changes presentation only, never theme generation intent or Prompt digests.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "language": {"enum": ["zh-CN", "en"]}, "project_root": {"type": "string"}}, ["session_id", "language"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "language": {"enum": ["zh-CN", "en"]}, "project_root": {"type": "string"}, **MUTATION_META}, ["session_id", "language"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -83,7 +91,7 @@ TOOLS = [
     },
     {
         "name": "commit_element_layer", "description": "Confirm one of five creative layers, its protocol decisions, exact DNA references, and optional real reference bindings. A binding may declare core_visual_anchor=true.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}}, ["session_id", "layer"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "draft_assets": {"type": "array", "items": {"type": "object"}}, "project_root": {"type": "string"}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_path": {"type": "string"}, "reference_bindings": {"type": "array", "items": {"type": "object"}}, **MUTATION_META}, ["session_id", "layer"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -108,7 +116,7 @@ TOOLS = [
     },
     {
         "name": "finalize_theme", "description": "Freeze five confirmed creative layers and all thirteen protocol elements into local YAML, canonical JSON, compiled targets and per-shot prompts; legacy four-stage sessions remain readable.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}}, ["session_id"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, **MUTATION_META}, ["session_id"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -123,7 +131,7 @@ TOOLS = [
     },
     {
         "name": "start_generation_run", "description": "Prepare or resume one-Job-one-image work for Codex built-in image generation; no image API or API key is used.",
-        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, "confirmed": {"type": "boolean"}, "mode": {"enum": ["generate", "prompts", "skill"]}, "resume_run_id": {"type": "string"}}, ["session_id", "mode"]),
+        "inputSchema": _schema({"session_id": {"type": "string"}, "project_root": {"type": "string"}, "confirmed": {"type": "boolean"}, "mode": {"enum": ["generate", "prompts", "skill"]}, "resume_run_id": {"type": "string"}, **MUTATION_META}, ["session_id", "mode"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
@@ -133,19 +141,103 @@ TOOLS = [
     },
     {
         "name": "record_model_visual_qa", "description": "Record Codex visual review separately from pending human QA; failed medium checks archive the candidate and reopen the Job for retry.",
-        "inputSchema": _schema({"run_id": {"type": "string"}, "shot_id": {"type": "string"}, "status": {"enum": ["passed", "failed"]}, "findings": {"type": "array", "items": {"type": "string"}}, "project_root": {"type": "string"}}, ["run_id", "shot_id", "status"]),
+        "inputSchema": _schema({"run_id": {"type": "string"}, "shot_id": {"type": "string"}, "status": {"enum": ["passed", "failed"]}, "findings": {"type": "array", "items": {"type": "string"}}, "project_root": {"type": "string"}, **MUTATION_META}, ["run_id", "shot_id", "status"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "record_generation_result", "description": "Record one successful or failed image Job with exact local lineage and retry state.",
-        "inputSchema": _schema({"run_id": {"type": "string"}, "shot_id": {"type": "string"}, "status": {"enum": ["succeeded", "failed"]}, "project_root": {"type": "string"}, "output_path": {"type": "string"}, "artifact_uri": {"type": "string"}, "provider_metadata": {"type": "object"}, "error": {"type": "string"}}, ["run_id", "shot_id", "status"]),
+        "inputSchema": _schema({"run_id": {"type": "string"}, "shot_id": {"type": "string"}, "status": {"enum": ["succeeded", "failed"]}, "project_root": {"type": "string"}, "output_path": {"type": "string"}, "artifact_uri": {"type": "string"}, "provider_metadata": {"type": "object"}, "error": {"type": "string"}, **MUTATION_META}, ["run_id", "shot_id", "status"]),
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_status", "description": "Report whether APSAL Studio Codex linkage is enabled, authenticated, protocol-compatible, and bound to a current project.",
+        "inputSchema": _schema({}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_get_project", "description": "Read the canonical APSAL project snapshot currently open in linked APSAL Studio.",
+        "inputSchema": _schema({}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_preview_changes", "description": "Create a revision-bound APSAL draft preview and ghost-node projection in linked Studio without committing theme semantics.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "layer": {"enum": ["direction", "worldbuilding", "narrative", "image", "delivery"]}, "decisions": {"type": "object"}, "refs": {"type": "array", "items": REF_SCHEMA}, "shots": {"type": "array", "items": {"type": "object"}}, "reference_bindings": {"type": "array", "items": {"type": "object"}}, "draft_assets": {"type": "array", "items": {"type": "object"}}, **MUTATION_META}, ["session_id", "layer", "expectedRevision", "operationId"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_apply_preview", "description": "Commit one linked Studio preview after explicit creator confirmation.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "previewId": {"type": "string"}, **MUTATION_META}, ["session_id", "previewId", "expectedRevision", "operationId"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_reject_preview", "description": "Reject one pending linked Studio preview without changing confirmed theme semantics.",
+        "inputSchema": _schema({"session_id": {"type": "string"}, "previewId": {"type": "string"}, **MUTATION_META}, ["session_id", "previewId", "expectedRevision", "operationId"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_undo_operation", "description": "Undo one previously applied, undoable APSAL operation through the linked Studio sidecar.",
+        "inputSchema": _schema({"targetOperationId": {"type": "string"}, **MUTATION_META}, ["targetOperationId", "expectedRevision", "operationId"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_focus_elements", "description": "Focus and select stable APSAL protocol element IDs in linked Studio without changing project semantics.",
+        "inputSchema": _schema({"protocolElementIds": {"type": "array", "items": {"type": "string"}, "minItems": 1}, "previewId": {"type": "string"}}, ["protocolElementIds"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
     },
 ]
 
 
 def _root(arguments: dict[str, Any]) -> Path:
-    return project_root_from(Path(arguments.get("project_root") or Path.cwd()))
+    supplied = arguments.get("project_root")
+    if not supplied:
+        status = frontend_status()
+        if status.get("connected") is True and status.get("project_root"):
+            supplied = status["project_root"]
+    return project_root_from(Path(supplied or Path.cwd()))
+
+
+def _mutation_params(arguments: dict[str, Any], root: Path, prefix: str) -> dict[str, Any]:
+    expected = arguments.get("expectedRevision")
+    if expected is None:
+        if not (root / ".apsal" / "project.json").is_file():
+            handle_domain_method("project.init", {"project_root": str(root)})
+        snapshot = project_snapshot(root)
+        if snapshot.get("compatible") is False:
+            raise ValidationError(
+                "APSAL project is protocol-incompatible and read-only; create a new 0.15 project"
+            )
+        expected = snapshot["revision"]
+    return {
+        "expected_revision": int(expected),
+        "operation_id": str(arguments.get("operationId") or f"MCP-{prefix}-{uuid.uuid4().hex.upper()}"),
+    }
+
+
+def _domain(method: str, arguments: dict[str, Any], params: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    request = {"project_root": str(root), **params}
+    status = frontend_status()
+    if status.get("connected") is True:
+        if status.get("compatible") is False:
+            raise ValidationError(
+                "APSAL Studio is connected with an incompatible Engine or Protocol version; linked writes are read-only"
+            )
+        result = frontend_call(method, request)
+        if result.get("connected") is False and result.get("code"):
+            raise ValidationError(f"APSAL Studio link changed during the operation: {result.get('message') or result['code']}")
+        return result
+    return handle_domain_method(method, request)
+
+
+def _with_protocol_metadata(summary: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **summary,
+        "project_id": result.get("project_id"),
+        "protocol_version": result.get("protocol_version", "0.15.0"),
+        "revision": result.get("revision"),
+        "operation_id": result.get("operation_id"),
+        "idempotent_replay": result.get("idempotent_replay", False),
+    }
 
 
 def _summary(session: dict[str, Any]) -> dict[str, Any]:
@@ -169,25 +261,59 @@ def _summary(session: dict[str, Any]) -> dict[str, Any]:
 def _tool_start(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments.get("session_id"):
         if arguments.get("language") and arguments.get("language") != "auto":
-            session = set_session_language(arguments["session_id"], arguments["language"], project_root=_root(arguments))
+            root = _root(arguments)
+            result = _domain(
+                "design.language",
+                arguments,
+                {
+                    "session_id": arguments["session_id"],
+                    "language": arguments["language"],
+                    **_mutation_params(arguments, root, "LANGUAGE"),
+                },
+            )
+            session = result
         else: session, _ = load_design_session(arguments["session_id"], _root(arguments))
         locale = session_interface_language(session)
         next_action = (f"从 {session['state']} 恢复；只显示待确认或已失效的层。" if locale.get("code") == "zh-CN" else f"Resume at {session['state']}; present only the pending or invalidated layer.")
         if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
         return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
     if not arguments.get("brief"): raise ValidationError("brief is required when starting a new session")
-    session = start_design_session(arguments["brief"], project_root=_root(arguments), theme_id=arguments.get("theme_id"), name=arguments.get("name"), shot_count=arguments.get("shot_count", 9), language=arguments.get("language", "auto"), set_strategy=arguments.get("set_strategy"))
+    root = _root(arguments)
+    session = _domain(
+        "design.start",
+        arguments,
+        {
+            "brief": arguments["brief"],
+            "theme_id": arguments.get("theme_id"),
+            "name": arguments.get("name"),
+            "shot_count": arguments.get("shot_count", 9),
+            "language": arguments.get("language", "auto"),
+            "set_strategy": arguments.get("set_strategy"),
+            **_mutation_params(arguments, root, "START"),
+        },
+    )
     locale = session_interface_language(session)
     if locale["status"] == "pending": next_action = "Choose English or 中文 before continuing / 继续前请选择 English 或中文。"
     elif locale["code"] == "zh-CN": next_action = "展示“创作命题与情绪”元素卡，确认五层中的第一层。"
     else: next_action = "Present Direction and Emotion element cards, then confirm the first of five creative layers."
-    return {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
+    value = {**_summary(session), "language_confirmation_required": locale["status"] == "pending", "language_options": ["zh-CN", "en"], "next_action": next_action}
+    return _with_protocol_metadata(value, session)
 
 
 def _tool_set_language(arguments: dict[str, Any]) -> dict[str, Any]:
-    session = set_session_language(arguments["session_id"], arguments["language"], project_root=_root(arguments))
+    root = _root(arguments)
+    session = _domain(
+        "design.language",
+        arguments,
+        {
+            "session_id": arguments["session_id"],
+            "language": arguments["language"],
+            **_mutation_params(arguments, root, "LANGUAGE"),
+        },
+    )
     locale = session_interface_language(session)["code"]
-    return {**_summary(session), "message": "已切换为中文；创作内容与 Prompt 摘要未改变。" if locale == "zh-CN" else "Switched to English; theme content and Prompt digests are unchanged."}
+    value = {**_summary(session), "message": "已切换为中文；创作内容与 Prompt 摘要未改变。" if locale == "zh-CN" else "Switched to English; theme content and Prompt digests are unchanged."}
+    return _with_protocol_metadata(value, session)
 
 
 def _interaction_language(arguments: dict[str, Any], text: str = "") -> dict[str, Any]:
@@ -258,7 +384,11 @@ def _tool_layer_recommend(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_element_layer(arguments: dict[str, Any]) -> dict[str, Any]:
-    return present_element_layer(arguments["session_id"], arguments["layer"], project_root=_root(arguments))
+    return _domain(
+        "design.present",
+        arguments,
+        {"session_id": arguments["session_id"], "layer": arguments["layer"]},
+    )
 
 
 def _tool_suggest(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -278,8 +408,23 @@ def _tool_commit(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_commit_layer(arguments: dict[str, Any]) -> dict[str, Any]:
-    session = commit_element_layer(arguments["session_id"], arguments["layer"], arguments.get("refs", []), project_root=_root(arguments), decisions=arguments.get("decisions"), shots=arguments.get("shots"), reference_path=Path(arguments["reference_path"]) if arguments.get("reference_path") else None, reference_bindings=arguments.get("reference_bindings"), draft_assets=arguments.get("draft_assets"))
-    return _summary(session)
+    root = _root(arguments)
+    session = _domain(
+        "design.commit_layer",
+        arguments,
+        {
+            "session_id": arguments["session_id"],
+            "layer": arguments["layer"],
+            "refs": arguments.get("refs", []),
+            "decisions": arguments.get("decisions"),
+            "shots": arguments.get("shots"),
+            "reference_path": arguments.get("reference_path"),
+            "reference_bindings": arguments.get("reference_bindings"),
+            "draft_assets": arguments.get("draft_assets"),
+            **_mutation_params(arguments, root, "COMMIT"),
+        },
+    )
+    return _with_protocol_metadata(_summary(session), session)
 
 
 def _tool_memory(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -300,7 +445,13 @@ def _tool_install(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_finalize(arguments: dict[str, Any]) -> dict[str, Any]:
-    return _summary(finalize_design_session(arguments["session_id"], project_root=_root(arguments)))
+    root = _root(arguments)
+    session = _domain(
+        "design.finalize",
+        arguments,
+        {"session_id": arguments["session_id"], **_mutation_params(arguments, root, "FINALIZE")},
+    )
+    return _with_protocol_metadata(_summary(session), session)
 
 
 def _tool_import_package(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -312,8 +463,18 @@ def _tool_bind_import_reference(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_run(arguments: dict[str, Any]) -> dict[str, Any]:
-    run = start_generation_run(arguments["session_id"], project_root=_root(arguments), confirmed=arguments.get("confirmed", False), mode=arguments["mode"], resume_run_id=arguments.get("resume_run_id"))
-    return run
+    root = _root(arguments)
+    return _domain(
+        "generation.start",
+        arguments,
+        {
+            "session_id": arguments["session_id"],
+            "confirmed": arguments.get("confirmed", False),
+            "mode": arguments["mode"],
+            "resume_run_id": arguments.get("resume_run_id"),
+            **_mutation_params(arguments, root, "RUN"),
+        },
+    )
 
 
 def _tool_next_codex_job(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -321,11 +482,78 @@ def _tool_next_codex_job(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_model_qa(arguments: dict[str, Any]) -> dict[str, Any]:
-    return record_model_visual_qa(arguments["run_id"], arguments["shot_id"], arguments["status"], project_root=_root(arguments), findings=arguments.get("findings"))
+    root = _root(arguments)
+    return _domain(
+        "qa.record",
+        arguments,
+        {
+            "run_id": arguments["run_id"], "shot_id": arguments["shot_id"],
+            "status": arguments["status"], "findings": arguments.get("findings"),
+            **_mutation_params(arguments, root, "QA"),
+        },
+    )
 
 
 def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
-    return record_generation_result(arguments["run_id"], arguments["shot_id"], arguments["status"], project_root=_root(arguments), output_path=Path(arguments["output_path"]) if arguments.get("output_path") else None, artifact_uri=arguments.get("artifact_uri"), provider_metadata=arguments.get("provider_metadata"), error=arguments.get("error"))
+    root = _root(arguments)
+    return _domain(
+        "generation.record",
+        arguments,
+        {
+            "run_id": arguments["run_id"], "shot_id": arguments["shot_id"],
+            "status": arguments["status"], "output_path": arguments.get("output_path"),
+            "artifact_uri": arguments.get("artifact_uri"),
+            "provider_metadata": arguments.get("provider_metadata"), "error": arguments.get("error"),
+            **_mutation_params(arguments, root, "RESULT"),
+        },
+    )
+
+
+def _tool_frontend_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    del arguments
+    return frontend_status()
+
+
+def _tool_frontend_get_project(arguments: dict[str, Any]) -> dict[str, Any]:
+    del arguments
+    return frontend_call("project.snapshot", {})
+
+
+def _tool_frontend_preview(arguments: dict[str, Any]) -> dict[str, Any]:
+    return frontend_call("design.propose", {
+        "session_id": arguments["session_id"], "layer": arguments["layer"],
+        "decisions": arguments.get("decisions"), "refs": arguments.get("refs", []),
+        "shots": arguments.get("shots"), "reference_bindings": arguments.get("reference_bindings"),
+        "draft_assets": arguments.get("draft_assets"),
+        "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
+    })
+
+
+def _tool_frontend_apply(arguments: dict[str, Any]) -> dict[str, Any]:
+    return frontend_call("design.commit_preview", {
+        "session_id": arguments["session_id"], "preview_id": arguments["previewId"],
+        "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
+    })
+
+
+def _tool_frontend_reject(arguments: dict[str, Any]) -> dict[str, Any]:
+    return frontend_call("design.reject_preview", {
+        "session_id": arguments["session_id"], "preview_id": arguments["previewId"],
+        "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
+    })
+
+
+def _tool_frontend_undo(arguments: dict[str, Any]) -> dict[str, Any]:
+    return frontend_call("project.undo", {
+        "target_operation_id": arguments["targetOperationId"],
+        "expected_revision": arguments["expectedRevision"], "operation_id": arguments["operationId"],
+    })
+
+
+def _tool_frontend_focus(arguments: dict[str, Any]) -> dict[str, Any]:
+    return frontend_call("ui.focus_elements", {
+        "protocol_element_ids": arguments["protocolElementIds"], "preview_id": arguments.get("previewId"),
+    })
 
 
 HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
@@ -339,6 +567,13 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "bind_import_reference": _tool_bind_import_reference, "start_generation_run": _tool_run,
     "get_next_codex_job": _tool_next_codex_job, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
+    "apsal_frontend_status": _tool_frontend_status,
+    "apsal_frontend_get_project": _tool_frontend_get_project,
+    "apsal_frontend_preview_changes": _tool_frontend_preview,
+    "apsal_frontend_apply_preview": _tool_frontend_apply,
+    "apsal_frontend_reject_preview": _tool_frontend_reject,
+    "apsal_frontend_undo_operation": _tool_frontend_undo,
+    "apsal_frontend_focus_elements": _tool_frontend_focus,
 }
 
 
@@ -399,7 +634,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.14.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.15.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

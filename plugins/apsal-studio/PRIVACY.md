@@ -1,6 +1,8 @@
 # APSAL Studio privacy
 
-APSAL Studio 0.14 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+APSAL Studio 0.15 is local-first and ships without accounts, remote authentication, analytics, telemetry, a hosted API, or automatic upload.
+
+Optional APSAL Studio Desktop linkage is disabled by default. When enabled, the desktop app starts an authenticated bridge bound only to `127.0.0.1`; its session token is stored in a mode-0600 local descriptor, rotates at every bridge start, and is removed when linkage stops. The bridge accepts only the project currently open in Studio. It does not expose the service to the LAN or send project data to a hosted APSAL service.
 
 The selected creator-facing language (`zh-CN` or `en`) is stored inside the local design session. Detection uses only the current creator message or brief. APSAL Studio does not read or transmit an operating-system locale, Codex account preference, or remote profile.
 
