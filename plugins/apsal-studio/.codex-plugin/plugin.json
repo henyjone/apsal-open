@@ -26,6 +26,8 @@
       "Create a nine-image live-action photography theme, confirm all thirteen elements, and package every Prompt.",
       "Open this legacy APSAL ZIP, recover its references, and generate the first image directly with Codex."
     ],
+    "composerIcon": "./assets/apsal-icon.png",
+    "logo": "./assets/apsal-icon.png",
     "brandColor": "#84A99C"
   }
 }
