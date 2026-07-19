@@ -387,6 +387,8 @@ Codex MCP（本次创作已明确选择 Studio）
 
 自动模式的元素来源必须记录为 `automatic_default`，不能写成 `creator_confirmed`。自动模式只免除设计确认，不能跳过语言确定、参考图用途与权利、必需 DNA、结构验证、人工视觉 QA 或生成结果检查。`authoring_mode` 属于会话交互状态，不进入主题和 Prompt digest。Studio 的项目面板只投影该状态，不拥有第二套模式设置。
 
+0.15 的章节式默认套片按九个 Job 逐镜完成差异化：九个场景、九套妆容/发型/服装、九种姿态动作、九种眼神与面部朝向、九种构图、九个焦段和九套灯光均必须不同；只锁定人物面部身份、成年年龄、身体比例与真人摄影媒介。若绑定 identity 参考图，最终 Skill ZIP 必须把清理元数据后的真实图片写入 `assets/references/`，在 `reference_manifest.json` 中记录权利和用途，并在 `run_manifest.json` 中逐镜映射。每镜完整 Prompt 明确禁止继承参考图原有姿势、妆造、场景、构图、焦段和灯光。
+
 ### 11.4 八个前端联动工具
 
 | MCP 工具 | 领域方法 | UI 结果 |

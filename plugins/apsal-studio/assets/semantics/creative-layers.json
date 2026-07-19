@@ -2,7 +2,7 @@
   "schema_version": "0.7.0",
   "title": "APSAL Five-Layer / Thirteen-Element Authoring",
   "set_strategies": [
-    {"id": "chaptered_variation", "zh": "章节式丰富变化", "en": "Chaptered Variation", "default": true, "scene_policy": "three_related_subscenes", "look_policy": "three_coordinated_chapter_locks", "variation_axes": ["scene", "styling", "action", "pose", "framing", "focal_length"], "continuity_axes": ["identity", "live_action_medium", "world_grammar", "color_system"]},
+    {"id": "chaptered_variation", "zh": "章节式丰富变化", "en": "Chaptered Variation", "default": true, "scene_policy": "one_distinct_scene_per_job", "look_policy": "one_distinct_identity_safe_look_per_job", "variation_axes": ["scene", "makeup", "hair", "wardrobe", "action", "pose", "gaze", "face_orientation", "composition", "framing", "focal_length", "lighting"], "continuity_axes": ["facial_identity", "adult_age", "body_proportions", "live_action_medium"]},
     {"id": "continuous_narrative", "zh": "连续叙事", "en": "Continuous Narrative", "default": false, "scene_policy": "one_core_scene", "look_policy": "one_confirmed_look", "variation_axes": ["action", "pose", "framing", "focal_length"], "continuity_axes": ["identity", "scene", "styling", "event_state", "live_action_medium", "world_grammar", "color_system"]}
   ],
   "layers": [

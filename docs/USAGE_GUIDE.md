@@ -111,13 +111,13 @@ Every text card includes the complete recommendation, rationale, adjustable dire
 
 Above the element cards, five localized 4:3 semantic thumbnails summarize Direction, Worldbuilding, Narrative, Image and Delivery as current, confirmed or pending. They are design-progress summaries—not photographic examples or reference inputs—and never replace the full proposal. DNA recommendation cards remain text-only so abstract placeholders do not distort a creative choice.
 
-Unless the brief explicitly requests another subject, Studio proposes a poised, distinctive East Asian adult female protagonist with stable camera presence and compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling versatility never means identity drift: facial geometry, adult age, natural skin, hair color/hairline and body proportions remain locked. Chaptered Variation locks one of three coordinated looks inside each chapter; Continuous Narrative retains one confirmed look unless an observable event motivates a change. An explicit adult male brief overrides the female default.
+Unless the brief explicitly requests another subject, Studio proposes a poised, distinctive East Asian adult female protagonist with stable camera presence and compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Styling versatility never means identity drift: facial geometry, facial features, adult age, natural skin identity and body proportions remain locked. Chaptered Variation assigns a different makeup, hair and wardrobe design to every Job while preserving the same face; Continuous Narrative retains one confirmed look unless an observable event motivates a change. An explicit adult male brief overrides the female default.
 
 ### Choose how the set changes
 
 The first Content card offers two choices:
 
-1. **Chaptered Variation (recommended):** three related sub-scenes and three coordinated looks, one scene/look per three-shot chapter. Nine Jobs receive nine distinct action-led body states. Environment, full-action, natural-medium, emotional-close and hand/prop-detail focal perspectives are selected by shot function. Identity, live-action medium, world physics, photographic grammar and color system remain coherent.
+1. **Chaptered Variation (recommended):** three narrative chapters of three Jobs, with nine distinct scene designs and nine distinct makeup/hair/wardrobe combinations. Pose, action, hands, gaze, face orientation, body orientation, expression, composition, focal length, perspective purpose and lighting also differ for every Job. The default focal plan uses 24, 28, 35, 40, 50, 65, 85, 105 and 135 mm. Only facial identity, adult age, body proportions and live-action medium remain locked.
 2. **Continuous Narrative:** one core scene, one confirmed look and one continuous event state. Actions, hand plans, gaze, body states, framing and focal perspective still progress, but scene, styling and physical consequences remain strongly continuous.
 
 The nominal plan uses roughly 28 mm environment, 35 mm full action, 50 mm natural medium, 85 mm emotional close and 105 mm hand/prop detail. These are photographic intent labels, not a promise that an image model simulates exact optics. Every Prompt also contains the observable perspective purpose.
@@ -157,7 +157,7 @@ To share reusable knowledge without exposing the private theme, ask Studio to ex
 
 Declare each reference as `identity`, `style`, `world`, `prop`, `wardrobe`, or `composition`.
 
-An identity reference may stabilize identity but must not silently transfer pose, background, camera or composition. A style reference may transfer palette and material language but not the depicted person's identity. Forbidden uses always outrank conflicting declared roles.
+An identity reference may stabilize the same adult face but must not transfer pose, action, hands, gaze, face direction, expression, background, camera, composition, makeup, hair, wardrobe, focal length or lighting. A style reference may transfer palette and material language but not the depicted person's identity. Forbidden uses always outrank conflicting declared roles.
 
 Example:
 
@@ -165,11 +165,13 @@ Example:
 
 Studio records SHA-256, scope, allowed/forbidden uses, copyright, portrait consent, attribution and redistribution state. Original private references live in `~/.apsal/vault/sha256/`, outside DNA JSON and public Git. Unresolved redistribution rights force `private_only` packaging.
 
+The finalized Prompt/Skill ZIP includes metadata-sanitized copies of the real images under `assets/references/`, records their purpose and rights in `references/reference_manifest.json`, and maps the required files to every applicable Job in `references/run_manifest.json`. An identity reference applies to all nine Jobs by default but preserves facial identity only; every Prompt explicitly forbids inheriting its pose, action, hands, gaze, face direction, expression, scene, composition, makeup, hair, wardrobe, lens, lighting and background.
+
 When one or more real references exist, the package designates exactly one core visual anchor. An explicit creator choice wins; otherwise Studio prefers identity, then an all-shot reference, then the first bound image. “Core” is a package entry point, not permission expansion: declared uses, forbidden uses and applicable Jobs continue to control every call. With no real reference, the package records `not_bound`; a semantic stage thumbnail is never substituted.
 
 ## 7. Review and finalize
 
-The final review should show all thirteen decisions, the chosen set strategy, nine distinct Jobs with scene/look/body-state/focal plans, live-action Rendering Contract, references and rights, requested output, independent-image restrictions and separate model/human QA.
+The final review should show all thirteen decisions, the chosen set strategy, and nine distinct Jobs with per-Job scene, makeup, hair, wardrobe, action, pose, hands, gaze, face/body orientation, expression, composition, focal length, perspective and lighting plans, plus the facial-identity lock, live-action Rendering Contract, references and rights, requested output, independent-image restrictions and separate model/human QA.
 
 After approval, finalization always creates the canonical theme artifacts and a reproducible Codex Prompt/Skill ZIP, even if you choose immediate generation. Chat history is never the only lineage record.
 
