@@ -73,8 +73,8 @@ def main() -> int:
         except json.JSONDecodeError as exc: errors.append(f"MCP smoke test returned invalid JSON: {exc}"); responses = []
         if len(responses) != 5: errors.append("MCP smoke test: expected five responses")
         elif responses[0].get("result", {}).get("serverInfo", {}).get("version") != manifest.get("version"): errors.append("MCP smoke test: server and manifest versions differ")
-        elif len(responses[1].get("result", {}).get("tools", [])) != 50: errors.append("MCP smoke test: expected fifty tools")
-        elif not {"set_session_language", "recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference", "create_reference_project", "fork_project", "start_reference_analysis", "get_next_analysis_job", "record_analysis_result", "build_design_from_analysis", "reconcile_library", "list_library_projects", "export_project", "import_project", "create_share_draft", "preview_share", "confirm_share", "publish_share", "apsal_frontend_status", "apsal_frontend_get_project", "apsal_frontend_get_updates", "apsal_frontend_preview_changes", "apsal_frontend_apply_preview", "apsal_frontend_reject_preview", "apsal_frontend_undo_operation", "apsal_frontend_focus_elements"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
+        elif len(responses[1].get("result", {}).get("tools", [])) != 51: errors.append("MCP smoke test: expected fifty-one tools")
+        elif not {"set_session_language", "recommend_dna", "recommend_layer_dna", "present_element_layer", "commit_element_layer", "suggest_dna_tags", "resolve_dna_memory", "record_dna_feedback", "export_dna_pack", "install_dna_pack", "start_generation_run", "get_next_codex_job", "import_apsal_package", "bind_import_reference", "create_reference_project", "fork_project", "start_reference_analysis", "get_next_analysis_job", "record_analysis_result", "build_design_from_analysis", "reconcile_library", "list_library_projects", "export_project", "import_project", "create_share_draft", "preview_share", "confirm_share", "publish_share", "apsal_frontend_status", "apsal_frontend_connect", "apsal_frontend_get_project", "apsal_frontend_get_updates", "apsal_frontend_preview_changes", "apsal_frontend_apply_preview", "apsal_frontend_reject_preview", "apsal_frontend_undo_operation", "apsal_frontend_focus_elements"}.issubset({tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}):
             errors.append("MCP smoke test: 0.16 creative-library, authoring, frontend, Prompt delivery, generation, memory, or exchange tools missing")
         elif "execute_generation_run" in {tool.get("name") for tool in responses[1].get("result", {}).get("tools", [])}:
             errors.append("MCP smoke test: direct provider execution must not be exposed")
@@ -100,7 +100,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 50 MCP tools, text-only DNA cards and bilingual stage thumbnails")
+    print(f"APSAL Studio {manifest['version']} plugin validated: manifest, Skill, 51 MCP tools, text-only DNA cards and bilingual stage thumbnails")
     return 0
 
 

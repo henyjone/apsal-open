@@ -499,6 +499,32 @@ class ProtocolTests(unittest.TestCase):
             self.assertEqual(command[1:], ["--project-root", str(project.resolve()), "--codex-link"])
             self.assertNotIn("shell", popen.call_args.kwargs)
 
+    def test_existing_project_can_be_selected_for_codex_without_starting_design(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "studio-project"
+            protocol.init_protocol_project(project)
+            connected = {
+                "connected": True,
+                "compatible": True,
+                "project_root": str(project.resolve()),
+                "project_id": "PROJECT-STUDIO-EXISTING",
+                "revision": 0,
+            }
+            apsal_mcp.ACTIVE_FRONTEND_PROJECTS.discard(str(project.resolve()))
+            with mock.patch.object(apsal_mcp, "launch_frontend", return_value=connected) as launch:
+                linked = apsal_mcp.call_tool(
+                    "apsal_frontend_connect",
+                    {"project_root": str(project)},
+                )["structuredContent"]
+            launch.assert_called_once_with(project.resolve())
+            self.assertTrue(linked["connected"])
+            self.assertTrue(linked["selected_for_codex"])
+            self.assertEqual(linked["routing_mode"], "studio")
+            self.assertEqual(protocol.project_snapshot(project)["revision"], 0)
+            self.assertEqual(list((project / ".apsal" / "themes").iterdir()), [])
+            self.assertIsNone(protocol.load_json(project / ".apsal" / "project.json").get("active_session_id"))
+            apsal_mcp.ACTIVE_FRONTEND_PROJECTS.discard(str(project.resolve()))
+
     def test_start_design_session_records_explicit_studio_or_headless_choice(self):
         with tempfile.TemporaryDirectory() as tmp:
             studio_project = Path(tmp) / "studio"
