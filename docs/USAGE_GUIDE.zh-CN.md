@@ -1,4 +1,4 @@
-# APSAL Studio 0.15 完整使用手册
+# APSAL Studio 0.16 完整使用手册
 
 [English](USAGE_GUIDE.md) · [文档中心](README.md) · [返回中文首页](../README.zh-CN.md)
 
@@ -25,12 +25,12 @@ APSAL Studio 的标准流程是：
 
 ## 2. 安装 APSAL Studio
 
-### 2.1 安装固定稳定版
+### 2.1 安装固定 beta 预发布版
 
 在终端执行：
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -64,9 +64,32 @@ apsal-studio@apsal-open  installed, enabled  0.16.0
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
+
+## 参考图项目完整流程
+
+在 Studio 首页选择“新建参考图项目”，或直接对 Codex 说：
+
+> 把这些参考图片建立成一个 APSAL 项目，逐张和整组分析，然后全自动生成 Prompt 与 Skill。
+
+一次导入 1–24 张图片只建立一个根项目。每张图片都要记录来源/署名、著作权、肖像授权、公开再分发、AI 改编和身份使用权限，并可指定人物、空间、构图、灯光、服装、色彩、风格或道具角色。APSAL 不识别人；没有明确身份授权时，只分析可观测的摄影特征，不锁定真人相貌。
+
+Codex 每次领取一个严格 Schema 的分析任务，将可观测事实与创作推断分开，记录不确定项和风险，覆盖五层十三元素，再综合整组图片的共同视觉 DNA、冲突、互补和推荐方向。任务可以中断恢复；不合格 JSON 会被拒绝；重复写回不会重复创建项目内容。
+
+分析完成后，“从分析构建设计”会生成主题、正负提示词、QA 与可分享 Skill。选择同系列延伸、场景、镜头、灯光、造型或完整九图方向时，系统先建立子项目，记录来源图片、变化目标和父快照摘要；父项目保持不变。
+
+项目库可以搜索、加标签、收藏、归档并查看谱系，但这些只是投影功能。每个项目中的 `.apsal/project.json`、分析、主题、运行和分享记录才是真源；`~/.apsal/library/` 可以随时重建。
+
+### 导出项目与社媒分享
+
+- **公共项目包**：包含主题 JSON/YAML、正负提示词、QA、分析摘要、`SKILL.md`、校验和及静态展示页；默认不含原始参考图和本地路径。只有明确允许再分发且再次确认的图片才可能进入。
+- **私有完整备份**：面向授权接收者，包含经过脱敏且获准使用的参考图及完整运行记录。
+- **X**：逐平台预览并确认最终图片和文案。有 Keychain OAuth 时才调用官方接口，否则导出图片、复制文案并打开官方发布页；平台支持时为生成媒体设置 AI 标记。
+- **小红书**：生成完整图文草稿并打开官方发布流程。在创作者确认完成之前始终保持“等待外部确认”，绝不把打开页面记录成已经发布。
+
+确认后如果图片、文案、平台或权限发生变化，原令牌立即失效并要求重新预览。令牌不会写入项目、日志、分享包或 Git。
 
 ## 3. 创建第一套九张主题
 

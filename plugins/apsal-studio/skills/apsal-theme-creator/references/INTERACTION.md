@@ -1,4 +1,4 @@
-# APSAL Studio 0.15 interaction and delivery contract
+# APSAL Studio 0.16 interaction and delivery contract
 
 ## Language before creative decisions
 

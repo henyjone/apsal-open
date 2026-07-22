@@ -65,11 +65,11 @@ flowchart LR
 推荐通过 Git marketplace 安装，协议、官方 DNA、本地引擎、卡片交互服务和打包器会一起进入 Codex：
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-安装后重新启动 Codex，或打开一个新任务。也可以从[最新 Release](https://github.com/henyjone/apsal-open/releases/latest)下载固定版本插件 ZIP。
+安装后重新启动 Codex，或打开一个新任务。固定版插件 ZIP 和校验和可从 [0.16.0 beta 预发布](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1)下载。只有明确测试尚未发布的开发变化时才使用 `--ref main`。
 
 APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片与中文阶段缩略图，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文版本。每张元素卡都直接填入“我的设计提案、为什么这样建议、可调整方向、建议取值、应当看到、必须保持、验收标准”，不再把关键建议留空或散落在卡片外。重要标题、提案、取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
 
@@ -211,12 +211,14 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [中英文交互 RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
 - [受控变化与套片组织策略 RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [视觉锚点与阶段缩略图 RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
-- [APSAL 0.15.0 升级实施规格](docs/UPGRADE_GUIDE_0.15.0.zh-CN.md)
-- [APSAL Studio 0.15.0 发布与安装说明](docs/releases/0.15.0.md)
+- [单项目内核与 Codex/Studio 双入口 RFC](protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
+- [创作项目库、分析与分享 RFC](protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
+- [APSAL 0.16.0 中文升级指南](docs/UPGRADE_GUIDE_0.16.0.zh-CN.md)
+- [APSAL 0.16.0 beta 预发布说明](docs/releases/0.16.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)
-- [APSAL Studio 0.2.0 桌面前端](apps/apsal-studio)
+- [APSAL Studio 0.3.0 桌面前端](apps/apsal-studio)
 - [DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
 - [语义化示例主题](examples/quiet-window/theme.apsal.yaml)
 - [贡献指南](CONTRIBUTING.md)

@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, hashlib, re, subprocess, sys, zipfile
+import argparse, hashlib, os, re, subprocess, sys, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
 VERSION = "0.16.0"
+RELEASE_TAG = os.environ.get("APSAL_RELEASE_TAG", f"v{VERSION}")
+RELEASE_TAG_PATTERN = re.compile(rf"^v{re.escape(VERSION)}(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$")
 DENY = re.compile("(" + "|".join(("gh" + "o_", "github" + "_pat_", "s" + "k-[A-Za-z0-9]", "BEGIN (RSA|OPENSSH|EC)" + " PRIVATE KEY", "APSAL_ACCESS" + r"_TOKEN\s*=")) + ")")
 
 def check_tree() -> list[str]:
     errors = []
+    if not RELEASE_TAG_PATTERN.fullmatch(RELEASE_TAG):
+        errors.append(
+            f"APSAL_RELEASE_TAG must be v{VERSION} or a prerelease of that version; got {RELEASE_TAG!r}"
+        )
     listed = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         cwd=ROOT,
@@ -38,7 +44,7 @@ def build() -> tuple[Path, str]:
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "validate", str(ROOT / "examples/quiet-window/theme.apsal.yaml")], check=True)
     subprocess.run([sys.executable, str(PLUGIN / "scripts/apsal.py"), "check-sync", str(ROOT / "examples/quiet-window")], check=True)
     dist = ROOT / "dist"; dist.mkdir(exist_ok=True)
-    out = dist / f"apsal-studio-codex-plugin-v{VERSION}.zip"
+    out = dist / f"apsal-studio-codex-plugin-{RELEASE_TAG}.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(p for p in PLUGIN.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             info = zipfile.ZipInfo(str(Path("apsal-studio") / path.relative_to(PLUGIN)), (1980, 1, 1, 0, 0, 0)); info.compress_type = zipfile.ZIP_DEFLATED; info.external_attr = 0o644 << 16

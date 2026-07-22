@@ -16,6 +16,7 @@ jobs:
       - run: python3 scripts/validate_plugin_bundle.py
       - run: python3 plugins/apsal-studio/scripts/apsal.py check-sync examples/quiet-window
       - run: python3 scripts/check_homepage.py
+      - run: python3 scripts/check_docs.py
       - run: python3 scripts/release.py --check
       - run: python3 scripts/release.py
       - uses: actions/upload-artifact@v4

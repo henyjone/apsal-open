@@ -2,6 +2,8 @@
 
 Status: implemented in APSAL Engine / Codex plugin 0.15.0 and APSAL Studio Desktop 0.2.0.
 
+Extended by [RFC-0012](RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md) in Engine/Project Protocol 0.16.0 and Studio Desktop 0.3.0. This document keeps the original 0.15/0.2 implementation record intact.
+
 ## Decision
 
 Codex and APSAL Studio operate one `<project>/.apsal/` project. Python APSAL Engine is the only executor for the five layers, thirteen roles, DNA, reference rights, invalidation, Prompt compilation, generation Runs, QA, and final packaging. Codex is the conversational entry; Studio is a discardable node projection plus `.apsal/studio/view.json`.

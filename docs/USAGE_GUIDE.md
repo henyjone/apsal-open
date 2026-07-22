@@ -1,4 +1,4 @@
-# APSAL Studio 0.15 Complete Usage Guide
+# APSAL Studio 0.16 Complete Usage Guide
 
 [中文](USAGE_GUIDE.zh-CN.md) · [Documentation hub](README.md) · [Project home](../README.md)
 
@@ -23,10 +23,10 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 
 ## 2. Install
 
-Install the pinned stable release:
+Install the pinned `0.16.0` beta prerelease:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -43,11 +43,34 @@ To replace an older pinned installation:
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
 Use `--ref main` instead of the release tag only when you intentionally want the current development branch.
+
+## Reference-led project workflow
+
+Choose **New reference project** in Studio, or ask Codex:
+
+> Build one APSAL project from these reference images, analyze them separately and as a set, then create the Prompt and Skill automatically.
+
+Import 1–24 images as one root project. For each image, record source/attribution, copyright, portrait consent, redistribution, AI-modification and identity permission. An image can contribute subject, space, composition, light, wardrobe, color, style or prop information. APSAL does not identify a person. Without explicit identity permission, it analyzes observable photographic characteristics but cannot lock a real face.
+
+Codex receives one strict analysis Job at a time. It separates observable facts from creative inference, records uncertainty and risk, covers the five layers and thirteen protocol roles, then synthesizes common visual DNA, conflicts, complements and recommended directions for the whole set. Interrupted Jobs resume; invalid JSON is rejected; repeating a recorded operation does not duplicate project content.
+
+After analysis, **Build from analysis** creates the theme, positive and negative Prompts, QA contract and shareable Skill. A scene, camera, light, styling, series or complete nine-shot expansion always creates a child project. The child records source assets, change intent and parent snapshot digest; the parent stays byte-for-byte unchanged.
+
+The library can search, tag, favorite and archive projects and show lineage. These are projection features: `.apsal/project.json`, analysis, themes, runs and share records inside each project remain authoritative. `~/.apsal/library/` can be rebuilt.
+
+### Export and social sharing
+
+- **Public project package:** theme JSON/YAML, Prompts, negative constraints, QA, analysis summary, `SKILL.md`, checksums and a static showcase page. It omits original references and local paths unless an image is explicitly redistributable and reconfirmed.
+- **Private full backup:** includes sanitized, authorized reference media and full run history for a trusted recipient.
+- **X:** preview and confirm the exact images and copy. APSAL uses official API access only when Keychain OAuth is configured; otherwise it exports media/copy and opens the official composer. Generated media is marked as AI where supported.
+- **Xiaohongshu:** APSAL prepares the complete image-and-copy draft and opens the official publishing flow. The project remains `awaiting_external_confirmation` until completion is confirmed; opening the page is not publication.
+
+Changing selected media, copy, platform or permission after confirmation invalidates the token and requires another preview. Tokens never enter a project, log, export or Git.
 
 ## 3. Create a new nine-image theme
 

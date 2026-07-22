@@ -7,6 +7,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      APSAL_RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,6 +21,7 @@ jobs:
       - run: python3 -m unittest discover -s tests -v
       - run: python3 scripts/generate_preview_cards.py --check
       - run: python3 scripts/validate_plugin_bundle.py
+      - run: python3 scripts/check_docs.py
       - run: python3 scripts/release.py
       - run: npm ci --ignore-scripts
         working-directory: apps/apsal-studio
@@ -33,4 +36,6 @@ jobs:
           files: |
             dist/apsal-studio-codex-plugin-${{ github.ref_name }}.zip
             dist/apsal-studio-codex-plugin-${{ github.ref_name }}.zip.sha256
-          generate_release_notes: true
+          body_path: docs/releases/0.16.0.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: false

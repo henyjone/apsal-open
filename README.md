@@ -77,11 +77,11 @@ The five layers are the conversation order, the thirteen elements are protocol r
 The Git marketplace is the recommended path. It installs the protocol, official DNA Registry, local engine, interactive card service, validators, and Skill packager together.
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-Restart Codex or open a new task after installation. You can also download the pinned ZIP from the [latest release](https://github.com/henyjone/apsal-open/releases/latest).
+Restart Codex or open a new task after installation. The pinned plugin ZIP and checksum are available from the [0.16.0 beta release](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1). Use `--ref main` only when intentionally testing unreleased development changes.
 
 APSAL Studio is fully bilingual. It follows the language of the current Codex conversation: an English brief opens English cards and guidance; a Chinese brief opens creator-facing Chinese cards with no exposed English machine labels. Every element card is fully populated with the design proposal, rationale, adjustable directions, values, expected result, invariants and acceptance criteria. Important titles, proposals, values, recommendation reasons and primary actions use an accessible celadon highlight hierarchy. There is no mandatory installation-time language screen. Only a genuinely ambiguous or mixed first message triggers the concise question “English or 中文?”. You can ask to switch at any time; the choice is stored in the local session and never changes the theme, DNA, or Prompt digests.
 
@@ -224,11 +224,13 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Controlled variation and set strategy RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [Visual anchor and stage previews RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
 - [Single project kernel and Codex/Studio dual entry RFC](protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
-- [APSAL Studio 0.15.0 release and installation notes](docs/releases/0.15.0.md)
+- [Creative project library, analysis and sharing RFC](protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
+- [APSAL 0.16.0 upgrade guide](docs/UPGRADE_GUIDE_0.16.0.md)
+- [APSAL 0.16.0 beta release notes](docs/releases/0.16.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
-- [APSAL Studio Desktop 0.2.0](apps/apsal-studio)
+- [APSAL Studio Desktop 0.3.0](apps/apsal-studio)
 - [Starter DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
 - [Semantic example theme](examples/quiet-window/theme.apsal.yaml)
 - [Contribution guide](CONTRIBUTING.md)
