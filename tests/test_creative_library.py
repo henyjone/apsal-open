@@ -212,6 +212,12 @@ class CreativeLibraryTests(unittest.TestCase):
         first = protocol.handle_domain_method(
             "analysis.next", {"project_root": str(project), "analysis_id": started["analysis_id"]}
         )
+        claimed = protocol.handle_domain_method(
+            "analysis.status", {"project_root": str(project), "analysis_id": started["analysis_id"]}
+        )
+        self.assertEqual(claimed["jobs"][0]["status"], "in_progress")
+        self.assertEqual(first["claim_status"], "claimed")
+        self.assertEqual([event["type"] for event in claimed["activity"]], ["analysis_started", "job_claimed"])
         failed = protocol.handle_domain_method(
             "analysis.record",
             {
@@ -237,6 +243,7 @@ class CreativeLibraryTests(unittest.TestCase):
         self.assertEqual(retry["job_id"], first["job_id"])
         self.assertEqual(retry["attempt_count"], 1)
         self.assertEqual(retry["last_error"], "temporary interruption")
+        self.assertEqual(retry["claim_status"], "claimed")
         recovered = protocol.handle_domain_method(
             "analysis.record",
             {

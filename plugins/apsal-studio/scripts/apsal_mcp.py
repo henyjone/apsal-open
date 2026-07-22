@@ -176,9 +176,9 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "get_next_analysis_job", "description": "Return the next strict multimodal analysis or synthesis job without calling an external vision API.",
+        "name": "get_next_analysis_job", "description": "Claim and return the next strict multimodal analysis or synthesis job, recording auditable progress without calling an external vision API.",
         "inputSchema": _schema({"analysis_id": {"type": "string"}, "project_root": {"type": "string"}}, ["analysis_id"]),
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "record_analysis_result", "description": "Record one validated thirteen-element Codex analysis result or failure with resumable attempts.",

@@ -94,6 +94,9 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertIn("if (!wasRunning) publish('apsal-protocol:status', await protocolStatus())", main)
         self.assertIn("apsal-media://asset?path=", library)
         self.assertIn("参考图已安全入库并显示在项目详情中", library)
+        self.assertIn("CODEX 执行记录", library)
+        self.assertIn("当前没有 Codex 领取任务", library)
+        self.assertIn("不展示模型内部隐藏推理", library)
 
     def test_codex_bridge_keeps_full_domain_route_without_arbitrary_proxy(self) -> None:
         bridge = (STUDIO / "electron" / "apsal-link.mjs").read_text()

@@ -949,7 +949,7 @@ export function App() {
           <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><GitBranch />工作流</button>
         </nav>
       </header>
-      {screen === 'library' ? <CreativeLibrary onOpenProject={() => setScreen('studio')} /> : <>
+      {screen === 'library' ? <CreativeLibrary onOpenProject={() => setScreen('studio')} linkStatus={linkStatus} /> : <>
         {snapshot?.read_only && <div className="compatibility-banner"><span>只读模式：{snapshot.compatibility_error || '协议版本不兼容，请预览并复制迁移到 APSAL 0.16。'}</span><button type="button" disabled={migrationBusy} onClick={() => void migrateProject()}>{migrationBusy ? <RefreshCw className="spin" /> : <GitBranch />}预览并复制迁移</button>{migrationError && <em role="alert">{migrationError}</em>}</div>}
         <nav className="project-pipeline-strip" aria-label="当前项目流水线">
           {['参考图', '分析', '设计', '生成', 'QA', 'Skill', '分享'].map((label, index) => <span key={label} className={snapshot?.session ? (index < 3 ? 'complete' : index === 3 ? 'current' : '') : index === 0 ? 'current' : ''}><i>{index + 1}</i>{label}</span>)}

@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ApsalProjectSnapshot } from './protocol/types'
+import type { ApsalLinkStatus, ApsalProjectSnapshot } from './protocol/types'
 
 type ProjectKind = 'root' | 'fork' | 'imported'
 
@@ -53,6 +53,23 @@ interface LibraryAnalysis {
   job_count: number
   completed_job_count: number
   design_session_id?: string
+  jobs: Array<{
+    job_id: string
+    kind: 'image' | 'synthesis'
+    status: string
+    reference_ids: string[]
+    attempt_count: number
+    last_error?: string | null
+    claimed_at?: string | null
+  }>
+  activity: Array<{
+    event_id: string
+    type: string
+    at: string
+    job_id?: string
+    kind?: 'image' | 'synthesis'
+    error?: string
+  }>
 }
 
 interface LibraryShare {
@@ -190,6 +207,46 @@ function ProjectCard({ project, selected, onSelect }: {
         {project.parent_project_id && <span className="library-parent"><GitBranch aria-hidden="true" />来自 {project.parent_project_id}</span>}
       </span>
     </button>
+  )
+}
+
+function activityLabel(event: LibraryAnalysis['activity'][number]): string {
+  if (event.type === 'analysis_started') return '分析批次已建立，等待 Codex 领取任务'
+  if (event.type === 'job_claimed') return event.kind === 'image' ? 'Codex 已领取参考图分析任务' : 'Codex 已领取整组综合任务'
+  if (event.type === 'job_retried') return 'Codex 正在重试失败任务'
+  if (event.type === 'job_succeeded') return event.kind === 'image' ? '十三要素分析通过 Schema 校验并已回写' : '整组视觉 DNA 已综合并回写'
+  if (event.type === 'job_failed') return `任务失败：${event.error || '未报告原因'}`
+  if (event.type === 'synthesis_ready') return '单图分析已齐备，整组视觉 DNA 综合任务已解锁'
+  if (event.type === 'analysis_completed') return '全部分析任务完成'
+  return event.type
+}
+
+function jobStatusLabel(status: string): string {
+  if (status === 'pending') return '等待领取'
+  if (status === 'in_progress') return 'Codex 执行中'
+  if (status === 'succeeded') return '已回写'
+  if (status === 'failed') return '失败，可重试'
+  if (status === 'blocked') return '等待前序任务'
+  return status
+}
+
+function AnalysisExecutionPanel({ analysis, linkStatus, projectId }: {
+  analysis: LibraryAnalysis
+  linkStatus?: ApsalLinkStatus | null
+  projectId: string
+}) {
+  const linked = Boolean(linkStatus?.connected && linkStatus.project_id === projectId)
+  const active = analysis.jobs.some((job) => job.status === 'in_progress')
+  const waiting = analysis.jobs.some((job) => job.status === 'pending') && !active
+  return (
+    <section className="analysis-execution" aria-label="Codex 分析执行记录">
+      <header><div><span className="eyebrow">CODEX 执行记录</span><h3>{analysis.status === 'completed' ? '参考图分析已完成' : active ? 'Codex 正在分析' : '等待 Codex 分析'}</h3></div><span className={`analysis-link ${linked ? 'connected' : ''}`}>{linked ? '已联动' : '未联动'}</span></header>
+      {!linked && waiting && <div className="analysis-blocker"><strong>当前没有 Codex 领取任务</strong><span>请从 Codex 插件选择“打开并联动 APSAL Studio”，并绑定当前项目；单独打开 Studio 只会建立任务。</span></div>}
+      {!linked && active && <div className="analysis-blocker headless"><strong>任务已被 Headless Codex 领取</strong><span>当前没有 Studio 实时联动，但结构化进度仍会从项目语义真源刷新。</span></div>}
+      <ol className="analysis-jobs">{analysis.jobs.map((job, index) => <li key={job.job_id} className={job.status}><i>{job.status === 'succeeded' ? <BadgeCheck /> : job.status === 'in_progress' ? <LoaderCircle className="spin" /> : <span>{index + 1}</span>}</i><div><strong>{job.kind === 'image' ? `参考图 ${index + 1} · 五层十三要素` : '整组综合 · 视觉 DNA'}</strong><span>{jobStatusLabel(job.status)}{job.attempt_count > 0 ? ` · ${job.attempt_count} 次回写` : ''}</span>{job.last_error && <em>{job.last_error}</em>}</div></li>)}</ol>
+      <div className="analysis-timeline"><h4>交流时间线</h4>{analysis.activity.length > 0 ? <ol>{analysis.activity.slice(-12).map((event) => <li key={event.event_id}><time>{new Date(event.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time><span>{activityLabel(event)}</span></li>)}</ol> : <p>旧分析批次尚无执行事件；下一次 Codex 领取或回写后开始记录。</p>}</div>
+      <footer>这里只显示可验证的任务、Schema 校验和回写事件，不展示模型内部隐藏推理。</footer>
+    </section>
   )
 }
 
@@ -433,7 +490,7 @@ function SharePreviewSheet({ preview, onClose, onComplete }: {
   )
 }
 
-export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }) {
+export function CreativeLibrary({ onOpenProject, linkStatus }: { onOpenProject: () => void; linkStatus?: ApsalLinkStatus | null }) {
   const runtime = window.apsalProtocol
   const [projects, setProjects] = useState<LibraryProject[]>([])
   const [query, setQuery] = useState('')
@@ -645,6 +702,20 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
   const outputAssets = useMemo(() => detail?.assets.filter((item) => item.kind === 'output') ?? [], [detail])
   const latestAnalysis = detail?.analyses.at(-1)
 
+  useEffect(() => {
+    if (!runtime || !selectedId || !latestAnalysis || ['completed', 'failed'].includes(latestAnalysis.status)) return
+    const refreshAnalysis = async () => {
+      try {
+        const value = await runtime.call<LibraryDetail>('library.get', { project_id: selectedId })
+        setDetail((current) => current?.project.project_id === selectedId ? { ...value, lineage: current.lineage } : current)
+      } catch {
+        // Keep the last readable execution state; normal actions surface protocol errors.
+      }
+    }
+    const timer = window.setInterval(() => { void refreshAnalysis() }, 2000)
+    return () => window.clearInterval(timer)
+  }, [latestAnalysis?.analysis_id, latestAnalysis?.status, runtime, selectedId])
+
   return (
     <main className="creative-library" id="creative-library" tabIndex={-1}>
       <section className="library-hero">
@@ -670,7 +741,7 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
           {detail.lineage?.comparison.available && <section className="lineage-comparison"><h3>五层十三要素谱系比较</h3><div><span><strong>{detail.lineage.comparison.inherited.length}</strong>继承</span><span><strong>{detail.lineage.comparison.modified.length}</strong>修改</span><span><strong>{detail.lineage.comparison.added.length}</strong>新增</span></div>{detail.lineage.comparison.modified.length > 0 && <p>修改：{detail.lineage.comparison.modified.map((role) => APSAL_ROLE_LABELS[role] || role).join('、')}</p>}{detail.lineage.comparison.added.length > 0 && <p>新增：{detail.lineage.comparison.added.map((role) => APSAL_ROLE_LABELS[role] || role).join('、')}</p>}</section>}
           {referenceAssets.length > 0 && <section className="detail-media"><h3>参考图片</h3><div className="detail-gallery">{referenceAssets.slice(0, 12).map((item, index) => <img key={item.asset_id} src={mediaUrl(item.archived_path || item.path)} alt={`参考图片 ${index + 1}`} loading="lazy" />)}</div></section>}
           {outputAssets.length > 0 && <section className="detail-media"><h3>生成结果</h3><div className="detail-gallery">{outputAssets.slice(0, 6).map((item) => <img key={item.asset_id} src={mediaUrl(item.archived_path || item.path)} alt={`生成结果 ${item.shot_id || ''}`} loading="lazy" />)}</div></section>}
-          {latestAnalysis && <div className="analysis-progress"><Sparkles /><div><strong>{latestAnalysis.status === 'completed' ? 'Codex 分析已完成' : '等待 Codex 分析'}</strong><span>{latestAnalysis.completed_job_count} / {latestAnalysis.job_count} 个结构化任务已回写</span></div></div>}
+          {latestAnalysis && <AnalysisExecutionPanel analysis={latestAnalysis} linkStatus={linkStatus} projectId={detail.project.project_id} />}
           <div className="detail-actions">
             <button type="button" className="button-primary" onClick={() => void openProject(detail.project)}><ArrowRight />进入工作流画布</button>
             <button type="button" className="button-ghost" disabled={Boolean(busyAction)} onClick={() => setCreatingFork(true)}><GitBranch />创建扩展子项目</button>
