@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.studio/schemas/library-0.1.0.json",
+  "title": "APSAL Rebuildable Project Library Projection",
+  "type": "object",
+  "required": ["schema_version", "project_id", "project_root", "name", "project_kind", "stage", "reference_count", "output_count"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "project_id": {"type": "string"},
+    "project_root": {"type": "string"},
+    "name": {"type": "string"},
+    "project_kind": {"enum": ["root", "fork", "imported"]},
+    "parent_project_id": {"type": ["string", "null"]},
+    "origin_project_id": {"type": ["string", "null"]},
+    "stage": {"enum": ["references_ready", "analyzing", "design_ready", "skill_ready", "generating", "review_ready", "published"]},
+    "reference_count": {"type": "integer", "minimum": 0},
+    "output_count": {"type": "integer", "minimum": 0},
+    "cover_path": {"type": ["string", "null"]},
+    "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 30},
+    "favorite": {"type": "boolean"},
+    "archived": {"type": "boolean"}
+  },
+  "additionalProperties": true
+}

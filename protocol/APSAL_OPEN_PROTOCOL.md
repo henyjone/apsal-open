@@ -1,12 +1,12 @@
-# APSAL Open Protocol 0.3
+# APSAL Open Protocol 0.4
 
 License: Apache-2.0.
 
 APSAL Open Protocol is a vendor-neutral format for portable, versioned photography-generation packages. The protocol is open; an individual package is redistributable only when its own content license and rights metadata permit it.
 
-Protocol 0.3 adds the APSAL Semantic Contract and safe YAML authoring while preserving Protocol 0.2 JSON packages. The [0.2 compatibility specification](APSAL_OPEN_PROTOCOL_0.2.md) remains available.
+Protocol 0.4 adds portable creative-project packages, reference-analysis summaries, project lineage, public/private distribution boundaries, static showcase pages, and digest-bound share records. It preserves Protocol 0.3 Semantic Contract themes and Protocol 0.2 JSON packages. The [0.2 compatibility specification](APSAL_OPEN_PROTOCOL_0.2.md) remains available.
 
-APSAL Studio 0.4 adds a natural-language authoring UX, layered local Registry, preview sidecars and generation-run lineage. Studio 0.5 adds reference binding, a live-action Rendering Contract, private Skill media manifests, and an experimental provider executor. Studio 0.6 adds explainable recommendation, explicit personal memory and portable DNA Extension Packs. Studio 0.7 replaces the incomplete four-group confirmation with five conversational layers that expose every one of the existing thirteen protocol roles. Studio 0.8 removes direct image-provider execution from the Codex plugin and hands one packaged Job at a time to Codex. Studio 0.9 adds safe takeover of legacy run ZIPs, Prompt recovery, SHA-256 reference restoration and private Codex Skill repackaging. These runtime layers do not change Protocol 0.3 canonical compatibility. See [RFC-0002](RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md), [RFC-0003](RFC-0003-REFERENCE-BINDING-LIVE-ACTION-AND-NATIVE-4K.md), [RFC-0004](RFC-0004-DNA-RECOMMENDATION-MEMORY-AND-EXCHANGE.md), [RFC-0005](RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md), [RFC-0006](RFC-0006-CODEX-NATIVE-GENERATION-AND-PROMPT-DELIVERY.md), and [RFC-0007](RFC-0007-LEGACY-RUN-TAKEOVER.md).
+APSAL Studio runtime releases add natural-language authoring, the local Registry, reference binding, five-layer/thirteen-element confirmation, Codex-native generation, legacy-package recovery, and the single project kernel. Engine 0.16 and Studio 0.3 add the creative project library, multi-reference analysis Jobs, immutable parent/child lineage, content-addressed output projection, public/private project packages, and confirmed platform drafts. Runtime state remains outside portable themes unless explicitly included by the 0.4 project package contract. See [RFC-0002](RFC-0002-LOCAL-REGISTRY-AND-CONVERSATIONAL-AUTHORING.md) through [RFC-0011](RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md) and the [0.16 release notes](../docs/releases/0.16.0.md).
 
 ## Authoring and canonical formats
 
@@ -17,6 +17,27 @@ APSAL Studio 0.4 adds a natural-language authoring UX, layered local Registry, p
 - Integrity digests are calculated over normalized canonical JSON values, not YAML bytes or comments.
 
 Legacy JSON remains valid. New Semantic Contract assets use theme/module schema `1.1.0` and record `semantic_contract_version: 0.3.0`.
+
+## Creative project package contract
+
+A Protocol 0.4 creative project package MUST declare its distribution as
+`public` or `private`, preserve the source project ID and package digest, and
+include checksums for every file. Imported packages receive a new local project
+ID while retaining source provenance.
+
+A public package MUST NOT contain original private references, vault URIs,
+absolute paths, credentials, platform tokens, or nested private Skill archives.
+It MAY contain generated project outputs, the APSAL theme, Prompts, negative
+constraints, QA rules, a reference-free `SKILL.md`, an analysis summary, and a
+static showcase page. Reference metadata does not grant media redistribution.
+
+A private package MAY contain sanitized reference copies and complete run
+records for an authorized recipient. It is not thereby public or
+redistributable.
+
+Project lineage records `parent_project_id`, `origin_project_id`,
+`source_asset_ids`, `fork_type`, and `parent_snapshot_digest`. Forking creates a
+new project; it MUST NOT mutate the parent snapshot.
 
 ## Semantic Contract
 
@@ -93,7 +114,7 @@ Identity locks outrank prose fluency. Platform/model parameters belong in option
 
 Negative constraints are inherited and cannot disappear silently. Each Job compiles into exactly one independent finished image.
 
-Protocol 0.3 exposes three deterministic compilation targets:
+Protocol 0.3 and 0.4 expose three deterministic theme compilation targets:
 
 1. `design` preserves purpose, relations, constraints and intent for Codex or another planning model.
 2. `image` emits only observable image instructions and inherited negative constraints.

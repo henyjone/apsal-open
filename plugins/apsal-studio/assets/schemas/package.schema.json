@@ -7,7 +7,7 @@
   "properties": {
     "protocol": {"const": "apsal-open"},
     "protocol_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
-    "semantic_contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "Semantic meaning registry version when Protocol 0.3 authoring is used. / 使用 Protocol 0.3 创作时采用的语义注册表版本。"},
+    "semantic_contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "Semantic meaning registry version when Protocol 0.3/0.4 authoring is used. / 使用 Protocol 0.3/0.4 创作时采用的语义注册表版本。"},
     "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$"},
     "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "license": {"type": "object", "required": ["code", "content"]},

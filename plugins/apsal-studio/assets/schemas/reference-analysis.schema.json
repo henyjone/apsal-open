@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.studio/schemas/reference-analysis-0.1.0.json",
+  "title": "APSAL Reference Analysis",
+  "type": "object",
+  "required": ["schema_version", "analysis_id", "project_id", "status", "jobs", "created_at", "updated_at"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "analysis_id": {"type": "string", "pattern": "^ANALYSIS-[A-Z0-9_-]+$"},
+    "project_id": {"type": "string"},
+    "status": {"enum": ["analyzing", "partial", "completed"]},
+    "jobs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["job_id", "kind", "reference_ids", "status", "attempts", "result"],
+        "properties": {
+          "job_id": {"type": "string"},
+          "kind": {"enum": ["image", "synthesis"]},
+          "reference_ids": {"type": "array", "items": {"type": "string"}},
+          "status": {"enum": ["blocked", "pending", "succeeded", "failed"]},
+          "attempts": {"type": "array"},
+          "result": {"type": ["object", "null"]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "synthesis": {"type": "object"},
+    "design_session_id": {"type": "string"}
+  },
+  "additionalProperties": true
+}

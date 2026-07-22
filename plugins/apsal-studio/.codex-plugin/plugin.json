@@ -1,7 +1,7 @@
 {
   "name": "apsal-studio",
-  "version": "0.15.0",
-  "description": "Build live-action AI photography with five semantic stage previews, a rights-scoped visual anchor, complete Prompts, and direct Codex generation.",
+  "version": "0.16.0",
+  "description": "Build traceable APSAL photography projects from multi-image reference analysis through Prompt/Skill packaging, generation, library, and confirmed sharing.",
   "author": {
     "name": "HenyJone / APSAL Open",
     "url": "https://github.com/henyjone"
@@ -9,20 +9,20 @@
   "homepage": "https://github.com/henyjone/apsal-open#readme",
   "repository": "https://github.com/henyjone/apsal-open",
   "license": "Apache-2.0",
-  "keywords": ["ai-photography", "world-building", "dna-registry", "codex-plugin", "creative-tools"],
+  "keywords": ["ai-photography", "project-library", "visual-analysis", "dna-registry", "codex-plugin", "creative-tools"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "APSAL Studio",
-    "shortDescription": "Five-stage world building for coherent photo sets",
-    "longDescription": "APSAL Studio follows the current Chinese or English Codex conversation, turning one natural-language idea into five highlighted text-card layers covering all thirteen protocol roles. A localized thumbnail strip summarizes Direction, Worldbuilding, Narrative, Image and Delivery without replacing the complete proposals. New sets support Chaptered Variation or Continuous Narrative. Finalization packages all Prompts, real rights-scoped references with one core visual anchor when available, and separate non-generation stage previews before Codex generates one independent image per turn.",
+    "shortDescription": "Reference analysis and traceable APSAL photo projects",
+    "longDescription": "APSAL Studio turns a rights-scoped group of reference images into a traceable root project. Codex analyzes each image and the complete set against the five APSAL layers and thirteen roles, then builds themes, Prompts, QA contracts, shareable Skills, generation Jobs, child-project lineage, a local project library, and platform-specific drafts. Studio remains an optional visual frontend over the same headless Engine and .apsal source of truth.",
     "developerName": "HenyJone / APSAL Open",
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://github.com/henyjone/apsal-open",
     "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
     "defaultPrompt": [
-      "创建九张真人摄影主题，用三章多场景多妆造方案并打包全部提示词。",
+      "把这些参考图建立为 APSAL 项目，逐张分析后全自动构建 Prompt 和 Skill。",
       "Create a nine-image live-action photography theme, confirm all thirteen elements, and package every Prompt.",
       "Open this legacy APSAL ZIP, recover its references, and generate the first image directly with Codex."
     ],

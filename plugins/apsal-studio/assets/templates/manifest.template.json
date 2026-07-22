@@ -1,6 +1,6 @@
 {
   "protocol": "apsal-open",
-  "protocol_version": "0.3.0",
+  "protocol_version": "0.4.0",
   "semantic_contract_version": "0.3.0",
   "id": "YOUR_PACKAGE_ID",
   "version": "1.0.0",

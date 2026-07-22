@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.0-beta.1 - 2026-07-23
+
+- Added the local-first APSAL creative project library: rights-scoped multi-reference root projects, immutable parent-to-child forks, imported projects, cover/search/favorite/archive projection and content-addressed output storage.
+- Added resumable per-image and set-level Codex analysis with strict schemas, observable-fact versus creative-inference separation, thirteen-role synthesis and one-step five-layer Prompt/QA/Skill construction.
+- Added public and private project packages with checksums and static showcase pages. Public packages reject unresolved rights, private media, Vault URIs, credentials and local absolute paths.
+- Added digest-bound share drafts and confirmations, X API/composer fallback, and Xiaohongshu official-composer handoff without false published states.
+- Upgraded APSAL Open Protocol to 0.4.0, Engine/Project Protocol/Codex plugin to 0.16.0 and Studio Desktop to 0.3.0. Library, analysis and share schemas are 0.1.0; Semantic Contract remains 0.3.0.
+- Added explicit copy migration from 0.15 projects, bilingual upgrade and usage documentation, release-tag-aware deterministic plugin packaging and current-document consistency checks.
+
 ## 0.15.0 - 2026-07-18
 
 - Added the open-source APSAL Studio Desktop 0.2.0 under `apps/apsal-studio` as a protocol-only visual frontend for the Codex plugin. It contains no AiPhoto legacy workflow, local image engine, model runtime, provider settings, or private case media.

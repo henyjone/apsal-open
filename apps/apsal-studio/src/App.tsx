@@ -41,6 +41,7 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react'
 import apsalIcon from './assets/apsal-icon.png'
+import { CreativeLibrary } from './CreativeLibrary'
 import {
   LAYERS,
   nodesToStudioView,
@@ -811,7 +812,10 @@ export function App() {
   const [leftWidth, setLeftWidth] = useState(260)
   const [rightWidth, setRightWidth] = useState(410)
   const [rightTab, setRightTab] = useState<RightTab>('properties')
+  const [screen, setScreen] = useState<'library' | 'studio'>('library')
   const [notice, setNotice] = useState('')
+  const [migrationBusy, setMigrationBusy] = useState(false)
+  const [migrationError, setMigrationError] = useState('')
   const resizeRef = useRef<{ side: ResizeSide; startX: number; startWidth: number } | null>(null)
 
   useEffect(() => { void initialize() }, [initialize])
@@ -893,12 +897,28 @@ export function App() {
     window.setTimeout(() => setNotice(''), 2600)
   }, [saveView, selectedElementId, snapshot])
 
+  const migrateProject = useCallback(async () => {
+    if (!snapshot || !window.apsalProtocol) return
+    const confirmed = window.confirm(`迁移预览\n\n来源：${snapshot.project_root}\n版本：APSAL 0.15 → 0.16\n方式：复制到 ~/APSAL Projects/ 后迁移\n\n原项目不会被修改，并将继续以只读方式保留。确认创建迁移副本？`)
+    if (!confirmed) return
+    setMigrationBusy(true)
+    setMigrationError('')
+    try {
+      await window.apsalProtocol.migrateCurrentProject()
+      setNotice('迁移副本已创建并打开；原 0.15 项目保持不变。')
+    } catch (error) {
+      setMigrationError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setMigrationBusy(false)
+    }
+  }, [snapshot])
+
   if (!available) {
     return (
       <div className="desktop-required">
         <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
         <span className="eyebrow">虚拟摄影工作台</span>
-        <h1>APSAL Studio 0.2.0</h1>
+        <h1>APSAL Studio 0.3.0</h1>
         <p>此界面只在 APSAL Studio Desktop 中运行，用于连接 Codex APSAL 插件。</p>
       </div>
     )
@@ -908,7 +928,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#protocol-canvas">跳到协议画布</a>
+      <a className="skip-link" href={screen === 'library' ? '#creative-library' : '#protocol-canvas'}>跳到主要内容</a>
       <header className="app-header">
         <div className="brand">
           <div className="brand-mark"><img src={apsalIcon} alt="" /></div>
@@ -916,18 +936,25 @@ export function App() {
         </div>
         <div className="scene-field" title={snapshot?.project_root}>
           <span>当前项目 · 当前片场</span>
-          <strong>{snapshot?.project.project_id ?? '未选择 APSAL 项目'}</strong>
+          <strong>{snapshot?.project.name ?? snapshot?.project.project_id ?? '未选择 APSAL 项目'}</strong>
         </div>
         <div className="header-stats">
           <span className={`topbar-stat ${status?.running ? 'online' : ''}`}><ScanSearch aria-hidden="true" />{status?.running ? 'Engine 在线' : 'Engine 启动中'}</span>
           <span className="topbar-stat"><GitBranch aria-hidden="true" />r{snapshot?.revision ?? '—'}</span>
           <span className={`topbar-stat ${linkStatus?.connected ? 'online' : ''}`}>{linkStatus?.connected ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}{linkStatus?.connected ? 'Codex 已连接' : 'Codex 未连接'}</span>
-          <span className="version-stat">0.2.0 / 0.15.0</span>
+          <span className="version-stat">0.3.0 / 0.16.0</span>
         </div>
-        <div className="mode-pill"><GitBranch aria-hidden="true" /><span>工作流 3.1</span></div>
+        <nav className="top-navigation" aria-label="Studio 主导航">
+          <button type="button" className={screen === 'library' ? 'active' : ''} onClick={() => setScreen('library')}><LayoutGrid />项目库</button>
+          <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><GitBranch />工作流</button>
+        </nav>
       </header>
-      {snapshot?.read_only && <div className="compatibility-banner">只读模式：{snapshot.compatibility_error || '协议版本不兼容，请升级 APSAL Studio 或插件。'}</div>}
-      <div className="workspace-frame">
+      {screen === 'library' ? <CreativeLibrary onOpenProject={() => setScreen('studio')} /> : <>
+        {snapshot?.read_only && <div className="compatibility-banner"><span>只读模式：{snapshot.compatibility_error || '协议版本不兼容，请预览并复制迁移到 APSAL 0.16。'}</span><button type="button" disabled={migrationBusy} onClick={() => void migrateProject()}>{migrationBusy ? <RefreshCw className="spin" /> : <GitBranch />}预览并复制迁移</button>{migrationError && <em role="alert">{migrationError}</em>}</div>}
+        <nav className="project-pipeline-strip" aria-label="当前项目流水线">
+          {['参考图', '分析', '设计', '生成', 'QA', 'Skill', '分享'].map((label, index) => <span key={label} className={snapshot?.session ? (index < 3 ? 'complete' : index === 3 ? 'current' : '') : index === 0 ? 'current' : ''}><i>{index + 1}</i>{label}</span>)}
+        </nav>
+        <div className="workspace-frame">
         <div className="workspace-grid" style={{ gridTemplateColumns }}>
           <aside className={`studio-panel side-panel ${leftOpen ? '' : 'collapsed'}`} aria-hidden={!leftOpen}><ProjectPanel /></aside>
           <div
@@ -968,7 +995,8 @@ export function App() {
           ><span /></div>
           <aside className={`studio-panel side-panel ${rightOpen ? '' : 'collapsed'}`} aria-hidden={!rightOpen}><RightPanel selected={selected} tab={rightTab} setTab={setRightTab} /></aside>
         </div>
-      </div>
+        </div>
+      </>}
       {busy && <div className="working-indicator" role="status" aria-live="polite"><RefreshCw aria-hidden="true" />APSAL 正在处理</div>}
       {(notice || syncMessage) && <div className="notice-toast" role="status" aria-live="polite"><BadgeCheck aria-hidden="true" />{notice || syncMessage}</div>}
       {error && <button type="button" className="error-toast" role="alert" aria-live="assertive" onClick={clearError}>{error}<span>关闭</span></button>}

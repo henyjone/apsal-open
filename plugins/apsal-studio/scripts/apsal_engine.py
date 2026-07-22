@@ -33,7 +33,8 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-ENGINE_VERSION = "0.15.0"
+ENGINE_VERSION = "0.16.0"
+OPEN_PROTOCOL_VERSION = "0.4.0"
 SEMANTIC_CONTRACT_VERSION = "0.3.0"
 DNA_PACK_SCHEMA_VERSION = "0.6.0"
 CATEGORIES = ("character", "style", "environment", "lighting", "composition", "shot", "qa")
@@ -84,7 +85,10 @@ SAFE_ID = re.compile(r"^[A-Z][A-Z0-9-]*$")
 SAFE_ASSET_ID = re.compile(r"^[A-Z][A-Z0-9_]*$")
 SAFE_NAMESPACE = re.compile(r"^[a-z][a-z0-9-]*$")
 SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-REFERENCE_USES = {"style", "world", "prop", "wardrobe", "composition", "identity"}
+REFERENCE_USES = {
+    "identity", "subject", "world", "space", "composition", "lighting",
+    "wardrobe", "color", "style", "prop",
+}
 LIVE_ACTION_FORBID = (
     "illustrated_human", "anime", "painting", "3d_rendered_person",
     "mannequin", "doll", "wax_figure", "clay_character",
@@ -658,21 +662,23 @@ def init_workspace(project_root: Path, home: Path | None = None) -> dict[str, st
     project_root = project_root.expanduser().resolve()
     home = (home or apsal_home()).expanduser().resolve()
     _mkdir_private(home)
-    for relative in ("registry", "extensions", "usage", "vault", "vault/sha256", "cache"):
+    for relative in ("registry", "extensions", "usage", "vault", "vault/sha256", "cache", "library", "library/objects"):
         _mkdir_private(_inside(home, home / relative))
     workspace = project_root / ".apsal"
     _mkdir_private(workspace)
-    for relative in ("drafts", "registry", "themes", "runs", "cache"):
+    for relative in ("drafts", "registry", "themes", "runs", "analysis", "share", "exports", "cache"):
         _mkdir_private(_inside(workspace, workspace / relative))
     project_file = workspace / "project.json"
     if not project_file.exists():
         _write_private_json({
-            "schema_version": "0.6.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
+            "schema_version": "0.7.0", "project_id": f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
+            "project_kind": "root", "lineage": {"parent_project_id": None, "origin_project_id": None,
+            "source_asset_ids": [], "fork_type": None, "parent_snapshot_digest": None},
             "created_at": _utc_now(), "storage": "local_first",
         }, project_file)
     ignore = workspace / ".gitignore"
     if not ignore.exists():
-        ignore.write_text("drafts/\nruns/\ncache/\nvault/\nstudio/\n", encoding="utf-8")
+        ignore.write_text("drafts/\nruns/\nanalysis/\nshare/\nexports/\ncache/\nvault/\nstudio/\n", encoding="utf-8")
     return {"project_root": str(project_root), "workspace": str(workspace), "apsal_home": str(home)}
 
 
@@ -2265,8 +2271,8 @@ def validate_protocol_package(root: Path) -> list[str]:
     if manifest.get("protocol") != "apsal-open": errors.append("manifest: protocol must be apsal-open")
     for key in ("protocol_version", "version"):
         if not SEMVER.fullmatch(str(manifest.get(key, ""))): errors.append(f"manifest: invalid {key}")
-    if manifest.get("protocol_version") == "0.3.0" and manifest.get("semantic_contract_version") != SEMANTIC_CONTRACT_VERSION:
-        errors.append("manifest: Protocol 0.3 requires semantic_contract_version 0.3.0")
+    if manifest.get("protocol_version") in {"0.3.0", "0.4.0"} and manifest.get("semantic_contract_version") != SEMANTIC_CONTRACT_VERSION:
+        errors.append("manifest: Protocol 0.3/0.4 requires semantic_contract_version 0.3.0")
     if not manifest.get("changed_fields"): errors.append("manifest: changed_fields cannot be empty")
     licenses = manifest.get("license", {})
     if not licenses.get("code") or not licenses.get("content"): errors.append("manifest: code and content licenses are required")
@@ -3269,6 +3275,16 @@ def _write_run(run: dict[str, Any], project_root: Path) -> None:
     _write_private_json(run, _run_dir(project_root, run["run_id"]) / "run.json")
 
 
+def _advisory_library_reconcile(project_root: Path) -> str | None:
+    """Update the rebuildable creative library without failing an authoritative run."""
+    try:
+        from apsal_creative import reconcile_library
+        reconcile_library(project_root)
+    except Exception as exc:  # The project run remains authoritative and repairable.
+        return f"library_reconcile_pending: {type(exc).__name__}: {exc}"
+    return None
+
+
 def _generation_run_status(run: dict[str, Any]) -> str:
     jobs = run.get("jobs", [])
     if any(job.get("status") == "failed" for job in jobs): return "partial"
@@ -3806,6 +3822,12 @@ def record_generation_result(
     _write_private_json(qa, _run_dir(project_root, run_id) / "qa" / f"{shot_id}.json")
     run["status"] = _generation_run_status(run)
     _write_run(run, project_root)
+    warning = _advisory_library_reconcile(project_root)
+    if warning:
+        run["library_warning"] = warning
+        _write_run(run, project_root)
+    else:
+        run.pop("library_warning", None)
     if run.get("source_kind") != "legacy_run_import":
         session, theme = load_design_session(run["session_id"], project_root)
         session["state"] = run["status"]; _write_session(session, theme, project_root)
@@ -3879,6 +3901,12 @@ def record_model_visual_qa(
         job["output"] = None; job["status"] = "failed"; job["error"] = "model_visual_qa_failed"
     run["status"] = _generation_run_status(run)
     _write_private_json(qa, qa_path); _write_run(run, project_root)
+    warning = _advisory_library_reconcile(project_root)
+    if warning:
+        run["library_warning"] = warning
+        _write_run(run, project_root)
+    else:
+        run.pop("library_warning", None)
     if run.get("source_kind") != "legacy_run_import":
         session, theme = load_design_session(run["session_id"], project_root)
         session["state"] = run["status"]; _write_session(session, theme, project_root)
@@ -4124,7 +4152,7 @@ def export_dna_pack(
     payload["README.md"] = (f"# {name}\n\n{description}\n\nAPSAL DNA Extension Pack `{namespace}/{pack_id}@{version}`. Install with `apsal registry install <zip>`; assets remain immutable and participate in explained scene recommendations.\n").encode()
     files = {path: hashlib.sha256(data).hexdigest() for path, data in sorted(payload.items())}
     manifest = {
-        "schema_version": DNA_PACK_SCHEMA_VERSION, "protocol": "apsal-open", "protocol_version": "0.3.0",
+        "schema_version": DNA_PACK_SCHEMA_VERSION, "protocol": "apsal-open", "protocol_version": OPEN_PROTOCOL_VERSION,
         "pack_id": pack_id, "namespace": namespace, "version": version, "name": name, "description": description,
         "distribution": resolved_distribution, "redistribution_allowed": public_allowed,
         "assets": assets_manifest, "asset_count": len(assets_manifest), "files": files,
@@ -4316,7 +4344,7 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         item["reference_id"]: item["packaged_file"] for item in reference_manifest.get("references", [])
     }
     run_manifest = {
-        "schema_version": "0.15.0",
+        "schema_version": "0.16.0",
         "theme_id": theme["id"],
         "theme_version": theme["version"],
         "theme_digest": digest(theme),

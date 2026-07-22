@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.studio/schemas/creative-project-0.1.0.json",
+  "title": "APSAL Creative Project",
+  "type": "object",
+  "required": ["schema_version", "protocol_version", "engine_version", "project_id", "revision", "project_kind", "lineage"],
+  "properties": {
+    "schema_version": {"const": "0.16.0"},
+    "protocol_version": {"const": "0.16.0"},
+    "engine_version": {"const": "0.16.0"},
+    "creative_project_schema_version": {"const": "0.1.0"},
+    "project_id": {"type": "string", "pattern": "^PROJECT-[A-Z0-9_-]+$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 160},
+    "revision": {"type": "integer", "minimum": 0},
+    "project_kind": {"enum": ["root", "fork", "imported"]},
+    "lineage": {
+      "type": "object",
+      "required": ["parent_project_id", "origin_project_id", "source_asset_ids", "fork_type", "parent_snapshot_digest"],
+      "properties": {
+        "parent_project_id": {"type": ["string", "null"]},
+        "origin_project_id": {"type": ["string", "null"]},
+        "source_asset_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "fork_type": {"type": ["string", "null"]},
+        "parent_snapshot_digest": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

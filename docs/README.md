@@ -9,13 +9,14 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 | Install and use APSAL Studio from first idea to nine images | [Complete usage guide](USAGE_GUIDE.md) | [完整使用手册](USAGE_GUIDE.zh-CN.md) |
 | Understand APSAL Elemental Photography | [Methodology monograph](monograph/README.md) | [《构建可见世界》](monograph/README.md) |
 | Build against the machine contract | [APSAL Open Protocol](../protocol/APSAL_OPEN_PROTOCOL.md) | [APSAL 开放协议](../protocol/APSAL_OPEN_PROTOCOL.md) |
-| See what changed in the current plugin | [APSAL Studio 0.15.0](releases/0.15.0.md) | [APSAL Studio 0.15.0](releases/0.15.0.md) |
-| Upgrade Codex and Studio to the single-kernel architecture | [0.15.0 upgrade specification](UPGRADE_GUIDE_0.15.0.zh-CN.md) | [0.15.0 升级实施规格](UPGRADE_GUIDE_0.15.0.zh-CN.md) |
-| Build the Studio 0.2.0 Codex visual frontend | [Desktop frontend](../apps/apsal-studio/README.md) | [桌面前端](../apps/apsal-studio/README.md) |
+| See what changed in the current plugin | [APSAL Creative Library 0.16.0](releases/0.16.0.md) | [APSAL 创作项目库 0.16.0](releases/0.16.0.md) |
+| Upgrade Codex and Studio to the creative-library architecture | [0.16.0 upgrade guide](UPGRADE_GUIDE_0.16.0.md) | [0.16.0 中文升级指南](UPGRADE_GUIDE_0.16.0.zh-CN.md) |
+| Build the Studio 0.3.0 project library and Codex frontend | [Desktop frontend](../apps/apsal-studio/README.md) | [桌面项目库](../apps/apsal-studio/README.md) |
 | Contribute original DNA or protocol work | [Contribution guide](../CONTRIBUTING.md) | [贡献指南](../CONTRIBUTING.md) |
 
 ## Creator paths
 
+- **Create from references:** 1–24 rights-scoped images → per-image and set analysis → five layers and thirteen roles → Prompt/Skill package → child-project generation → confirmed sharing.
 - **Create a new theme:** one natural-language idea → Chaptered Variation or Continuous Narrative → five creator layers → thirteen confirmed elements → nine-shot review → Prompt/Skill package → one Codex-generated image per turn.
 - **Open an old APSAL ZIP:** attach the ZIP → automatic Prompt and reference recovery → private Codex Skill package → first image ready. No JSON repair or image API runner is required.
 - **Reuse DNA:** accept a scene-matched recommendation, revise it, keep it in the project, or explicitly save it to My DNA for future recommendations.
@@ -34,5 +35,8 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 - [Controlled variation and set strategy](../protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [Visual anchor and stage previews](../protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
 - [Single project kernel and Codex/Studio dual entry](../protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
+- [Creative project library, reference analysis and confirmed sharing](../protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
+
+Historical upgrade and release documents remain immutable records. Start with the 0.16 guides above for current installation instructions.
 
 Static validation proves structure, lineage and reproducibility. Generated photographs still require Codex visual review and a separate human visual-QA decision.

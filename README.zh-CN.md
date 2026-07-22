@@ -65,19 +65,19 @@ flowchart LR
 推荐通过 Git marketplace 安装，协议、官方 DNA、本地引擎、卡片交互服务和打包器会一起进入 Codex：
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-安装后重新启动 Codex，或打开一个新任务。也可以从[最新 Release](https://github.com/henyjone/apsal-open/releases/latest)下载固定版本插件 ZIP。
+安装后重新启动 Codex，或打开一个新任务。固定版插件 ZIP 和校验和可从 [0.16.0 beta 预发布](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1)下载。只有明确测试尚未发布的开发变化时才使用 `--ref main`。
 
 APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片与中文阶段缩略图，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文版本。每张元素卡都直接填入“我的设计提案、为什么这样建议、可调整方向、建议取值、应当看到、必须保持、验收标准”，不再把关键建议留空或散落在卡片外。重要标题、提案、取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
 
 新建九张套片默认采用**章节式丰富变化**：三个关联场景、三套相互协调的妆造、九种由行动驱动的身体状态，以及按镜头职能变化的多种焦段；人物身份、真人摄影媒介、世界规则和色彩体系保持统一。如果更强调同一场景、同一妆造和事件连续，可以选择**连续叙事**。两个选项都在第一张卡片中直接点击；点击会先更新方案，不会跳过确认。
 
-### APSAL Studio 0.2.0 桌面前端
+### APSAL Studio 0.3.0 创作项目库
 
-同一仓库现在包含 [`apps/apsal-studio`](apps/apsal-studio)：它是 Codex 插件的可视前端，只显示同一个 `.apsal/` 项目的五层十三元素、待确认变更、revision 和只读语义。它不保留旧 AiPhoto 工作流，不使用 IndexedDB 维护第二份项目，也不包含 ComfyUI、MLX、模型、供应商设置或本地生图入口。
+同一仓库包含 [`apps/apsal-studio`](apps/apsal-studio)：首页是 APSAL 创作项目库，可批量导入参考图、记录权利边界、查看项目封面、搜索、收藏、归档、谱系和分享状态；项目内部仍使用原来的编辑式摄影工作台呈现五层十三元素。`.apsal/` 始终是语义真源，`~/.apsal/library/` 只是可重建的搜索与缩略图投影。Studio 不包含 ComfyUI、MLX、模型或供应商生图入口。
 
 ```bash
 cd apps/apsal-studio
@@ -87,7 +87,9 @@ npm run test:electron
 npm run desktop:start
 ```
 
-Codex 是唯一创作入口。开始创作时，插件会先询问是否打开 APSAL Studio 前端；选择“打开并联动”后，插件创建项目并自动打开、绑定 Studio。选择“仅在 Codex 中继续”则完整使用同一 Engine 的无界面路径。单独打开 Studio 不会让任何 Codex 创作自动联动。
+Studio 可以建立参考图根项目，Codex 负责领取逐图分析任务、自动构建 APSAL 主题并执行生图；也可以完全从 Codex 无界面开始。两条路径都调用同一个 Engine。自动化可以跳过日常设计确认，但不能跳过参考权利、真人身份、公开分享或社媒发布确认。
+
+默认项目目录是 `~/APSAL Projects/<项目名>-<project_id>/`。每次同系列、场景、镜头、灯光、造型或九图主题扩展都会建立子项目，并保存父快照摘要与来源图片；父项目保持不变。
 
 ## 30 秒开始使用
 
@@ -104,7 +106,9 @@ Codex 是唯一创作入口。开始创作时，插件会先询问是否打开 A
 5. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 6. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、真实参考图、五阶段缩略图和使用说明。真实参考图存在时指定一个核心视觉锚点；缩略图始终单独存放，绝不冒充参考图。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 
-创作者不需要看见或手写结构化文件。开放资产协议与语义契约仍为 0.3；APSAL Project Protocol、Engine 与 Codex 插件为 0.15.0，桌面前端为 0.2.0。Codex 和 Studio 只读取同一个 `.apsal/` 真源，最终主题会生成同时带完整中英文说明的提示词与技能使用包，再由 Codex 逐张生成。
+创作者不需要看见或手写结构化文件。APSAL Open Protocol 为 0.4.0；APSAL Project Protocol、Engine 与 Codex 插件为 0.16.0；桌面前端为 0.3.0；语义契约继续为 0.3.0。Codex 和 Studio 只读写同一个 `.apsal/` 真源，最终项目可生成提示词、Skill、QA、校验和与静态展示页，再由 Codex 逐张生成。
+
+若从多张参考图开始，直接在项目库选择“新建参考图项目”。Codex 会把可观测事实与创作推断分开，逐图覆盖十三元素，再综合共同视觉 DNA、冲突、互补和创作方向；未经授权不会识别人，也不会锁定真人相貌。
 
 从安装、五层对话、DNA 与参考图，到逐张生成、安装主题 Skill 和排查问题，请直接按照 [APSAL Studio 中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md) 操作。
 
@@ -207,12 +211,14 @@ python3 plugins/apsal-studio/scripts/apsal.py validate-package path/to/extracted
 - [中英文交互 RFC](protocol/RFC-0008-BILINGUAL-INTERACTION.md)
 - [受控变化与套片组织策略 RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [视觉锚点与阶段缩略图 RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
-- [APSAL 0.15.0 升级实施规格](docs/UPGRADE_GUIDE_0.15.0.zh-CN.md)
-- [APSAL Studio 0.15.0 发布与安装说明](docs/releases/0.15.0.md)
+- [单项目内核与 Codex/Studio 双入口 RFC](protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
+- [创作项目库、分析与分享 RFC](protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
+- [APSAL 0.16.0 中文升级指南](docs/UPGRADE_GUIDE_0.16.0.zh-CN.md)
+- [APSAL 0.16.0 beta 预发布说明](docs/releases/0.16.0.md)
 - [《窗边未寄》语义契约试点](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio 插件](plugins/apsal-studio)
-- [APSAL Studio 0.2.0 桌面前端](apps/apsal-studio)
+- [APSAL Studio 0.3.0 桌面前端](apps/apsal-studio)
 - [DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
 - [语义化示例主题](examples/quiet-window/theme.apsal.yaml)
 - [贡献指南](CONTRIBUTING.md)

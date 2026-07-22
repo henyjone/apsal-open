@@ -1,4 +1,4 @@
-# APSAL Studio 0.15 Complete Usage Guide
+# APSAL Studio 0.16 Complete Usage Guide
 
 [中文](USAGE_GUIDE.zh-CN.md) · [Documentation hub](README.md) · [Project home](../README.md)
 
@@ -23,10 +23,10 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 
 ## 2. Install
 
-Install the pinned stable release:
+Install the pinned `0.16.0` beta prerelease:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.15.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -36,18 +36,41 @@ Restart Codex or open a new task, then verify:
 codex plugin list
 ```
 
-You should see `apsal-studio@apsal-open`, enabled at version `0.15.0`.
+You should see `apsal-studio@apsal-open`, enabled at version `0.16.0`.
 
 To replace an older pinned installation:
 
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.15.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
 Use `--ref main` instead of the release tag only when you intentionally want the current development branch.
+
+## Reference-led project workflow
+
+Choose **New reference project** in Studio, or ask Codex:
+
+> Build one APSAL project from these reference images, analyze them separately and as a set, then create the Prompt and Skill automatically.
+
+Import 1–24 images as one root project. For each image, record source/attribution, copyright, portrait consent, redistribution, AI-modification and identity permission. An image can contribute subject, space, composition, light, wardrobe, color, style or prop information. APSAL does not identify a person. Without explicit identity permission, it analyzes observable photographic characteristics but cannot lock a real face.
+
+Codex receives one strict analysis Job at a time. It separates observable facts from creative inference, records uncertainty and risk, covers the five layers and thirteen protocol roles, then synthesizes common visual DNA, conflicts, complements and recommended directions for the whole set. Interrupted Jobs resume; invalid JSON is rejected; repeating a recorded operation does not duplicate project content.
+
+After analysis, **Build from analysis** creates the theme, positive and negative Prompts, QA contract and shareable Skill. A scene, camera, light, styling, series or complete nine-shot expansion always creates a child project. The child records source assets, change intent and parent snapshot digest; the parent stays byte-for-byte unchanged.
+
+The library can search, tag, favorite and archive projects and show lineage. These are projection features: `.apsal/project.json`, analysis, themes, runs and share records inside each project remain authoritative. `~/.apsal/library/` can be rebuilt.
+
+### Export and social sharing
+
+- **Public project package:** theme JSON/YAML, Prompts, negative constraints, QA, analysis summary, `SKILL.md`, checksums and a static showcase page. It omits original references and local paths unless an image is explicitly redistributable and reconfirmed.
+- **Private full backup:** includes sanitized, authorized reference media and full run history for a trusted recipient.
+- **X:** preview and confirm the exact images and copy. APSAL uses official API access only when Keychain OAuth is configured; otherwise it exports media/copy and opens the official composer. Generated media is marked as AI where supported.
+- **Xiaohongshu:** APSAL prepares the complete image-and-copy draft and opens the official publishing flow. The project remains `awaiting_external_confirmation` until completion is confirmed; opening the page is not publication.
+
+Changing selected media, copy, platform or permission after confirmation invalidates the token and requires another preview. Tokens never enter a project, log, export or Git.
 
 ## 3. Create a new nine-image theme
 
@@ -155,7 +178,7 @@ To share reusable knowledge without exposing the private theme, ask Studio to ex
 
 ## 6. Bind references correctly
 
-Declare each reference as `identity`, `style`, `world`, `prop`, `wardrobe`, or `composition`.
+Declare each reference as one or more of `identity`, `subject`, `world`, `space`, `composition`, `lighting`, `wardrobe`, `color`, `style`, or `prop`. The project library also records a creator-facing group role for every image.
 
 An identity reference may stabilize the same adult face but must not transfer pose, action, hands, gaze, face direction, expression, background, camera, composition, makeup, hair, wardrobe, focal length or lighting. A style reference may transfer palette and material language but not the depicted person's identity. Forbidden uses always outrank conflicting declared roles.
 
@@ -284,11 +307,11 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Symptom | Action |
 |---|---|
 | Studio does not trigger | Restart Codex/open a new task and explicitly say “Use APSAL Studio” |
-| Codex explains `run.json` instead of using the package | Confirm version 0.15.0 and say “Open this APSAL package and generate the first image” |
-| English input still shows Chinese cards | Open a new task after upgrading to 0.15.0, or say “use English”; the session should report language `en` |
-| Chinese cards contain English machine fields | Confirm version 0.15.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
-| Element cards show only headings or blank proposal areas | Confirm version 0.15.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
-| Five-stage thumbnails are missing | Confirm version 0.15.0 and start a new task; DNA choices remain text-only, while the element-card surface shows the thumbnail strip |
+| Codex explains `run.json` instead of using the package | Confirm version 0.16.0 and say “Open this APSAL package and generate the first image” |
+| English input still shows Chinese cards | Open a new task after upgrading to 0.16.0, or say “use English”; the session should report language `en` |
+| Chinese cards contain English machine fields | Confirm version 0.16.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
+| Element cards show only headings or blank proposal areas | Confirm version 0.16.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
+| Five-stage thumbnails are missing | Confirm version 0.16.0 and start a new task; DNA choices remain text-only, while the element-card surface shows the thumbnail strip |
 | A Skill has stage thumbnails but no real reference | Check `reference_manifest.json`; `not_bound` means no real image was bound, and thumbnails cannot replace one |
 | Every image repeats the same scene, look, pose or focal perspective | Start a new 0.15 project and keep Chaptered Variation, or switch the first Content card from Continuous Narrative; review the three scene/look chapters and nine body-state plan before confirmation |
 | Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |

@@ -19,7 +19,7 @@
   <a href="https://github.com/henyjone/apsal-open/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/henyjone/apsal-open?color=78988A"></a>
   <a href="LICENSE"><img alt="Code license" src="https://img.shields.io/badge/code-Apache--2.0-B79A62"></a>
   <a href="CONTENT_LICENSE.md"><img alt="Content license" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
-  <a href="protocol/APSAL_OPEN_PROTOCOL.md"><img alt="Protocol" src="https://img.shields.io/badge/protocol-APSAL%20Open%200.3-F1EEE4?labelColor=111412"></a>
+  <a href="protocol/APSAL_OPEN_PROTOCOL.md"><img alt="Protocol" src="https://img.shields.io/badge/protocol-APSAL%20Open%200.4-F1EEE4?labelColor=111412"></a>
   <a href="plugins/apsal-studio"><img alt="Codex plugin" src="https://img.shields.io/badge/Codex-APSAL%20Studio-78988A"></a>
 </p>
 
@@ -77,19 +77,19 @@ The five layers are the conversation order, the thirteen elements are protocol r
 The Git marketplace is the recommended path. It installs the protocol, official DNA Registry, local engine, interactive card service, validators, and Skill packager together.
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-Restart Codex or open a new task after installation. You can also download the pinned ZIP from the [latest release](https://github.com/henyjone/apsal-open/releases/latest).
+Restart Codex or open a new task after installation. The pinned plugin ZIP and checksum are available from the [0.16.0 beta release](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1). Use `--ref main` only when intentionally testing unreleased development changes.
 
 APSAL Studio is fully bilingual. It follows the language of the current Codex conversation: an English brief opens English cards and guidance; a Chinese brief opens creator-facing Chinese cards with no exposed English machine labels. Every element card is fully populated with the design proposal, rationale, adjustable directions, values, expected result, invariants and acceptance criteria. Important titles, proposals, values, recommendation reasons and primary actions use an accessible celadon highlight hierarchy. There is no mandatory installation-time language screen. Only a genuinely ambiguous or mixed first message triggers the concise question “English or 中文?”. You can ask to switch at any time; the choice is stored in the local session and never changes the theme, DNA, or Prompt digests.
 
 New nine-image themes default to **Chaptered Variation**: three related scenes, three coordinated looks, nine action-led body states and functional multi-focal coverage, held together by one identity, live-action medium, world grammar and color system. Choose **Continuous Narrative** when the same scene, look and event state should persist. Both choices appear as accessible buttons in the first card; selecting one revises the proposal before confirmation.
 
-### APSAL Studio Desktop 0.2.0
+### APSAL Studio Desktop 0.3.0
 
-This repository now includes [`apps/apsal-studio`](apps/apsal-studio), the visual frontend for the Codex plugin. It shows the five layers, thirteen roles, pending changes, revision, and read-only semantics from the same `.apsal/` project. It contains no legacy AiPhoto workflow, second IndexedDB project state, ComfyUI, MLX, model runtime, provider configuration, or local image-generation action.
+This repository includes [`apps/apsal-studio`](apps/apsal-studio), an APSAL creative project library and visual frontend for the Codex plugin. Its home screen imports rights-scoped reference groups and presents covers, search, favorites, archives, lineage, and share status. Inside a project it preserves the editorial five-layer/thirteen-role workflow. `.apsal/` remains the semantic source; `~/.apsal/library/` is only a rebuildable search and thumbnail projection. Studio contains no ComfyUI, MLX, model runtime, or provider image-generation action.
 
 ```bash
 cd apps/apsal-studio
@@ -99,7 +99,9 @@ npm run test:electron
 npm run desktop:start
 ```
 
-Codex is the only creative entry. When creation starts, the plugin asks whether to open the optional Studio frontend. Choosing it initializes the project, launches Studio with that exact project, and connects through an authenticated loopback-only bridge. Choosing Codex only keeps the complete direct-Engine path. Opening Studio independently never opts a Codex creation into linked routing.
+Studio can establish a multi-reference root project; Codex pulls the per-image analysis Jobs, builds the APSAL theme, and performs image generation. A complete headless Codex/MCP path remains available. Both routes call the same Engine. Automatic mode may skip routine design confirmations, but never reference rights, real-person identity, public sharing, or social publication confirmation.
+
+New Studio projects default to `~/APSAL Projects/<name>-<project_id>/`. Every series, scene, camera, light, styling, or nine-shot expansion creates a child project with a parent snapshot digest and source assets; the parent stays unchanged.
 
 ## 30-second start
 
@@ -116,7 +118,9 @@ APSAL Studio will:
 5. Suggest controlled tags for new DNA, then ask whether to save it to My DNA, keep it in this project, or decide later.
 6. Show all thirteen decisions and the nine-shot overview, then automatically package every Prompt, real reference, five-stage thumbnail and usage guide. If real references exist, one is designated as the rights-scoped core visual anchor; semantic thumbnails remain strictly separate. With one confirmation, Codex generates the nine independent 9:16 images one at a time.
 
-Creators never need to see JSON or YAML. The open asset Protocol and Semantic Contract remain 0.3; APSAL Project Protocol, Engine, and Codex plugin are 0.15.0, while the desktop frontend is 0.2.0. Codex and Studio read one `.apsal/` source of truth. Finalization creates a reproducible Codex Prompt/Skill ZIP with complete English and Chinese guides, and Codex performs image generation one Job at a time.
+Creators never need to see JSON or YAML. APSAL Open Protocol is 0.4.0; Project Protocol, Engine, and Codex plugin are 0.16.0; Studio Desktop is 0.3.0; the Semantic Contract remains 0.3.0. Codex and Studio use one `.apsal/` source of truth. A project can export Prompts, Skill, QA, checksums, and a static showcase before Codex performs image generation one Job at a time.
+
+For a reference-led project, choose **New reference project** in the library. Codex separates observable facts from creative inference, analyzes all thirteen roles per image, and then synthesizes common visual DNA, conflicts, complements, and recommended directions. It never identifies a person and cannot lock a real face without explicit authorization.
 
 For the complete installation, five-layer conversation, DNA/reference, generation, package-installation and troubleshooting workflow, follow the [APSAL Studio complete usage guide](docs/USAGE_GUIDE.md) or the [中文完整使用手册](docs/USAGE_GUIDE.zh-CN.md).
 
@@ -220,11 +224,13 @@ Static validation proves structure and reproducibility—not generated-image qua
 - [Controlled variation and set strategy RFC](protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md)
 - [Visual anchor and stage previews RFC](protocol/RFC-0010-VISUAL-ANCHOR-AND-STAGE-PREVIEWS.md)
 - [Single project kernel and Codex/Studio dual entry RFC](protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
-- [APSAL Studio 0.15.0 release and installation notes](docs/releases/0.15.0.md)
+- [Creative project library, analysis and sharing RFC](protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
+- [APSAL 0.16.0 upgrade guide](docs/UPGRADE_GUIDE_0.16.0.md)
+- [APSAL 0.16.0 beta release notes](docs/releases/0.16.0.md)
 - [Quiet Window Semantic Contract pilot](examples/quiet-window/theme.apsal.yaml)
 - [APSAL Open Protocol](protocol/APSAL_OPEN_PROTOCOL.md)
 - [APSAL Studio plugin](plugins/apsal-studio)
-- [APSAL Studio Desktop 0.2.0](apps/apsal-studio)
+- [APSAL Studio Desktop 0.3.0](apps/apsal-studio)
 - [Starter DNA Registry](plugins/apsal-studio/assets/dna/catalog.json)
 - [Semantic example theme](examples/quiet-window/theme.apsal.yaml)
 - [Contribution guide](CONTRIBUTING.md)

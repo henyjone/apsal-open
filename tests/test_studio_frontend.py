@@ -20,7 +20,7 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertEqual(package["name"], "@apsal/studio")
         self.assertTrue(package["private"])
         self.assertEqual(package["version"], frontend["version"])
-        self.assertEqual(frontend["mode"], "codex_plugin_visual_frontend")
+        self.assertEqual(frontend["mode"], "creative_project_library_and_codex_protocol_frontend")
         self.assertEqual(frontend["launch_owner"], "codex_plugin_after_creator_choice")
         self.assertFalse(frontend["standalone_link"])
         self.assertFalse(frontend["local_generation"])
@@ -43,6 +43,7 @@ class StudioFrontendTests(unittest.TestCase):
 
         preparation = (STUDIO / "scripts" / "prepare-engine.mjs").read_text()
         self.assertIn("plugins', 'apsal-studio", preparation)
+        self.assertIn("apsal_creative.py", preparation)
         self.assertNotIn("/Users/", preparation)
         self.assertNotIn("AiMePhoto", preparation)
 
@@ -71,6 +72,9 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertIn("design.propose", renderer_contract)
         self.assertIn("design.commit_preview", renderer_contract)
         self.assertIn("studio.view.save", renderer_contract)
+        self.assertIn("library.list", renderer_contract)
+        self.assertIn("analysis.start", renderer_contract)
+        self.assertIn("share.preview", renderer_contract)
         self.assertNotIn("generation.start", renderer_contract)
         self.assertNotIn("generation.record", renderer_contract)
         self.assertNotIn("qa.record", renderer_contract)

@@ -45,6 +45,19 @@ Create Codex-origin revisions with `apsal_frontend_preview_changes`, then use `a
 
 When the creator chooses Codex only, do not launch, focus, or route through Studio even if it is independently open. Continue through the complete in-process Python Engine path. If Studio is missing or cannot authenticate after the creator selected it, explain the launch result once and continue headlessly unless the creator asks to troubleshoot. Do not ask the frontend question again within the same uninterrupted workflow.
 
+## Create a project from multiple references
+
+When the creator supplies 1–24 images as a reference group, prefer the project-library workflow over treating the images as one untracked chat attachment.
+
+1. Resolve each image's source, copyright/attribution, portrait consent, redistribution, AI-modification and identity permissions. Without explicit identity authorization, forbid face locking and use only observable style, space, light, color, wardrobe, prop and composition information.
+2. Call `create_reference_project` once for the complete group. One upload creates one root project; do not create one unrelated project per image.
+3. Call `start_reference_analysis`, then repeatedly call `get_next_analysis_job`. For image Jobs, inspect the returned real image and produce only the strict JSON result requested by its schema. Separate observable facts from creative inference and record uncertainty and risk. For the synthesis Job, combine common visual DNA, conflicts, complements and recommended creative directions. Write every result with `record_analysis_result`; failures remain retryable.
+4. After `get_analysis_status` reports completion, call `build_design_from_analysis`. Automatic mode may build the theme, Prompts, negative constraints, QA and Skill without routine layer questions, but never bypasses unresolved rights, identity or public-release gates.
+5. For any new scene, camera, light, styling, series or nine-shot direction, call `fork_project` before generation. Record the source assets and fork type. Never mutate the parent to represent the expansion.
+6. Use `reconcile_library` after project creation and successful outputs. Use library metadata only for search, tags, favorite and archive presentation; `.apsal/` remains authoritative.
+
+For project sharing, use `export_project` with `public` only after rights confirmation. Public packages exclude original references by default, local paths, Vault URIs and credentials; private backups may include sanitized, authorized references. For social delivery call `create_share_draft`, `preview_share`, `confirm_share`, then `publish_share`. The confirmation token is valid only for the unchanged digest. X may use Keychain-backed OAuth or composer handoff. Xiaohongshu always remains pending until the creator confirms completion in the official flow; never treat an opened composer as published.
+
 ## Create through five complete layers
 
 1. After the one-time authoring-mode and frontend choices, call `start_design_session` with the creator's natural-language brief, the clear current conversation language, selected `authoring_mode`, and selected `frontend_mode`. Default to nine independent 9:16 high-quality image requests, a live-action photography Rendering Contract, and `chaptered_variation` unless the brief explicitly asks for one continuous scene/look/event. In the default plan, all nine Jobs must have different scene design, pose, action, hands, gaze, face orientation, body orientation, expression, composition, makeup, hair, wardrobe, focal length, perspective purpose and lighting. Preserve the same adult facial identity, age and body proportions; never reuse the reference pose or styling. Treat 2160×3840 as a requested delivery target only; Codex-managed generation does not guarantee returned pixel dimensions or format.
