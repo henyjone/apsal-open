@@ -3,8 +3,8 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 
-export const APSAL_PROTOCOL_VERSION = '0.15.0'
-export const APSAL_ENGINE_VERSION = '0.15.0'
+export const APSAL_PROTOCOL_VERSION = '0.16.0'
+export const APSAL_ENGINE_VERSION = '0.16.0'
 
 function engineBundleRoot({ appPath, isPackaged, resourcesPath }) {
   if (process.env.APSAL_ENGINE_ROOT) return resolve(process.env.APSAL_ENGINE_ROOT)

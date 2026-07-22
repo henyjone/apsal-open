@@ -1,8 +1,8 @@
 {
   "name": "@apsal/studio",
   "private": true,
-  "version": "0.2.0",
-  "description": "APSAL Open Codex plugin visual frontend",
+  "version": "0.3.0",
+  "description": "APSAL creative project library and Codex protocol visual frontend",
   "author": "henyjone",
   "license": "Apache-2.0",
   "repository": {

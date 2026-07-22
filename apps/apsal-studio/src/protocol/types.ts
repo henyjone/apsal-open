@@ -54,6 +54,15 @@ export interface ApsalProjectSnapshot {
   project_root: string
   project: {
     project_id: string
+    name?: string
+    project_kind?: 'root' | 'fork' | 'imported'
+    lineage?: {
+      parent_project_id?: string | null
+      origin_project_id?: string | null
+      source_asset_ids?: string[]
+      fork_type?: string | null
+      parent_snapshot_digest?: string | null
+    }
     protocol_version: string
     engine_version: string
     active_session_id?: string | null
@@ -139,7 +148,22 @@ export interface ApsalOperation {
 export interface ApsalProtocolRuntime {
   getStatus(): Promise<ApsalProtocolStatus>
   chooseProject(mode: 'new' | 'open'): Promise<ApsalProjectSnapshot | null>
+  openProject(projectRoot: string): Promise<ApsalProjectSnapshot>
+  chooseReferences(): Promise<string[]>
+  createReferenceProject(input: {
+    name: string
+    references: Array<Record<string, unknown> & { path: string }>
+  }): Promise<{ snapshot: ApsalProjectSnapshot }>
+  createForkProject(input: {
+    parent_project_root: string
+    name: string
+    fork_type: string
+    source_asset_ids?: string[]
+  }): Promise<{ snapshot: ApsalProjectSnapshot; parent_unchanged: boolean }>
+  importProjectPackage(): Promise<{ snapshot: ApsalProjectSnapshot } | null>
+  migrateCurrentProject(): Promise<{ snapshot: ApsalProjectSnapshot; original_unchanged: boolean }>
   call<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T>
+  openExternal(url: string): Promise<{ opened: boolean; url: string }>
   getLinkStatus(): Promise<ApsalLinkStatus>
   onStatus(listener: (status: ApsalProtocolStatus) => void): () => void
   onSnapshot(listener: (snapshot: ApsalProjectSnapshot) => void): () => void

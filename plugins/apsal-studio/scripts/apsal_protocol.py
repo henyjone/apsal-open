@@ -42,10 +42,35 @@ from apsal_engine import (
     start_design_session,
     start_generation_run,
 )
+from apsal_creative import (
+    analysis_status,
+    build_design_from_analysis,
+    confirm_share,
+    create_reference_project,
+    create_share_draft,
+    export_project,
+    fork_project,
+    import_project,
+    library_archive,
+    library_get,
+    library_lineage,
+    library_list,
+    library_status,
+    library_update,
+    migrate_project_copy,
+    migration_preview,
+    next_analysis_job,
+    preview_share,
+    publish_share,
+    reconcile_library,
+    record_analysis,
+    share_status,
+    start_analysis,
+)
 
 
-PROTOCOL_VERSION = "0.15.0"
-PROJECT_SCHEMA_VERSION = "0.15.0"
+PROTOCOL_VERSION = "0.16.0"
+PROJECT_SCHEMA_VERSION = "0.16.0"
 VIEW_SCHEMA_VERSION = "0.1.0"
 
 _OPERATION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -179,7 +204,7 @@ def _require_compatible_manifest(project_root: Path) -> dict[str, Any]:
     errors = _compatibility_errors(value)
     if errors:
         raise ValidationError(
-            "incompatible APSAL project; 0.15 projects are not upgraded in place: " + "; ".join(errors)
+            "incompatible APSAL project; use project.migration_preview and project.migrate for a copy migration: " + "; ".join(errors)
         )
     return value
 
@@ -205,6 +230,11 @@ def init_protocol_project(project_root: Path) -> dict[str, Any]:
                 "project_id": initial.get("project_id") or f"PROJECT-{uuid.uuid4().hex[:12].upper()}",
                 "protocol_version": PROTOCOL_VERSION,
                 "engine_version": ENGINE_VERSION,
+                "project_kind": initial.get("project_kind", "root"),
+                "lineage": initial.get("lineage") or {
+                    "parent_project_id": None, "origin_project_id": None, "source_asset_ids": [],
+                    "fork_type": None, "parent_snapshot_digest": None,
+                },
                 "active_session_id": None,
                 "revision": 0,
                 "storage": "local_first",
@@ -287,11 +317,13 @@ def _snapshot_before_mutation(
         if source.is_dir():
             shutil.copytree(source, target / "drafts")
     for relative in recovery_paths:
-        if relative not in {"registry", "themes", "runs"}:
+        if relative not in {"registry", "themes", "runs", "analysis", "share", "exports", "references.json"}:
             raise ValidationError(f"unsupported recovery path: {relative}")
         source = _workspace(project_root) / relative
         if source.is_dir():
             shutil.copytree(source, target / relative)
+        elif source.is_file():
+            shutil.copy2(source, target / relative)
     return target
 
 
@@ -307,11 +339,13 @@ def _restore_history(project_root: Path, history: Path, session_id: str | None) 
         destination = _workspace(project_root) / "drafts"
         shutil.rmtree(destination, ignore_errors=True)
         shutil.copytree(history / "drafts", destination)
-    for relative in ("registry", "themes", "runs"):
+    for relative in ("registry", "themes", "runs", "analysis", "share", "exports"):
         if (history / relative).is_dir():
             destination = _workspace(project_root) / relative
             shutil.rmtree(destination, ignore_errors=True)
             shutil.copytree(history / relative, destination)
+    if (history / "references.json").is_file():
+        shutil.copy2(history / "references.json", _workspace(project_root) / "references.json")
 
 
 def _recover_incomplete_transaction(project_root: Path) -> None:
@@ -363,6 +397,7 @@ def _mutation(
             "revision_before": int(manifest["revision"]),
             "history": str(history),
         })
+        revision_before = int(manifest["revision"])
         try:
             result = apply()
         except Exception:
@@ -370,7 +405,11 @@ def _mutation(
             shutil.rmtree(history, ignore_errors=True)
             _transaction_path(root).unlink(missing_ok=True)
             raise
-        revision_before = int(manifest["revision"])
+        applied_manifest = load_json(_manifest_path(root))
+        if applied_manifest.get("project_id") != manifest.get("project_id"):
+            _restore_history(root, history, session_id)
+            raise ValidationError("project identity changed during a mutation")
+        manifest = {**manifest, **applied_manifest}
         manifest["revision"] = revision_before + 1
         manifest["engine_version"] = ENGINE_VERSION
         manifest["protocol_version"] = PROTOCOL_VERSION
@@ -1061,8 +1100,78 @@ def _meta(params: dict[str, Any], root: Path, prefix: str) -> tuple[int, str]:
 
 def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
     root = Path(params.get("project_root") or Path.cwd()).expanduser().resolve()
+    if method == "project.migration_preview":
+        return migration_preview(root, Path(params["target_project_root"]))
+    if method == "project.migrate":
+        return migrate_project_copy(root, Path(params["target_project_root"]), confirmed=params.get("confirmed", False))
     if method == "project.init":
         return init_protocol_project(root)
+    if method == "project.create_from_references":
+        if not _manifest_path(root).is_file():
+            init_protocol_project(root)
+        expected, operation_id = _meta(params, root, "REFERENCE-PROJECT")
+        result = _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="project.create_from_references",
+            operation_payload={"name": params["name"], "references": params["references"]},
+            session_id=None,
+            recovery_paths=("references.json",),
+            apply=lambda: create_reference_project(root, name=params["name"], references=params["references"]),
+        )
+        return {**result, "snapshot": project_snapshot(root)}
+    if method == "project.fork":
+        expected, operation_id = _meta(params, root, "FORK")
+        target_root = Path(params["target_project_root"]).expanduser().resolve()
+        operation_payload = {
+            "parent_project_root": str(root), "name": params["name"],
+            "fork_type": params.get("fork_type", "creative_expansion"),
+            "source_asset_ids": params.get("source_asset_ids", []),
+        }
+        # A fork is a write to the new child, not to its parent.  Validate the
+        # parent snapshot under lock, then record the idempotent operation in
+        # the child's own history so the parent's bytes and revision stay fixed.
+        with _project_lock(root):
+            parent_manifest = _require_compatible_manifest(root)
+            _require_revision(parent_manifest, expected)
+            if not _manifest_path(target_root).is_file():
+                init_protocol_project(target_root)
+            child_result = _mutation(
+                target_root,
+                expected_revision=0,
+                operation_id=operation_id,
+                operation_kind="project.fork",
+                operation_payload=operation_payload,
+                session_id=None,
+                undoable=False,
+                recovery_paths=("references.json", "analysis", "themes", "registry"),
+                apply=lambda: fork_project(
+                    root, target_root, name=params["name"],
+                    fork_type=params.get("fork_type", "creative_expansion"),
+                    source_asset_ids=params.get("source_asset_ids", []),
+                ),
+            )
+        return {
+            **child_result,
+            "revision_before": int(parent_manifest["revision"]),
+            "revision": int(parent_manifest["revision"]),
+            "child_revision": child_result["revision"],
+            "parent_unchanged": True,
+            "child_snapshot": project_snapshot(target_root),
+        }
+    if method == "project.export":
+        _require_compatible_manifest(root)
+        return export_project(
+            root,
+            distribution=params.get("distribution", "public"),
+            output_dir=Path(params.get("output_dir") or _workspace(root) / "exports"),
+            confirmed_public=params.get("confirmed_public", False),
+        )
+    if method == "project.import":
+        if not _manifest_path(root).is_file():
+            init_protocol_project(root)
+        return import_project(Path(params["source"]), root, name=params.get("name"))
     if method in {"project.open", "project.snapshot"}:
         return project_snapshot(root, params.get("session_id"))
     if method == "project.undo":
@@ -1180,6 +1289,63 @@ def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
             expected_revision=expected,
             operation_id=operation_id,
         )
+    if method == "analysis.start":
+        expected, operation_id = _meta(params, root, "ANALYSIS")
+        result = _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="analysis.start",
+            operation_payload={},
+            session_id=project_manifest(root).get("active_session_id"),
+            recovery_paths=("analysis",),
+            apply=lambda: start_analysis(root),
+        )
+        return {**result, "snapshot": project_snapshot(root)}
+    if method == "analysis.next":
+        _require_compatible_manifest(root)
+        return next_analysis_job(root, params["analysis_id"])
+    if method == "analysis.record":
+        expected, operation_id = _meta(params, root, "ANALYSIS-RESULT")
+        result = _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="analysis.record",
+            operation_payload={
+                "analysis_id": params["analysis_id"], "job_id": params["job_id"],
+                "status": params["status"], "result": params.get("result"), "error": params.get("error"),
+            },
+            session_id=project_manifest(root).get("active_session_id"),
+            recovery_paths=("analysis",),
+            apply=lambda: record_analysis(
+                root, params["analysis_id"], params["job_id"], status=params["status"],
+                result=params.get("result"), error=params.get("error"),
+            ),
+        )
+        return {**result, "snapshot": project_snapshot(root)}
+    if method == "analysis.status":
+        _require_compatible_manifest(root)
+        return analysis_status(root, params["analysis_id"])
+    if method == "design.build_from_analysis":
+        expected, operation_id = _meta(params, root, "ANALYSIS-DESIGN")
+        result = _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="design.build_from_analysis",
+            operation_payload={
+                "analysis_id": params["analysis_id"], "shot_count": params.get("shot_count", 9),
+                "language": params.get("language", "zh-CN"), "theme_id": params.get("theme_id"),
+            },
+            session_id=None,
+            recovery_paths=("analysis", "themes", "registry", "references.json"),
+            apply=lambda: build_design_from_analysis(
+                root, params["analysis_id"], shot_count=int(params.get("shot_count", 9)),
+                language=params.get("language", "zh-CN"), theme_id=params.get("theme_id"),
+            ),
+        )
+        return {**result, "snapshot": project_snapshot(root, result.get("session_id"))}
     if method == "generation.start":
         expected, operation_id = _meta(params, root, "RUN")
         result = _mutation(
@@ -1264,6 +1430,78 @@ def handle_domain_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
             ),
         )
         return {**result, "snapshot": project_snapshot(root)}
+    if method == "library.status":
+        return library_status()
+    if method == "library.reconcile":
+        _require_compatible_manifest(root)
+        return reconcile_library(root)
+    if method == "library.list":
+        return library_list(
+            query=params.get("query", ""), archived=params.get("archived", False),
+            favorite=params.get("favorite"), limit=int(params.get("limit", 50)), offset=int(params.get("offset", 0)),
+        )
+    if method == "library.get":
+        return library_get(params.get("project_id") or project_manifest(root)["project_id"])
+    if method == "library.update":
+        return library_update(
+            params.get("project_id") or project_manifest(root)["project_id"],
+            tags=params.get("tags"), favorite=params.get("favorite"), display_name=params.get("display_name"),
+        )
+    if method == "library.archive":
+        return library_archive(
+            params.get("project_id") or project_manifest(root)["project_id"], bool(params.get("archived", True))
+        )
+    if method == "library.lineage":
+        return library_lineage(params.get("project_id") or project_manifest(root)["project_id"])
+    if method == "share.draft":
+        expected, operation_id = _meta(params, root, "SHARE-DRAFT")
+        result = _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="share.draft",
+            operation_payload={key: params.get(key) for key in ("platform", "title", "text", "hashtags", "image_paths", "project_url", "account")},
+            session_id=project_manifest(root).get("active_session_id"),
+            recovery_paths=("share",),
+            apply=lambda: create_share_draft(
+                root, platform=params["platform"], title=params.get("title"), text=params.get("text"),
+                hashtags=params.get("hashtags"), image_paths=params.get("image_paths"),
+                project_url=params.get("project_url"), account=params.get("account", "default"),
+            ),
+        )
+        return {**result, "snapshot": project_snapshot(root)}
+    if method == "share.preview":
+        _require_compatible_manifest(root)
+        return preview_share(root, params["share_id"])
+    if method == "share.confirm":
+        expected, operation_id = _meta(params, root, "SHARE-CONFIRM")
+        return _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="share.confirm",
+            operation_payload={"share_id": params["share_id"], "confirmed_public": params.get("confirmed_public", False)},
+            session_id=project_manifest(root).get("active_session_id"),
+            recovery_paths=("share",),
+            undoable=False,
+            apply=lambda: confirm_share(root, params["share_id"], confirmed_public=params.get("confirmed_public", False)),
+        )
+    if method == "share.publish":
+        expected, operation_id = _meta(params, root, "SHARE-PUBLISH")
+        return _mutation(
+            root,
+            expected_revision=expected,
+            operation_id=operation_id,
+            operation_kind="share.publish",
+            operation_payload={"share_id": params["share_id"]},
+            session_id=project_manifest(root).get("active_session_id"),
+            recovery_paths=("share",),
+            undoable=False,
+            apply=lambda: publish_share(root, params["share_id"], confirmation_token=params["confirmation_token"]),
+        )
+    if method == "share.status":
+        _require_compatible_manifest(root)
+        return share_status(root, params.get("share_id"))
     if method == "studio.view.get":
         return load_studio_view(root)
     if method == "studio.view.save":

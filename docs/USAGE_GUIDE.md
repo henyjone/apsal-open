@@ -26,7 +26,7 @@ Creators do not hand-write JSON/YAML, configure an image API, or find a separate
 Install the pinned stable release:
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref v0.15.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -36,14 +36,14 @@ Restart Codex or open a new task, then verify:
 codex plugin list
 ```
 
-You should see `apsal-studio@apsal-open`, enabled at version `0.15.0`.
+You should see `apsal-studio@apsal-open`, enabled at version `0.16.0`.
 
 To replace an older pinned installation:
 
 ```bash
 codex plugin remove apsal-studio@apsal-open
 codex plugin marketplace remove apsal-open
-codex plugin marketplace add henyjone/apsal-open --ref v0.15.0
+codex plugin marketplace add henyjone/apsal-open --ref v0.16.0
 codex plugin add apsal-studio@apsal-open
 ```
 
@@ -155,7 +155,7 @@ To share reusable knowledge without exposing the private theme, ask Studio to ex
 
 ## 6. Bind references correctly
 
-Declare each reference as `identity`, `style`, `world`, `prop`, `wardrobe`, or `composition`.
+Declare each reference as one or more of `identity`, `subject`, `world`, `space`, `composition`, `lighting`, `wardrobe`, `color`, `style`, or `prop`. The project library also records a creator-facing group role for every image.
 
 An identity reference may stabilize the same adult face but must not transfer pose, action, hands, gaze, face direction, expression, background, camera, composition, makeup, hair, wardrobe, focal length or lighting. A style reference may transfer palette and material language but not the depicted person's identity. Forbidden uses always outrank conflicting declared roles.
 
@@ -284,11 +284,11 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Symptom | Action |
 |---|---|
 | Studio does not trigger | Restart Codex/open a new task and explicitly say “Use APSAL Studio” |
-| Codex explains `run.json` instead of using the package | Confirm version 0.15.0 and say “Open this APSAL package and generate the first image” |
-| English input still shows Chinese cards | Open a new task after upgrading to 0.15.0, or say “use English”; the session should report language `en` |
-| Chinese cards contain English machine fields | Confirm version 0.15.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
-| Element cards show only headings or blank proposal areas | Confirm version 0.15.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
-| Five-stage thumbnails are missing | Confirm version 0.15.0 and start a new task; DNA choices remain text-only, while the element-card surface shows the thumbnail strip |
+| Codex explains `run.json` instead of using the package | Confirm version 0.16.0 and say “Open this APSAL package and generate the first image” |
+| English input still shows Chinese cards | Open a new task after upgrading to 0.16.0, or say “use English”; the session should report language `en` |
+| Chinese cards contain English machine fields | Confirm version 0.16.0 and open a new task; the Chinese card projection should hide machine IDs and labels |
+| Element cards show only headings or blank proposal areas | Confirm version 0.16.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
+| Five-stage thumbnails are missing | Confirm version 0.16.0 and start a new task; DNA choices remain text-only, while the element-card surface shows the thumbnail strip |
 | A Skill has stage thumbnails but no real reference | Check `reference_manifest.json`; `not_bound` means no real image was bound, and thumbnails cannot replace one |
 | Every image repeats the same scene, look, pose or focal perspective | Start a new 0.15 project and keep Chaptered Variation, or switch the first Content card from Continuous Narrative; review the three scene/look chapters and nine body-state plan before confirmation |
 | Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |

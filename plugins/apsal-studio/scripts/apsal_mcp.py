@@ -151,6 +151,111 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
+        "name": "create_reference_project", "description": "Create one APSAL root project from 1-24 local reference images with explicit copyright, portrait, redistribution, and AI-modification rights.",
+        "inputSchema": _schema({"name": {"type": "string"}, "references": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"type": "object"}}, "project_root": {"type": "string"}, **MUTATION_META}, ["name", "references"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "fork_project", "description": "Create an immutable child APSAL project for one reference analysis or creative expansion, preserving parent lineage.",
+        "inputSchema": _schema({"target_project_root": {"type": "string"}, "name": {"type": "string"}, "fork_type": {"type": "string"}, "source_asset_ids": {"type": "array", "items": {"type": "string"}}, "project_root": {"type": "string"}, **MUTATION_META}, ["target_project_root", "name"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "export_project", "description": "Export a public Prompt/Skill/share-page package without private references, or a private full backup with sanitized references.",
+        "inputSchema": _schema({"distribution": {"enum": ["public", "private"]}, "output_dir": {"type": "string"}, "confirmed_public": {"type": "boolean"}, "project_root": {"type": "string"}}, ["distribution", "output_dir"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "import_project", "description": "Import an APSAL project package into a new local project identity while retaining source provenance.",
+        "inputSchema": _schema({"source": {"type": "string"}, "name": {"type": "string"}, "project_root": {"type": "string"}}, ["source"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "start_reference_analysis", "description": "Create resumable Codex jobs for per-image APSAL analysis followed by cross-image visual-DNA synthesis.",
+        "inputSchema": _schema({"project_root": {"type": "string"}, **MUTATION_META}, []),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "get_next_analysis_job", "description": "Return the next strict multimodal analysis or synthesis job without calling an external vision API.",
+        "inputSchema": _schema({"analysis_id": {"type": "string"}, "project_root": {"type": "string"}}, ["analysis_id"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "record_analysis_result", "description": "Record one validated thirteen-element Codex analysis result or failure with resumable attempts.",
+        "inputSchema": _schema({"analysis_id": {"type": "string"}, "job_id": {"type": "string"}, "status": {"enum": ["succeeded", "failed"]}, "result": {"type": "object"}, "error": {"type": "string"}, "project_root": {"type": "string"}, **MUTATION_META}, ["analysis_id", "job_id", "status"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "get_analysis_status", "description": "Read the current per-image and synthesis state for a reference analysis.",
+        "inputSchema": _schema({"analysis_id": {"type": "string"}, "project_root": {"type": "string"}}, ["analysis_id"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "build_design_from_analysis", "description": "Automatically build and package one five-layer, thirteen-element APSAL theme from a completed reference analysis.",
+        "inputSchema": _schema({"analysis_id": {"type": "string"}, "shot_count": {"type": "integer", "minimum": 1, "maximum": 24}, "language": {"enum": ["zh-CN", "en"]}, "theme_id": {"type": "string"}, "project_root": {"type": "string"}, **MUTATION_META}, ["analysis_id"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "library_status", "description": "Report the rebuildable local APSAL creative-library project and asset counts.",
+        "inputSchema": _schema({"project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "reconcile_library", "description": "Reconcile the current authoritative .apsal project, references, outputs, and QA into the cross-project library.",
+        "inputSchema": _schema({"project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "list_library_projects", "description": "Search and page APSAL projects by name, tags, analysis, favorite, and archive state.",
+        "inputSchema": _schema({"query": {"type": "string"}, "archived": {"type": "boolean"}, "favorite": {"type": "boolean"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}, "offset": {"type": "integer", "minimum": 0}, "project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "get_library_project", "description": "Return one APSAL library project with all reference and output provenance records.",
+        "inputSchema": _schema({"project_id": {"type": "string"}, "project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "update_library_project", "description": "Update library-only display name, tags, and favorite state without changing APSAL project semantics.",
+        "inputSchema": _schema({"project_id": {"type": "string"}, "display_name": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}}, "favorite": {"type": "boolean"}, "project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "archive_library_project", "description": "Soft-hide or restore a library project without deleting source or archived image bytes.",
+        "inputSchema": _schema({"project_id": {"type": "string"}, "archived": {"type": "boolean"}, "project_root": {"type": "string"}}, ["archived"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "get_project_lineage", "description": "Read one project's ancestors and direct child expansions from the local project library.",
+        "inputSchema": _schema({"project_id": {"type": "string"}, "project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "create_share_draft", "description": "Generate platform-specific images, title, copy, hashtags, AI label, and APSAL link for X or Xiaohongshu.",
+        "inputSchema": _schema({"platform": {"enum": ["x", "xiaohongshu"]}, "title": {"type": "string"}, "text": {"type": "string"}, "hashtags": {"type": "array", "items": {"type": "string"}}, "image_paths": {"type": "array", "items": {"type": "string"}}, "project_url": {"type": "string"}, "account": {"type": "string"}, "project_root": {"type": "string"}, **MUTATION_META}, ["platform"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "preview_share", "description": "Preview the exact platform content digest that must be approved before public release.",
+        "inputSchema": _schema({"share_id": {"type": "string"}, "project_root": {"type": "string"}}, ["share_id"]),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "confirm_share", "description": "Confirm one unchanged public-release draft and return a digest-bound, single-draft confirmation token.",
+        "inputSchema": _schema({"share_id": {"type": "string"}, "confirmed_public": {"type": "boolean"}, "project_root": {"type": "string"}, **MUTATION_META}, ["share_id", "confirmed_public"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "publish_share", "description": "Publish a confirmed X draft through the official API when Keychain OAuth exists, or return an official X/Xiaohongshu composer handoff.",
+        "inputSchema": _schema({"share_id": {"type": "string"}, "confirmation_token": {"type": "string"}, "project_root": {"type": "string"}, **MUTATION_META}, ["share_id", "confirmation_token"]),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True},
+    },
+    {
+        "name": "get_share_status", "description": "Read one share record or all local share drafts and publication states for the current project.",
+        "inputSchema": _schema({"share_id": {"type": "string"}, "project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
         "name": "apsal_frontend_status", "description": "Report whether APSAL Studio Codex linkage is enabled, authenticated, protocol-compatible, and bound to a current project.",
         "inputSchema": _schema({}, []),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
@@ -212,7 +317,7 @@ def _mutation_params(arguments: dict[str, Any], root: Path, prefix: str) -> dict
         snapshot = project_snapshot(root)
         if snapshot.get("compatible") is False:
             raise ValidationError(
-                "APSAL project is protocol-incompatible and read-only; create a new 0.15 project"
+                "APSAL project is protocol-incompatible and read-only; preview and copy-migrate it to 0.16"
             )
         expected = snapshot["revision"]
     return {
@@ -279,7 +384,7 @@ def _with_protocol_metadata(summary: dict[str, Any], result: dict[str, Any]) -> 
     return {
         **summary,
         "project_id": result.get("project_id"),
-        "protocol_version": result.get("protocol_version", "0.15.0"),
+        "protocol_version": result.get("protocol_version", "0.16.0"),
         "revision": result.get("revision"),
         "operation_id": result.get("operation_id"),
         "idempotent_replay": result.get("idempotent_replay", False),
@@ -590,6 +695,126 @@ def _tool_record(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _tool_create_reference_project(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("project.create_from_references", arguments, {
+        "name": arguments["name"], "references": arguments["references"],
+        **_mutation_params(arguments, root, "REFERENCE-PROJECT"),
+    })
+
+
+def _tool_fork_project(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("project.fork", arguments, {
+        "target_project_root": arguments["target_project_root"], "name": arguments["name"],
+        "fork_type": arguments.get("fork_type", "creative_expansion"),
+        "source_asset_ids": arguments.get("source_asset_ids", []),
+        **_mutation_params(arguments, root, "FORK"),
+    })
+
+
+def _tool_export_project(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("project.export", arguments, {
+        "distribution": arguments["distribution"], "output_dir": arguments["output_dir"],
+        "confirmed_public": arguments.get("confirmed_public", False),
+    })
+
+
+def _tool_import_project(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("project.import", arguments, {"source": arguments["source"], "name": arguments.get("name")})
+
+
+def _tool_analysis_start(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("analysis.start", arguments, _mutation_params(arguments, root, "ANALYSIS"))
+
+
+def _tool_analysis_next(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("analysis.next", arguments, {"analysis_id": arguments["analysis_id"]})
+
+
+def _tool_analysis_record(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("analysis.record", arguments, {
+        "analysis_id": arguments["analysis_id"], "job_id": arguments["job_id"],
+        "status": arguments["status"], "result": arguments.get("result"), "error": arguments.get("error"),
+        **_mutation_params(arguments, root, "ANALYSIS-RESULT"),
+    })
+
+
+def _tool_analysis_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("analysis.status", arguments, {"analysis_id": arguments["analysis_id"]})
+
+
+def _tool_analysis_design(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("design.build_from_analysis", arguments, {
+        "analysis_id": arguments["analysis_id"], "shot_count": arguments.get("shot_count", 9),
+        "language": arguments.get("language", "zh-CN"), "theme_id": arguments.get("theme_id"),
+        **_mutation_params(arguments, root, "ANALYSIS-DESIGN"),
+    })
+
+
+def _tool_library_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.status", arguments, {})
+
+
+def _tool_library_reconcile(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.reconcile", arguments, {})
+
+
+def _tool_library_list(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.list", arguments, {key: arguments[key] for key in ("query", "archived", "favorite", "limit", "offset") if key in arguments})
+
+
+def _tool_library_get(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.get", arguments, {"project_id": arguments.get("project_id")})
+
+
+def _tool_library_update(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.update", arguments, {key: arguments.get(key) for key in ("project_id", "display_name", "tags", "favorite")})
+
+
+def _tool_library_archive(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.archive", arguments, {"project_id": arguments.get("project_id"), "archived": arguments["archived"]})
+
+
+def _tool_library_lineage(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("library.lineage", arguments, {"project_id": arguments.get("project_id")})
+
+
+def _tool_share_draft(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("share.draft", arguments, {
+        **{key: arguments.get(key) for key in ("platform", "title", "text", "hashtags", "image_paths", "project_url", "account")},
+        **_mutation_params(arguments, root, "SHARE-DRAFT"),
+    })
+
+
+def _tool_share_preview(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("share.preview", arguments, {"share_id": arguments["share_id"]})
+
+
+def _tool_share_confirm(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("share.confirm", arguments, {
+        "share_id": arguments["share_id"], "confirmed_public": arguments["confirmed_public"],
+        **_mutation_params(arguments, root, "SHARE-CONFIRM"),
+    })
+
+
+def _tool_share_publish(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    return _domain("share.publish", arguments, {
+        "share_id": arguments["share_id"], "confirmation_token": arguments["confirmation_token"],
+        **_mutation_params(arguments, root, "SHARE-PUBLISH"),
+    })
+
+
+def _tool_share_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _domain("share.status", arguments, {"share_id": arguments.get("share_id")})
+
+
 def _tool_frontend_status(arguments: dict[str, Any]) -> dict[str, Any]:
     del arguments
     status = frontend_status()
@@ -695,6 +920,27 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "bind_import_reference": _tool_bind_import_reference, "start_generation_run": _tool_run,
     "get_next_codex_job": _tool_next_codex_job, "record_model_visual_qa": _tool_model_qa,
     "record_generation_result": _tool_record,
+    "create_reference_project": _tool_create_reference_project,
+    "fork_project": _tool_fork_project,
+    "export_project": _tool_export_project,
+    "import_project": _tool_import_project,
+    "start_reference_analysis": _tool_analysis_start,
+    "get_next_analysis_job": _tool_analysis_next,
+    "record_analysis_result": _tool_analysis_record,
+    "get_analysis_status": _tool_analysis_status,
+    "build_design_from_analysis": _tool_analysis_design,
+    "library_status": _tool_library_status,
+    "reconcile_library": _tool_library_reconcile,
+    "list_library_projects": _tool_library_list,
+    "get_library_project": _tool_library_get,
+    "update_library_project": _tool_library_update,
+    "archive_library_project": _tool_library_archive,
+    "get_project_lineage": _tool_library_lineage,
+    "create_share_draft": _tool_share_draft,
+    "preview_share": _tool_share_preview,
+    "confirm_share": _tool_share_confirm,
+    "publish_share": _tool_share_publish,
+    "get_share_status": _tool_share_status,
     "apsal_frontend_status": _tool_frontend_status,
     "apsal_frontend_get_project": _tool_frontend_get_project,
     "apsal_frontend_get_updates": _tool_frontend_updates,
@@ -773,7 +1019,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if request_id is None: return None
     if method == "initialize":
         params = message.get("params", {})
-        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.15.0"}}
+        result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}, "resources": {}}, "serverInfo": {"name": "apsal-studio", "version": "0.16.0"}}
     elif method == "tools/list": result = {"tools": TOOLS}
     elif method == "resources/list": result = {"resources": [
         {"uri": UI_URI, "name": "APSAL DNA Text Cards", "mimeType": "text/html;profile=mcp-app"},

@@ -562,7 +562,10 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(home.stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE((home / "vault").stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE((project / ".apsal").stat().st_mode), 0o700)
-            self.assertEqual((project / ".apsal/.gitignore").read_text(), "drafts/\nruns/\ncache/\nvault/\nstudio/\n")
+            self.assertEqual(
+                (project / ".apsal/.gitignore").read_text(),
+                "drafts/\nruns/\nanalysis/\nshare/\nexports/\ncache/\nvault/\nstudio/\n",
+            )
             first = (project / ".apsal/project.json").read_bytes()
             engine.init_workspace(project, home)
             self.assertEqual((project / ".apsal/project.json").read_bytes(), first)
@@ -802,15 +805,15 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_twenty_nine_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_fifty_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
             project_manifest = engine.load_json(project / ".apsal/project.json")
             project_manifest.update({
-                "schema_version": "0.15.0",
-                "protocol_version": "0.15.0",
-                "engine_version": "0.15.0",
+                "schema_version": "0.16.0",
+                "protocol_version": "0.16.0",
+                "engine_version": "0.16.0",
                 "active_session_id": session["session_id"],
                 "revision": 1,
             })
@@ -828,8 +831,8 @@ class EngineTests(unittest.TestCase):
             env = {**os.environ, "APSAL_HOME": str(home)}
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
-            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.15.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 29)
+            self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.16.0")
+            self.assertEqual(len(responses[1]["result"]["tools"]), 50)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             start_tool = next(item for item in responses[1]["result"]["tools"] if item["name"] == "start_design_session")
             self.assertEqual(start_tool["inputSchema"]["properties"]["frontend_mode"]["enum"], ["headless", "studio"])

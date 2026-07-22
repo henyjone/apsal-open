@@ -12,12 +12,12 @@ function snapshot(): ApsalProjectSnapshot {
   ] as Array<[ApsalLayerId, string]>
   return {
     project_root: '/tmp/project',
-    project: { project_id: 'PROJECT-TEST', protocol_version: '0.15.0', engine_version: '0.15.0', revision: 4 },
+    project: { project_id: 'PROJECT-TEST', protocol_version: '0.16.0', engine_version: '0.16.0', revision: 4 },
     compatible: true,
     read_only: false,
     revision: 4,
-    protocol_version: '0.15.0',
-    engine_version: '0.15.0',
+    protocol_version: '0.16.0',
+    engine_version: '0.16.0',
     session: null,
     elements: roles.map(([layer, role], index) => ({
       protocol_element_id: `THEME:${role}`,

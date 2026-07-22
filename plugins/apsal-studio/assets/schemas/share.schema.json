@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apsal.studio/schemas/share-0.1.0.json",
+  "title": "APSAL Confirmed Social Share",
+  "type": "object",
+  "required": ["schema_version", "share_id", "project_id", "status", "content", "content_digest", "confirmation", "publication"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "share_id": {"type": "string", "pattern": "^SHARE-[A-Z0-9_-]+$"},
+    "project_id": {"type": "string"},
+    "status": {"enum": ["draft", "confirmed", "awaiting_external_confirmation", "published", "failed"]},
+    "content": {
+      "type": "object",
+      "required": ["platform", "title", "text", "hashtags", "images", "project_url", "made_with_ai", "account"],
+      "properties": {
+        "platform": {"enum": ["x", "xiaohongshu"]},
+        "title": {"type": "string"},
+        "text": {"type": "string"},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+        "images": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["path", "sha256"]}},
+        "project_url": {"type": "string"},
+        "made_with_ai": {"const": true},
+        "account": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "content_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "confirmation": {"type": ["object", "null"]},
+    "publication": {"type": ["object", "null"]}
+  },
+  "additionalProperties": true
+}

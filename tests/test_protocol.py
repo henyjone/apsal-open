@@ -43,7 +43,7 @@ class ProtocolTests(unittest.TestCase):
             project = Path(tmp) / "project"
             initialized = protocol.init_protocol_project(project)
             self.assertEqual(initialized["project"]["revision"], 0)
-            self.assertEqual(initialized["project"]["protocol_version"], "0.15.0")
+            self.assertEqual(initialized["project"]["protocol_version"], "0.16.0")
 
             started = protocol.handle_domain_method(
                 "design.start",
@@ -291,7 +291,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertTrue(snapshot["read_only"])
             self.assertEqual(snapshot["revision"], 7)
             self.assertEqual(manifest_path.read_bytes(), original)
-            with self.assertRaisesRegex(ValidationError, "not upgraded in place"):
+            with self.assertRaisesRegex(ValidationError, "copy migration"):
                 protocol.handle_domain_method("project.init", {"project_root": str(project)})
             self.assertEqual(manifest_path.read_bytes(), original)
 
