@@ -48,6 +48,7 @@ STAGE_TYPES = {
     "photo": ("style", "lighting"),
 }
 CREATIVE_LAYERS = ("direction", "worldbuilding", "narrative", "image", "delivery")
+AUTHORING_MODES = ("guided", "automatic")
 STAGE_PREVIEW_SCHEMA_VERSION = "0.1.0"
 STAGE_PREVIEW_COLORS = {
     "direction": ("#F7C873", "#583A14"),
@@ -184,6 +185,7 @@ ZH_UI_LABELS = {
     "source": {
         "proposed_from_brief": "根据创作描述提出", "derived_from_dna": "根据已选资源推导",
         "system_policy": "根据执行规则设定", "creator_confirmed": "创作者已确认",
+        "automatic_default": "全自动方案",
     },
     "qa": {
         "visual_qa_pending": "等待视觉检查", "static_validated": "结构检查通过",
@@ -212,6 +214,9 @@ ZH_UI_LABELS = {
         "sharpness": "锐度", "dynamic_range": "动态范围", "skin_tone_policy": "肤色规则", "one_job_one_image": "单镜单图",
         "output_count": "输出数量", "aspect_ratio": "画面比例", "size": "请求尺寸", "format": "文件形式",
         "required_checks": "必查项目", "reject_if": "拒绝条件", "human_visual_qa": "人工视觉检查",
+        "scene_plan": "九镜场景方案", "makeup_plan": "九镜妆容方案", "hair_plan": "九镜发型方案",
+        "wardrobe_plan": "九镜服装方案", "face_orientation_plan": "九镜面部朝向", "body_orientation_plan": "九镜身体朝向",
+        "composition_plan": "九镜构图方案", "lighting_plan": "九镜灯光方案",
     },
 }
 
@@ -270,10 +275,14 @@ ZH_UI_TERMS = {
     "successful outputs are immutable": "已成功结果不可覆盖", "True": "是", "False": "否",
     "chaptered_variation": "章节式丰富变化", "continuous_narrative": "连续叙事",
     "three related sub-scenes inside one coherent photographic world": "同一摄影世界中的三个关联场景",
+    "nine distinct scene designs inside one coherent photographic theme": "同一摄影主题中的九个不同场景设计",
+    "nine declared scene-light states inside one coherent emotional arc": "统一情绪弧线中的九种场景与灯光状态",
     "one core scene with continuous physical state": "一个保持物理连续的核心场景",
     "threshold_space": "第一章：入口与空间建立", "relation_space": "第二章：关系与事件发展",
     "resolution_space": "第三章：转折与情绪完成", "single_core_scene": "同一核心场景",
     "three coordinated looks, one locked per chapter": "三套相互协调的妆造，每章锁定一套",
+    "nine coordinated per-Job wardrobes; facial identity remains unchanged": "九套逐镜协调服装，人物面部身份不变",
+    "nine distinct makeup and hair designs; facial identity remains unchanged": "九套不同妆发，人物面部身份不变",
     "one confirmed look locked across the continuous event": "一套已确认妆造贯穿连续事件",
     "three related grooming states, one locked per chapter": "三种相互关联的妆发状态，每章锁定一种",
     "one grooming state continuous across the event": "一种妆发状态贯穿连续事件",
@@ -299,6 +308,8 @@ ZH_UI_TERMS = {
     "detail frame proves touch, material and consequence": "细节镜头证明触感、材质与事件结果",
     "three scenes are visibly distinct but belong to one world": "三个场景可明确区分，但属于同一世界",
     "three looks are visibly distinct and identity remains stable": "三套妆造可明确区分，人物身份保持稳定",
+    "nine scenes are visibly distinct and identity remains stable": "九个场景均可明确区分，人物身份保持稳定",
+    "nine looks are visibly distinct and facial identity remains stable": "九套妆造均可明确区分，人物面部身份保持稳定",
     "all nine body states and shot functions are distinct": "九种身体状态和镜头职能均不重复",
     "single scene, look and event state remain continuous": "同一场景、妆造与事件状态保持连续",
     "identity, live-action medium, world physics and color grammar remain coherent": "人物身份、真人摄影媒介、世界物理与色彩体系保持连贯",
@@ -380,6 +391,7 @@ def _decision_set_strategy(role: str, values: dict[str, Any]) -> str | None:
     if values.get("pose_strategy") == "nine causally connected action states inside one continuous event": return "continuous_narrative"
     variation_checks = values.get("variation_checks", [])
     if "three scenes are visibly distinct but belong to one world" in variation_checks: return "chaptered_variation"
+    if "nine scenes, nine looks, nine poses, nine gaze and face directions, nine compositions, nine focal lengths and nine lighting designs are distinct" in variation_checks: return "chaptered_variation"
     if "single scene, look and event state remain continuous" in values.get("continuity_checks", []): return "continuous_narrative"
     return None
 
@@ -396,19 +408,19 @@ def _element_proposal_copy(role: str, decision: dict[str, Any], brief: str, loca
         subject_proposal_zh = f"建议默认采用一位气质鲜明、从容且镜头表现力稳定的{protagonist_zh}。人物应能自然适配古典、当代、编辑与仪式感等多种妆发和服装；每次换造型仍必须被识别为同一个人。" if values.get("styling_versatility") else "建议保留当前虚构成年人物身份基线及其既有身份锁；如需新增气质与多妆造适配能力，应建立新的主题或人物资源版本。"
         subject_rationale_zh = "多妆造适配扩大人物资源的复用范围；锁定面部结构、成年年龄、肤质、发色发际线和身体比例，可以防止适配变成换脸。" if values.get("styling_versatility") else "旧会话保持原生成意图，避免插件升级后静默改变已经建立的人物设计。"
         copy = {
-            "content": (f"建议把“{_zh_creator_text(brief)}”凝练为一套统一的摄影命题，并默认采用“{'章节式丰富变化' if chaptered else '连续叙事'}”。{'九张图分成三章，每章使用不同场景、妆造、动作与焦段，但人物身份、真人摄影媒介、世界规则和色彩体系保持统一。' if chaptered else '九张图在同一核心场景和同一套妆造中推进一个连续事件，动作、视点与焦段按叙事职能变化。'}", "先确定套片怎样变化，后续场景、妆造、姿态和相机设计才不会在“丰富”与“连续”之间互相冲突。", ["章节式丰富变化（推荐）", "连续叙事"]),
+            "content": (f"建议把“{_zh_creator_text(brief)}”凝练为一套统一的摄影命题，并默认采用“{'章节式丰富变化' if chaptered else '连续叙事'}”。{'九张图仍分成三章，但九个场景、九套妆造、九种动作姿态、九种眼神与面部朝向、九种构图、九个焦段和九套灯光逐镜不同，只锁定同一个人物面部身份。' if chaptered else '九张图在同一核心场景和同一套妆造中推进一个连续事件，动作、视点与焦段按叙事职能变化。'}", "先确定套片怎样变化，后续场景、妆造、姿态和相机设计才不会在“丰富”与“连续”之间互相冲突。", ["章节式丰富变化（推荐）", "连续叙事"]),
             "emotion": (f"建议以“{v('primary_tone')}”为主情绪，以“{v('undertone')}”为潜在线索；情绪从“{_zh_ui_value(values.get('arc', {}).get('start', ''))}”推进到“{_zh_ui_value(values.get('arc', {}).get('turn', ''))}”，最后落在“{_zh_ui_value(values.get('arc', {}).get('end', ''))}”。", "把情绪拆成强度、能量、张力和进程，可以让九张照片形成变化，而不是九次相同表情。", ["更克制含蓄", "更明朗外放", "加入第二种复合情绪"]),
             "subject": (subject_proposal_zh, subject_rationale_zh, ["古典含蓄妆造", "当代编辑妆造", "礼服与仪式感妆造"] if values.get("styling_versatility") else ["保持现有身份", "建立兼容新版本", "补充明确身份参考"]),
-            "world": (("建议在同一个摄影世界中设计三个关联场景：第一章建立入口与空间，第二章发展关系与事件，第三章完成转折与情绪。三个场景必须可区分，但空间逻辑、材质、时间和物理规律属于同一世界。" if chaptered else "建议锁定一个核心场景，让空间几何、时间、材质、天气、物体位置和事件结果在九个镜头中连续成立。"), "场景变化只有被组织成章节才会丰富而不散乱；连续模式则以物理状态的可追溯性建立真实感。", (["增强三场景差异", "调整章节场景顺序", "强化共同世界线索"] if chaptered else ["强化同一空间连续", "增加同场景内的观看区域", "让物体状态变化更明显"])),
-            "look": (("建议设计三套相互协调的妆造，每章锁定一套：第一套建立人物，第二套推动关系，第三套完成表达。换妆造只能发生在章节边界，面部结构、年龄、肤质、发色发际线和身体比例始终锁定。" if chaptered else "建议锁定一套与人物、事件和世界相符的妆发服装贯穿九镜；只有可观察事件明确导致时才允许改变。"), "把妆造当作章节状态而不是随机装饰，既能获得三种视觉层次，也能防止换造型变成换人。", (["调整三套妆造关系", "强化章节间妆造递进", "减少差异但保留三套"] if chaptered else ["保持一套连续妆造", "强化妆造与事件关系", "增加一件推动事件的主道具"])),
-            "event": (("建议为九个镜头安排九种不重复的行动与身体状态，逐镜明确重心、手部职责、视线动机和动作结果；每章三种状态，共同推进同一主题。" if chaptered else "建议在同一连续事件中安排九种因果相连的行动状态，姿态可以变化，但必须继承前一镜已经发生的结果。"), "先定义行动、手部、视线与重心，再形成姿态，可以避免九张图只是换背景重复摆拍。", ["更明显的身体运动", "更克制的微动作", "强化手部与道具关系"]),
-            "sequence": ((f"建议把{v('shot_count')}个镜头组织成三章，每章三镜；场景、妆造、动作、姿态、景别和焦段有控制地变化，人物身份、世界规则、真人媒介和色彩体系保持统一。" if chaptered else f"建议把{v('shot_count')}个镜头组织成同一事件的连续推进；场景和妆造保持一致，动作、视点、景别与焦段按镜头职能变化。"), "先声明哪些维度应该变化、哪些必须保持，才能同时获得丰富性和整组一致性。", (["调整三章节奏", "强化章间转折", "让第三章更开放"] if chaptered else ["强化连续因果", "放慢事件节奏", "增加最终余韵"])),
-            "camera": (("建议按镜头职能组合多种焦段：环境建立使用约二十八毫米，全身行动使用约三十五毫米，自然中景使用约五十毫米，情绪近景使用约八十五毫米，手部或道具证据使用约一百零五毫米。" if chaptered else "建议在统一镜头体系中按职能变化焦段：场景、动作、中景、情绪近景与必要细节各自采用可信透视，同时避免无理由跳变。"), "焦段不是装饰数字；每一次变化都必须改变观看距离、空间关系或信息重点。图像模型应读取透视目的，而不是只机械读取焦段数值。", ["强化环境与空间", "强化人物与动作", "强化情绪与细节"]),
-            "light": ("建议建立一个有物理来源的主光，并让方向、阴影、衰减、曝光和反射在整组中可追溯；反差随情绪推进，而不是随机改变。", "可信光线同时解释时间、空间深度、材质和情绪，是世界连续性的核心证据。", ["柔和自然光", "更具方向性的戏剧光", "具有时间递进的光线变化"]),
+            "world": (("建议逐镜设计九个不同场景，每个场景都有独立空间、材质、景深与物理光线；九镜通过统一主题与真人摄影规则关联，不要求重复同一背景。" if chaptered else "建议锁定一个核心场景，让空间几何、时间、材质、天气、物体位置和事件结果在九个镜头中连续成立。"), "逐镜声明场景才能避免只换姿势不换画面；连续模式则以物理状态的可追溯性建立真实感。", (["强化九场景差异", "调整九镜场景顺序", "保留统一主题线索"] if chaptered else ["强化同一空间连续", "增加同场景内的观看区域", "让物体状态变化更明显"])),
+            "look": (("建议逐镜设计九套不同的妆容、发型与服装，并让每套妆造服务于该镜场景和动作；只锁定面部结构、五官、成年年龄、肤质与身体比例，不能换脸。" if chaptered else "建议锁定一套与人物、事件和世界相符的妆发服装贯穿九镜；只有可观察事件明确导致时才允许改变。"), "把妆造明确写入每镜提示词，可以得到真正的九套变化，同时把身份锁与造型变化分开。", (["调整九套妆造关系", "强化逐镜妆造差异", "只保留面部身份锁"] if chaptered else ["保持一套连续妆造", "强化妆造与事件关系", "增加一件推动事件的主道具"])),
+            "event": (("建议为九个镜头安排九种不重复的行动与身体状态，逐镜明确重心、手部职责、视线动机、面部朝向和动作结果。" if chaptered else "建议在同一连续事件中安排九种因果相连的行动状态，姿态可以变化，但必须继承前一镜已经发生的结果。"), "先定义行动、手部、视线、面朝与重心，再形成姿态，可以避免九张图只是换背景重复摆拍。", ["更明显的身体运动", "更克制的微动作", "强化手部与道具关系"]),
+            "sequence": ((f"建议把{v('shot_count')}个镜头组织成三章，每章三镜；但每一镜的场景、妆发服装、动作姿态、眼神面朝、构图、焦段与灯光都必须不同，仅保持人物面部身份一致。" if chaptered else f"建议把{v('shot_count')}个镜头组织成同一事件的连续推进；场景和妆造保持一致，动作、视点、景别与焦段按镜头职能变化。"), "先声明哪些维度应该变化、哪些必须保持，才能同时获得丰富性和整组一致性。", (["调整三章节奏", "强化章间转折", "让第三章更开放"] if chaptered else ["强化连续因果", "放慢事件节奏", "增加最终余韵"])),
+            "camera": (("建议九镜使用九个不同焦段：约二十四、二十八、三十五、四十、五十、六十五、八十五、一百零五和一百三十五毫米；每镜同时声明独立构图与透视目的。" if chaptered else "建议在统一镜头体系中按职能变化焦段：场景、动作、中景、情绪近景与必要细节各自采用可信透视，同时避免无理由跳变。"), "焦段不是装饰数字；每一次变化都必须改变观看距离、空间关系或信息重点。", ["强化环境与空间", "强化人物与动作", "强化情绪与细节"]),
+            "light": (("建议九镜分别使用九套有物理来源的灯光设计，并逐镜声明光源、方向、软硬、反差与衰减。" if chaptered else "建议建立一个有物理来源的主光，并让方向、阴影、衰减、曝光和反射在整组中可追溯。"), "可信光线同时解释时间、空间深度、材质和情绪；逐镜不同不等于随机打光。", ["柔和自然光", "更具方向性的戏剧光", "具有时间递进的光线变化"]),
             "style": ("建议采用克制的真人编辑摄影语言，让真实材质、人物状态和世界关系主导画面，风格效果保持在身份与物理规律之后。", "先保证人物和世界可信，再使用摄影修辞，能避免作品被滤镜、插画感或人工质感吞没。", ["更纪实自然", "更精致编辑", "更具电影叙事感"]),
             "color_post": ("建议从肤色、服装、道具和空间材质中建立基础色，只设置一个克制强调色；保留高光暗部、真实肤色与自然细节。", "关系化调色比统一套滤镜更能维持人物身份、材质差异、时间变化和整组连续性。", ["降低饱和度", "强化冷暖关系", "增加轻微胶片质感"]),
             "job": (f"建议冻结为{v('output_count')}个独立镜头任务，每个任务只生成一张{v('aspect_ratio')}成图，并保留唯一文件名和完整提示词。", "单镜单图便于失败重试、身份检查、版本追踪和后续独立使用。", ["现在逐张生成", "只保存完整提示词", "导出可安装技能包"]),
-            "quality_control": (("建议同时检查“该变的是否真的变化”和“该保持的是否始终一致”：三个场景、三套妆造、九种动作状态和九种镜头职能应可区分；人物身份、真人媒介、世界物理与色彩体系必须连贯。" if chaptered else "建议检查同一场景、同一妆造和连续事件状态是否保持，同时确认九种动作状态与镜头职能没有重复。"), "丰富性与连续性是两组不同证据，必须分别验收；结构检查也不能冒充生成结果已经通过视觉检查。", ["变化维度检查", "连续性检查", "人工最终验收"]),
+            "quality_control": (("建议逐项检查九个场景、九套妆造、九种姿态动作、九种眼神面朝、九种构图、九个焦段和九套灯光均不重复；只允许人物面部身份、成年年龄、身体比例与真人摄影媒介保持一致。" if chaptered else "建议检查同一场景、同一妆造和连续事件状态是否保持，同时确认九种动作状态与镜头职能没有重复。"), "丰富性与身份一致性是两组不同证据，必须分别验收；结构检查也不能冒充生成结果已经通过视觉检查。", ["变化维度检查", "身份一致性检查", "人工最终验收"]),
         }
         return copy[role]
     identity = values.get("identity")
@@ -416,19 +428,19 @@ def _element_proposal_copy(role: str, decision: dict[str, Any], brief: str, loca
     subject_proposal_en = f"Default to a poised, distinctive {protagonist_en} with stable camera presence. The protagonist should support classical, contemporary, editorial, and ceremonial makeup, hair, and wardrobe while remaining unmistakably the same person." if values.get("styling_versatility") else "Preserve the existing fictional adult identity and its current locks. Create a new theme or Character DNA version before adding a new presence and styling-versatility contract."
     subject_rationale_en = "Styling versatility improves reuse; fixed facial geometry, adult age, skin, hair color and hairline, and proportions prevent styling from becoming identity substitution." if values.get("styling_versatility") else "A legacy session keeps its original generation intent instead of silently changing when the plugin is upgraded."
     copy = {
-        "content": (f"Build one photographic proposition from “{brief}” and use {'Chaptered Variation' if chaptered else 'Continuous Narrative'} as the set strategy. " + ("Divide nine images into three chapters with controlled scene, styling, action, pose, framing, and focal-length variation while identity, live-action medium, world grammar, and color system stay coherent." if chaptered else "Carry one continuous event through the same core scene and confirmed look while action, viewpoint, framing, and focal length vary by narrative function."), "Choosing the set strategy first prevents scene, styling, pose, and camera decisions from contradicting each other about richness versus continuity.", ["Chaptered Variation (recommended)", "Continuous Narrative"]),
+        "content": (f"Build one photographic proposition from “{brief}” and use {'Chaptered Variation' if chaptered else 'Continuous Narrative'} as the set strategy. " + ("Keep three narrative chapters, but make all nine scenes, looks, actions, poses, gazes, face orientations, compositions, focal lengths and lighting designs different; preserve only the same facial identity and real adult person." if chaptered else "Carry one continuous event through the same core scene and confirmed look while action, viewpoint, framing, and focal length vary by narrative function."), "Choosing the set strategy first prevents scene, styling, pose, and camera decisions from contradicting each other about richness versus continuity.", ["Chaptered Variation (recommended)", "Continuous Narrative"]),
         "emotion": (f"Use {values.get('primary_tone')} as the primary tone and {values.get('undertone')} as the undertone, progressing from {values.get('arc', {}).get('start')} through {values.get('arc', {}).get('turn')} to {values.get('arc', {}).get('end')}.", "Separating intensity, energy, tension, and progression prevents nine repeated facial expressions.", ["More restrained", "More openly expressive", "Add a secondary emotional tone"]),
         "subject": (subject_proposal_en, subject_rationale_en, ["Classical restrained styling", "Contemporary editorial styling", "Ceremonial formal styling"] if values.get("styling_versatility") else ["Keep the current identity", "Create a compatible new version", "Add an explicit identity reference"]),
-        "world": (("Design three related sub-scenes inside one photographic world: a threshold chapter, a relation/event chapter, and a resolution chapter. They must be visibly distinct while sharing geometry, materials, time, and physics." if chaptered else "Lock one core scene whose geometry, time, materials, object positions, and event consequences remain continuous across all nine viewpoints."), "Chapter boundaries create variety without unrelated backgrounds; continuous mode creates reality through traceable physical state.", (["Increase the three-scene contrast", "Reorder the chapter scenes", "Strengthen shared-world clues"] if chaptered else ["Strengthen single-space continuity", "Use more zones inside the same scene", "Make object-state changes clearer"])),
-        "look": (("Design three coordinated looks, one locked per chapter. Styling changes only at declared chapter boundaries while facial geometry, adult age, skin, hair color/hairline, and body proportions remain fixed." if chaptered else "Lock one theme-appropriate wardrobe and grooming state across the continuous event; change it only when an observable event causes the change."), "Treating styling as chapter state provides visual range without turning a new look into a new person.", (["Adjust the relation among three looks", "Strengthen chapter-to-chapter styling progression", "Reduce contrast while retaining three looks"] if chaptered else ["Keep one continuous look", "Strengthen styling-event relation", "Add one event-driving hero prop"])),
-        "event": (("Plan nine distinct action-led body states. Declare weight, hand function, gaze motivation, and consequence for every Job, with three states per chapter." if chaptered else "Plan nine causally connected action states inside one continuous event, inheriting the result of every preceding action."), "Action, hands, gaze, and weight create meaningful pose variety instead of repeated posing against new backgrounds.", ["More full-body motion", "More restrained micro-actions", "Stronger hand-and-prop relation"]),
-        "sequence": ((f"Organize {values.get('shot_count')} Jobs as three chapters of three, varying scene, styling, action, pose, framing, and focal length while preserving identity, world grammar, live-action medium, and color system." if chaptered else f"Organize {values.get('shot_count')} Jobs as one continuous event; preserve scene and look while viewpoint, action, framing, and focal length vary by function."), "Declaring both variation axes and continuity axes produces richness without drift.", (["Adjust the three-chapter rhythm", "Strengthen chapter transitions", "Open the final chapter"] if chaptered else ["Strengthen continuous causality", "Slow the event rhythm", "Add a longer final aftertaste"])),
-        "camera": (("Use functional multi-focal coverage: about 28 mm for environment, 35 mm for full-body action, 50 mm for natural medium relation, 85 mm for emotional close portrait, and 105 mm for hand or prop evidence." if chaptered else "Use a coherent focal family with functional variation for environment, action, medium relation, emotional close portrait, and necessary detail."), "A focal length is not a decorative number; each change must serve viewpoint, spatial relation, or information priority, and the Prompt also states that observable perspective purpose.", ["More environment and space", "More subject and action", "More emotion and detail"]),
-        "light": ("Use one physically motivated key source whose direction, shadow, falloff, exposure, and reflections remain traceable; let contrast evolve with emotion, not randomly.", "Credible light is evidence for time, depth, material, emotion, and continuity.", ["Soft natural light", "More directional dramatic light", "Time-progressive light"]),
+        "world": (("Design nine distinct scenes, each with its own space, materials, depth and physical light, while one photographic theme and the same adult facial identity bind the set." if chaptered else "Lock one core scene whose geometry, time, materials, object positions, and event consequences remain continuous across all nine viewpoints."), "A declared scene plan prevents nine prompts from becoming the same background with different poses.", (["Increase nine-scene contrast", "Reorder the nine scenes", "Strengthen the shared theme clue"] if chaptered else ["Strengthen single-space continuity", "Use more zones inside the same scene", "Make object-state changes clearer"])),
+        "look": (("Design nine distinct makeup, hair and wardrobe combinations, one for each Job. Preserve face geometry, facial features, adult age, natural skin identity and body proportions; styling must never become a different person." if chaptered else "Lock one theme-appropriate wardrobe and grooming state across the continuous event; change it only when an observable event causes the change."), "Writing the complete look into every Prompt separates styling variation from facial identity continuity.", (["Adjust the relation among nine looks", "Strengthen per-Job styling contrast", "Preserve facial identity only"] if chaptered else ["Keep one continuous look", "Strengthen styling-event relation", "Add one event-driving hero prop"])),
+        "event": (("Plan nine distinct action-led body states. Declare weight, hand function, gaze motivation, face orientation and consequence for every Job." if chaptered else "Plan nine causally connected action states inside one continuous event, inheriting the result of every preceding action."), "Action, hands, gaze, face direction and weight create meaningful pose variety instead of repeated posing against new backgrounds.", ["More full-body motion", "More restrained micro-actions", "Stronger hand-and-prop relation"]),
+        "sequence": ((f"Organize {values.get('shot_count')} Jobs as three chapters of three, but require a distinct scene, makeup, hair, wardrobe, action, pose, gaze, face orientation, composition, focal length and lighting design for every Job; preserve the same facial identity." if chaptered else f"Organize {values.get('shot_count')} Jobs as one continuous event; preserve scene and look while viewpoint, action, framing, and focal length vary by function."), "Declaring both variation axes and identity locks produces richness without changing the person.", (["Adjust the three-chapter rhythm", "Strengthen chapter transitions", "Open the final chapter"] if chaptered else ["Strengthen continuous causality", "Slow the event rhythm", "Add a longer final aftertaste"])),
+        "camera": (("Use nine distinct focal lengths—about 24, 28, 35, 40, 50, 65, 85, 105 and 135 mm—and pair every one with a different composition and observable perspective purpose." if chaptered else "Use a coherent focal family with functional variation for environment, action, medium relation, emotional close portrait, and necessary detail."), "A focal length is not a decorative number; each change must serve viewpoint, spatial relation, or information priority.", ["More environment and space", "More subject and action", "More emotion and detail"]),
+        "light": (("Use nine distinct physically motivated lighting designs and declare source, direction, quality, contrast and falloff for every Job." if chaptered else "Use one physically motivated key source whose direction, shadow, falloff, exposure, and reflections remain traceable."), "Different lighting must still remain physically credible and serve the scene rather than becoming random effects.", ["Soft natural light", "More directional dramatic light", "Time-progressive light"]),
         "style": ("Use restrained live-action editorial photography led by real materials, subject state, and world relations; keep stylistic effects subordinate to identity and physics.", "Securing human and world credibility first prevents filters or synthetic rendering from overwhelming the photograph.", ["More documentary", "More polished editorial", "More cinematic narrative"]),
         "color_post": ("Derive base colors from skin, wardrobe, props, and world materials; use one restrained accent while retaining natural skin, highlight and shadow latitude, and photographic detail.", "Relational grading preserves identity, material differences, time, and set continuity better than a global filter.", ["Lower saturation", "Stronger warm-cool relation", "Subtle film texture"]),
         "job": (f"Freeze {values.get('output_count')} independent {values.get('aspect_ratio')} Jobs, one image per Job, each with a unique filename and complete Prompt.", "Independent Jobs support retry, QA, lineage, and standalone use.", ["Generate one by one now", "Save complete Prompts only", "Export an installable Skill package"]),
-        "quality_control": (("Check both sides of controlled variation: three scenes, three looks, nine body states, and nine shot functions must be distinct; identity, live-action medium, world physics, and color grammar must remain coherent." if chaptered else "Check that one scene, one look, and continuous event state persist while nine body states and shot functions remain distinct."), "Variation evidence and continuity evidence are separate acceptance groups; static validation never proves photographic quality.", ["Variation review", "Continuity review", "Final human acceptance"]),
+        "quality_control": (("Verify that nine scenes, nine looks, nine actions and poses, nine gaze and face directions, nine compositions, nine focal lengths and nine lighting designs are all distinct; only facial identity, adult age, body proportions and live-action medium remain fixed." if chaptered else "Check that one scene, one look, and continuous event state persist while nine body states and shot functions remain distinct."), "Variation evidence and identity evidence are separate acceptance groups; static validation never proves photographic quality.", ["Variation review", "Identity review", "Final human acceptance"]),
     }
     return copy[role]
 
@@ -440,38 +452,38 @@ def _zh_element_presentation(role: str, decision: dict[str, Any], brief: str) ->
         chaptered = set_strategy == "chaptered_variation"
         strategy_copy = {
             "content": (
-                ["整组采用章节式丰富变化，三章各自形成清楚的视觉段落。" if chaptered else "整组采用连续叙事，同一事件在九镜中持续推进。"],
+                ["整组采用章节式丰富变化：九镜逐镜改变场景、妆造、动作、眼神、面朝、构图、焦段与灯光，只锁人物面部身份。" if chaptered else "整组采用连续叙事，同一事件在九镜中持续推进。"],
                 ["创作者意图", "人物身份", "真人摄影媒介"],
                 ["套片组织策略能够在场景、妆造、动作和相机设计中一致执行。"],
             ),
             "world": (
-                ["三个关联场景可明确区分，并共享同一世界规则。" if chaptered else "同一核心场景的几何、时间和物体状态持续成立。"],
+                ["九个场景可明确区分，并共享同一摄影主题与真实物理规则。" if chaptered else "同一核心场景的几何、时间和物体状态持续成立。"],
                 ["空间几何", "物理因果", "世界规则"],
                 ["场景按章节变化但不成为无关背景。" if chaptered else "不能出现无原因的场景跳变。"],
             ),
             "look": (
-                ["三套妆造各自锁定在一个章节中，换造型不换身份。" if chaptered else "同一套妆造贯穿连续事件。", "每件道具都有稳定归属和状态。"],
-                ["人物身份", "妆造章内连续性", "道具归属", "材质连续性"],
-                ["三套妆造可区分且人物始终为同一人。" if chaptered else "妆造不得无原因漂移。"],
+                ["九套妆容、发型与服装逐镜不同，换造型不换脸。" if chaptered else "同一套妆造贯穿连续事件。", "每件道具都有稳定归属和状态。"],
+                ["人物面部身份", "成年年龄", "身体比例", "道具归属"],
+                ["九套妆造可区分且人物始终为同一人。" if chaptered else "妆造不得无原因漂移。"],
             ),
             "event": (
-                ["九种行动与身体状态在重心、手部、视线或动作结果上各不相同。", "每个关键动作都在后续镜头留下可见结果。"],
+                ["九种行动与身体状态在重心、手部、视线、面部朝向或动作结果上各不相同。", "每个关键动作都具有明确视觉结果。"],
                 ["人物身份", "世界物理规则", "道具归属"],
                 ["不能用重复摆姿代替事件推进。"],
             ),
             "sequence": (
-                ["三章各含三个不同职能的镜头，并形成统一主题。" if chaptered else "九镜在同一场景和妆造中形成连续因果。", "信息、距离、动作与情绪持续推进。"],
+                ["三章各含三镜，但九镜的场景、妆造、姿态、眼神面朝、构图、焦段和灯光逐镜不同。" if chaptered else "九镜在同一场景和妆造中形成连续因果。", "信息、距离、动作与情绪持续推进。"],
                 ["镜头顺序", "事件后果", "声明的变化维度与保持维度"],
                 ["九个镜头不得重复同一叙事职能。"],
             ),
             "camera": (
-                ["环境、全身、中景、近景和细节分别使用与职能相符的焦段与透视。", "每次焦段变化都能解释观看距离或信息重点。"],
+                ["九镜分别使用九个不同焦段与九种不同构图。", "每次焦段变化都能解释观看距离或信息重点。"],
                 ["空间几何", "关键动作可见", "自然透视"],
                 ["焦段不能只是数字变化，必须在画面关系中可观察。"],
             ),
             "quality_control": (
-                ["该变化的场景、妆造、动作、姿态、景别与焦段均有可观察差异。" if chaptered else "动作、姿态、景别与焦段有职能差异。", "该保持的人物身份、真人媒介、世界物理和色彩体系始终连贯。"],
-                ["权利来源", "已成功结果不可覆盖", "视觉检查证据"],
+                ["九个场景、九套妆造、九种动作姿态、九种眼神面朝、九种构图、九个焦段和九套灯光均有可观察差异。" if chaptered else "动作、姿态、景别与焦段有职能差异。", "同一人物面部身份、成年年龄、身体比例与真人媒介始终稳定。"],
+                ["人物面部身份", "权利来源", "视觉检查证据"],
                 ["变化性与连续性分别通过检查；人工最终检查仍须保留。"],
             ),
         }
@@ -1354,84 +1366,156 @@ def new_semantic_theme(
 
 _NINE_SHOT_VARIATION_PLAN = (
     {
-        "title": "Chapter One — Arrival", "narrative_purpose": "Establish the first sub-scene, the protagonist's arrival, and the governing spatial relation.",
-        "framing": "environmental portrait", "focal_length": "28 mm environmental wide", "perspective_intent": "environment establishes spatial relation",
-        "action": "The protagonist enters the first threshold and pauses to read the space.",
+        "title": "Chapter One — Arrival", "narrative_purpose": "Establish arrival and the governing spatial relation.",
+        "scene_design": "A quiet threshold with layered foreground screens, a visible entry path, and distant spatial evidence.",
+        "framing": "environmental portrait", "focal_length": "24 mm environmental wide", "perspective_intent": "environment establishes spatial relation",
+        "action": "The protagonist enters the threshold and pauses to read the space.",
         "hands": "One hand settles a garment edge while the other remains naturally relaxed and fully legible.",
-        "gaze": "The gaze searches beyond the near foreground toward the first spatial clue.",
+        "gaze": "The gaze searches beyond the near foreground toward an upper-left spatial clue.",
+        "face_orientation": "Three-quarter face turned left, chin level, with both eyes naturally legible.",
+        "body_orientation": "Weight on the rear foot, torso opened diagonally toward the threshold.",
+        "expression": "Reserved curiosity before recognition.",
         "composition": "Use foreground depth, the threshold, and a smaller human figure to establish the world without diminishing presence.",
+        "makeup": "Sheer skin, softly defined brows, and a muted natural lip.",
+        "hair": "Loose natural hair with one side tucked behind the ear.",
+        "wardrobe": "A fluid light-toned base layer with a long clean vertical silhouette.",
+        "lighting": "Broad dawn window light from camera left with soft ambient fill and long gentle falloff.",
         "pose_state": "arrival_observation",
     },
     {
-        "title": "Chapter One — Crossing", "narrative_purpose": "Reveal the protagonist's full-body movement and first active choice inside the first sub-scene.",
-        "framing": "full-length action portrait", "focal_length": "35 mm full-action perspective", "perspective_intent": "full frame makes body action legible",
+        "title": "Chapter One — Crossing", "narrative_purpose": "Reveal full-body movement and the first active choice.",
+        "scene_design": "A long passage crossed by repeating structural lines and a clear lateral travel path.",
+        "framing": "full-length action portrait", "focal_length": "28 mm full-action perspective", "perspective_intent": "full frame makes body action legible",
         "action": "The protagonist crosses the frame and turns through the movement rather than stopping to pose.",
         "hands": "Both hands have different natural functions that follow balance and garment movement.",
-        "gaze": "The gaze turns toward the direction of travel with a clear physical motivation.",
+        "gaze": "The gaze leads toward the right-hand direction of travel.",
+        "face_orientation": "Clean right profile carried by the turn, chin slightly forward.",
+        "body_orientation": "Mid-stride lateral profile with the leading shoulder and opposite hip counter-rotated.",
+        "expression": "Purposeful concentration during movement.",
         "composition": "Keep the complete body, floor contact, travel direction, and usable negative space inside the vertical frame.",
+        "makeup": "Brushed brows, restrained liner, and a cool rose lip.",
+        "hair": "Low moving ponytail with controlled flyaways.",
+        "wardrobe": "A structured travel look with cropped outer layer and fluid lower movement.",
+        "lighting": "Narrow reflected raking light from camera right that articulates stride and fabric edges.",
         "pose_state": "crossing_turn",
     },
     {
-        "title": "Chapter One — Contact", "narrative_purpose": "Complete the first chapter with the protagonist's first observable contact with the world.",
-        "framing": "natural medium portrait", "focal_length": "50 mm natural medium perspective", "perspective_intent": "medium frame balances subject and world",
+        "title": "Chapter One — Contact", "narrative_purpose": "Show the first observable contact with the world.",
+        "scene_design": "A tactile alcove centered on one meaningful surface and a small object with visible material response.",
+        "framing": "medium-full contact portrait", "focal_length": "35 mm contact perspective", "perspective_intent": "near-normal wide coverage connects face, hand and material",
         "action": "The protagonist makes first contact with a meaningful surface or object and registers its response.",
         "hands": "The active hand touches one declared object; the supporting hand remains anatomically clear and non-duplicated.",
-        "gaze": "The gaze follows the active hand, linking attention to the event.",
+        "gaze": "The gaze drops to the active hand and contact point.",
+        "face_orientation": "Downward three-quarter face turned right toward the active hand.",
+        "body_orientation": "Forward hinge from the hips with weight settled evenly and shoulders relaxed.",
+        "expression": "Quiet tactile surprise.",
         "composition": "Balance face, active hand, object, and enough background evidence to complete the first chapter.",
+        "makeup": "Soft taupe eye, natural lashes, and a warm muted lip.",
+        "hair": "Half-up hair exposing the cheek and working-hand sightline.",
+        "wardrobe": "Textured linen layers with visible cuff and tactile weave.",
+        "lighting": "Soft overhead skylight with a low frontal bounce that preserves skin and hand detail.",
         "pose_state": "first_contact",
     },
     {
-        "title": "Chapter Two — Transition", "narrative_purpose": "Open the second sub-scene and make the chapter boundary visible through movement, space, and styling.",
-        "framing": "full-length transition portrait", "focal_length": "35 mm full-action perspective", "perspective_intent": "full frame makes body action legible",
-        "action": "The protagonist crosses into the second sub-scene with a changed direction of travel.",
+        "title": "Chapter Two — Transition", "narrative_purpose": "Make the transition visible through movement, space, and styling.",
+        "scene_design": "A luminous doorway between darker and brighter zones with a visible change of spatial direction.",
+        "framing": "full-length transition portrait", "focal_length": "40 mm transition perspective", "perspective_intent": "moderate wide perspective keeps the threshold and full body readable",
+        "action": "The protagonist crosses into a new scene with a changed direction of travel.",
         "hands": "One hand interacts with the boundary while the other supports the body's change of direction.",
-        "gaze": "The gaze enters the new space before the body fully follows.",
-        "composition": "Use the boundary line and full figure to distinguish the second chapter while preserving the same world grammar.",
+        "gaze": "The gaze enters the brighter new space before the body fully follows.",
+        "face_orientation": "Over-shoulder face turned left, eyes entering the brighter zone first.",
+        "body_orientation": "Torso twisting across the threshold with weight transferring to the front foot.",
+        "expression": "Alert anticipation at the boundary.",
+        "composition": "Use the boundary line and full figure to distinguish the new scene while preserving the theme grammar.",
+        "makeup": "Graphic but thin liner, softly sculpted cheek, and a neutral satin lip.",
+        "hair": "Swept-back hair with a clean exposed neckline.",
+        "wardrobe": "A layered transitional coat over a narrow tonal silhouette.",
+        "lighting": "Motivated doorway backlight with a restrained rim and darker ambient foreground exposure.",
         "pose_state": "threshold_transition",
     },
     {
-        "title": "Chapter Two — Development", "narrative_purpose": "Develop the central event through a deliberate prop or material interaction in the second sub-scene.",
+        "title": "Chapter Two — Development", "narrative_purpose": "Develop the event through a deliberate prop or material interaction.",
+        "scene_design": "A focused work surface with one narrative prop, its prior state, and room for a visible changed state.",
         "framing": "relational medium portrait", "focal_length": "50 mm natural medium perspective", "perspective_intent": "medium frame balances subject and world",
         "action": "The protagonist changes the state of one narrative prop and leaves a visible consequence.",
         "hands": "Both hands participate in one physically plausible task without hiding ownership or object state.",
-        "gaze": "The gaze alternates between the prop and its consequence, not the camera.",
+        "gaze": "The gaze moves between the prop and its visible consequence, never toward the camera.",
+        "face_orientation": "Three-quarter face turned right and lowered toward the changed prop state.",
+        "body_orientation": "Square to the work surface with one shoulder subtly advanced.",
+        "expression": "Focused intent while completing a precise task.",
         "composition": "Create a readable triangle among face, hands, and the changed prop state.",
+        "makeup": "Satin eyelid, defined upper lashes, and a deeper terracotta lip.",
+        "hair": "Compact low knot with a precise side part.",
+        "wardrobe": "A tailored work look with controlled sleeves and one functional fastening detail.",
+        "lighting": "Warm practical task light from below eye level balanced by a cooler room fill.",
         "pose_state": "prop_interaction",
     },
     {
-        "title": "Chapter Two — Interior Response", "narrative_purpose": "Translate the event consequence into a restrained internal response without repeating the prior action.",
-        "framing": "emotional close portrait", "focal_length": "85 mm emotional close portrait", "perspective_intent": "close frame reveals restrained emotion",
+        "title": "Chapter Two — Interior Response", "narrative_purpose": "Translate the consequence into a restrained internal response.",
+        "scene_design": "A quiet recess separated from the prior work surface by depth, shadow, and one residual continuity cue.",
+        "framing": "tight emotional medium portrait", "focal_length": "65 mm intimate medium perspective", "perspective_intent": "compressed medium distance reads breath, shoulders and restrained emotion",
         "action": "The body settles after the action while breath, shoulders, and facial attention reveal the consequence.",
-        "hands": "Hands remain naturally placed at the edge of frame or are explicitly outside it; no unexplained gesture is introduced.",
-        "gaze": "The gaze shifts away from the prop toward an off-frame implication.",
+        "hands": "Hands remain naturally placed at the edge of frame or explicitly outside it; no unexplained gesture is introduced.",
+        "gaze": "The gaze shifts off-frame lower left toward an implication beyond the prior prop.",
+        "face_orientation": "Near-frontal face with chin lowered and eyes moving off-frame lower left.",
+        "body_orientation": "Torso almost frontal with shoulders dropping after the completed action.",
+        "expression": "Contained realization held in breath and eyelids.",
         "composition": "Use optical separation and controlled negative space to make the internal turn visible.",
+        "makeup": "Barely powdered skin, softened eye definition, and a desaturated nude lip.",
+        "hair": "Soft side part with one loose strand crossing the temple.",
+        "wardrobe": "A quiet monochrome knit with softened shoulder structure.",
+        "lighting": "Cool diffused side light through a translucent surface with low-contrast shadow detail.",
         "pose_state": "contained_reaction",
     },
     {
-        "title": "Chapter Three — Changed Relation", "narrative_purpose": "Open the final sub-scene with a visibly changed relation between protagonist and world.",
-        "framing": "medium environmental portrait", "focal_length": "50 mm natural medium perspective", "perspective_intent": "medium frame balances subject and world",
+        "title": "Chapter Three — Changed Relation", "narrative_purpose": "Show a visibly changed relation between protagonist and world.",
+        "scene_design": "An open final chamber with one distant consequence marker and a new stable axis between person and world.",
+        "framing": "compressed environmental portrait", "focal_length": "85 mm compressed environmental perspective", "perspective_intent": "compressed layers make the changed person-world relation explicit",
         "action": "The protagonist enters the final relation with a changed stance and a clear new decision.",
         "hands": "The hands settle into an asymmetrical but purposeful state that supports the changed stance.",
-        "gaze": "The gaze is steady and directed toward the consequence established in the previous chapter.",
+        "gaze": "The gaze holds on an upper-right consequence marker established by the event.",
+        "face_orientation": "Left profile with chin slightly raised toward the distant consequence.",
+        "body_orientation": "Stable contrapposto facing away from camera while the head returns into profile.",
+        "expression": "Resolved decision without overt performance.",
         "composition": "Place the figure and the final spatial clue in a stable relation that differs from the opening.",
+        "makeup": "Defined lip, controlled cheek plane, and restrained luminous eyelid.",
+        "hair": "Braided crown with a clean sculptural contour.",
+        "wardrobe": "A sculptural formal silhouette with one asymmetric architectural line.",
+        "lighting": "Low-angle reflected glow from the scene marker with a subtle opposite-edge separation.",
         "pose_state": "changed_stance",
     },
     {
-        "title": "Chapter Three — Evidence", "narrative_purpose": "Prove the material or tactile consequence through one necessary detail rather than another portrait repetition.",
+        "title": "Chapter Three — Evidence", "narrative_purpose": "Prove the tactile consequence through one necessary detail.",
+        "scene_design": "A close material field where hand, surface, and the transformed detail are the dominant evidence.",
         "framing": "hand and material detail", "focal_length": "105 mm hand or prop detail", "perspective_intent": "detail frame proves touch, material and consequence",
         "action": "A precise hand action reveals texture, ownership, and the final changed state.",
         "hands": "Only anatomically necessary fingers and the declared object are visible; contact and pressure are physically credible.",
-        "gaze": "The face may be outside frame; attention is implied through the direction and precision of touch.",
-        "composition": "Isolate hand, material, and consequence with shallow optical depth while retaining one continuity cue.",
+        "gaze": "Attention drops vertically toward the precise hand action in the foreground.",
+        "face_orientation": "Soft half-profile face remains defocused in the upper background, angled down toward the hand.",
+        "body_orientation": "Only the necessary shoulder-to-hand diagonal enters frame, with no decorative pose.",
+        "expression": "Quiet precision implied by the softened background face.",
+        "composition": "Isolate hand, material, and consequence with shallow optical depth while retaining one identity cue.",
+        "makeup": "Controlled polished nails and a faint metallic eye accent visible only in the defocused face cue.",
+        "hair": "Smooth tucked hair that does not compete with the hand detail.",
+        "wardrobe": "A precise sleeve and one restrained jewelry detail framing the hand action.",
+        "lighting": "Tight specular detail light across texture with flagged spill and a soft facial background glow.",
         "pose_state": "tactile_detail",
     },
     {
-        "title": "Chapter Three — Resolution", "narrative_purpose": "Resolve the emotional arc with a final human presence that is changed by the preceding event.",
-        "framing": "resolved close portrait", "focal_length": "85 mm emotional close portrait", "perspective_intent": "close frame reveals restrained emotion",
+        "title": "Chapter Three — Resolution", "narrative_purpose": "Resolve the emotional arc with a final changed human presence.",
+        "scene_design": "A simplified closing field with calm negative space and one distant trace of the completed journey.",
+        "framing": "resolved close portrait", "focal_length": "135 mm resolved close portrait", "perspective_intent": "long portrait compression isolates the final emotional state",
         "action": "The protagonist holds a calm final state shaped by what has happened, without returning to the opening pose.",
         "hands": "Visible hands rest in a simple resolved position; otherwise they remain naturally outside frame.",
-        "gaze": "The final gaze completes the declared emotional arc and does not repeat an earlier direction.",
+        "gaze": "The final gaze rests just beyond the lens and repeats no earlier direction.",
+        "face_orientation": "Almost frontal face turned a few degrees right, eyes resting just beyond the lens.",
+        "body_orientation": "Upright frontal stillness with balanced shoulders and released weight.",
+        "expression": "Calm release with a trace of the preceding experience.",
         "composition": "Use a stable close portrait, preserved optical realism, and final negative space to close the set.",
+        "makeup": "Luminous skin, finely defined lashes, and a clear ceremonial rose lip.",
+        "hair": "Polished high knot with a minimal clean silhouette.",
+        "wardrobe": "A resolved ceremonial look with a quiet neckline and controlled reflective detail.",
+        "lighting": "Large feathered frontal beauty light with gentle wrap, a low fill ratio, and a clean eye light.",
         "pose_state": "resolved_presence",
     },
 )
@@ -1446,8 +1530,7 @@ def infer_set_strategy(brief: str) -> str:
 
 def _strategy_counts(strategy: str, shot_count: int) -> tuple[int, int]:
     if strategy == "continuous_narrative": return 1, 1
-    count = min(3, shot_count)
-    return count, count
+    return shot_count, shot_count
 
 
 def apply_set_strategy(theme: dict[str, Any], strategy: str) -> dict[str, Any]:
@@ -1467,7 +1550,15 @@ def apply_set_strategy(theme: dict[str, Any], strategy: str) -> dict[str, Any]:
             "action": f"Perform one observable, non-repeated action state for extended Job {index + 1}.",
             "hands": "Declare both hands according to the action and keep anatomy physically plausible.",
             "gaze": "Use a motivated gaze direction not duplicated by the preceding Job.",
+            "face_orientation": f"Use one face orientation unique to extended Job {index + 1}.",
+            "body_orientation": f"Use one action-led body orientation unique to extended Job {index + 1}.",
+            "expression": f"Use one restrained expression state unique to extended Job {index + 1}.",
             "composition": "Create one distinct vertical composition while preserving the established world grammar.",
+            "scene_design": f"Create one distinct scene design for extended Job {index + 1} inside the theme grammar.",
+            "makeup": f"Use one identity-safe makeup design unique to extended Job {index + 1}.",
+            "hair": f"Use one identity-safe hairstyle unique to extended Job {index + 1}.",
+            "wardrobe": f"Use one coordinated wardrobe design unique to extended Job {index + 1}.",
+            "lighting": f"Use one physically motivated lighting design unique to extended Job {index + 1}.",
             "pose_state": f"extended_action_state_{index + 1}",
         }
         if strategy == "continuous_narrative":
@@ -1476,9 +1567,9 @@ def apply_set_strategy(theme: dict[str, Any], strategy: str) -> dict[str, Any]:
             title = template["title"].replace("Chapter One", "Continuous Act One").replace("Chapter Two", "Continuous Act Two").replace("Chapter Three", "Continuous Act Three")
             narrative_purpose = template["narrative_purpose"].replace("first sub-scene", "continuous scene").replace("second sub-scene", "continuous scene").replace("final sub-scene", "continuous scene").replace("chapter boundary", "event transition")
         else:
-            scene_index = min((index * scene_count) // shot_count, scene_count - 1)
-            look_index = min((index * look_count) // shot_count, look_count - 1)
-            act_index = scene_index
+            scene_index = index
+            look_index = index
+            act_index = min((index * 3) // shot_count, 2)
             title = template["title"]
             narrative_purpose = template["narrative_purpose"]
         scene_id = f"SCENE_{chr(65 + scene_index)}"; look_id = f"LOOK_{chr(65 + look_index)}"
@@ -1487,7 +1578,14 @@ def apply_set_strategy(theme: dict[str, Any], strategy: str) -> dict[str, Any]:
             "action": template["action"], "hands": template["hands"], "gaze": template["gaze"],
             "composition": template["composition"], "focal_length": template["focal_length"],
             "perspective_intent": template["perspective_intent"], "pose_state": template["pose_state"],
-            "chapter": f"ACT_{act_index + 1}" if strategy == "continuous_narrative" else f"CHAPTER_{chr(65 + scene_index)}",
+            "scene_design": template["scene_design"] if strategy == "chaptered_variation" else "One continuous core scene; preserve geometry while changing only occupied zone and event state.",
+            "face_orientation": template["face_orientation"], "body_orientation": template["body_orientation"],
+            "expression": template["expression"],
+            "makeup": template["makeup"] if strategy == "chaptered_variation" else "One continuous identity-safe makeup state across the event.",
+            "hair": template["hair"] if strategy == "chaptered_variation" else "One continuous hairstyle across the event.",
+            "wardrobe": template["wardrobe"] if strategy == "chaptered_variation" else "One continuous wardrobe state across the event.",
+            "lighting": template["lighting"],
+            "chapter": f"ACT_{act_index + 1}" if strategy == "continuous_narrative" else f"CHAPTER_{chr(65 + act_index)}",
             "continuity": {
                 "identity": "locked", "scene": scene_id, "wardrobe": look_id,
                 "phase": f"PHASE_{act_index + 1}", "set_strategy": strategy,
@@ -1540,11 +1638,19 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
     mood = _mood_profile(brief); output = theme["output"]; count = len(theme["shots"])
     arc = dict(mood["arc"])
     scene_count, look_count = _strategy_counts(strategy, count)
-    scene_chapters = ["threshold_space", "relation_space", "resolution_space"][:scene_count] if strategy == "chaptered_variation" else ["single_core_scene"]
-    look_chapters = ["look_a_foundation", "look_b_development", "look_c_resolution"][:look_count] if strategy == "chaptered_variation" else ["look_a_continuous"]
+    scene_chapters = [str(shot["continuity"]["scene"]) for shot in theme["shots"]] if strategy == "chaptered_variation" else ["single_core_scene"]
+    look_chapters = [str(shot["continuity"]["wardrobe"]) for shot in theme["shots"]] if strategy == "chaptered_variation" else ["look_a_continuous"]
     pose_states = [str(shot["pose_state"]) for shot in theme["shots"]]
     focal_plan = [str(shot["focal_length"]) for shot in theme["shots"]]
     perspective_plan = [str(shot["perspective_intent"]) for shot in theme["shots"]]
+    scene_plan = [str(shot["scene_design"]) for shot in theme["shots"]]
+    makeup_plan = [str(shot["makeup"]) for shot in theme["shots"]]
+    hair_plan = [str(shot["hair"]) for shot in theme["shots"]]
+    wardrobe_plan = [str(shot["wardrobe"]) for shot in theme["shots"]]
+    face_orientation_plan = [str(shot["face_orientation"]) for shot in theme["shots"]]
+    body_orientation_plan = [str(shot["body_orientation"]) for shot in theme["shots"]]
+    composition_plan = [str(shot["composition"]) for shot in theme["shots"]]
+    lighting_plan = [str(shot["lighting"]) for shot in theme["shots"]]
     explicit_male = bool(re.search(r"(?:男主角|男性|男士|男人|男模|\bmale\b|\bman\b)", brief, re.I))
     protagonist = "one poised fictional East Asian adult male protagonist" if explicit_male else "one poised fictional East Asian adult female protagonist"
     return {
@@ -1567,8 +1673,8 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             "identity": protagonist, "representation": "real adult human in live-action photography",
             "presence": "poised, distinctive, and camera-confident",
             "styling_versatility": "supports classical, contemporary, editorial, and ceremonial styling without identity substitution",
-            "variable_styling_traits": ["makeup", "hairstyle", "wardrobe", "era styling"],
-            "identity_locks": ["face geometry", "age band", "skin characteristics", "hair color and hairline", "body proportions"],
+            "variable_styling_traits": ["makeup", "hairstyle", "hair finish", "wardrobe", "era styling"],
+            "identity_locks": ["face geometry", "facial features", "age band", "skin characteristics", "body proportions"],
         }, [
             "The same poised real adult protagonist remains identifiable across every Job.",
             "Makeup, hairstyle, wardrobe, and period styling may change deliberately without face substitution or identity drift.",
@@ -1577,44 +1683,45 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             "Every styling choice complements the protagonist without obscuring or replacing identity-defining features.",
         ]),
         "world": _decision("world", "worldbuilding", "Construct one coherent physical world with persistent spatial and material rules.", {
-            "space": "three related sub-scenes inside one coherent photographic world" if strategy == "chaptered_variation" else "one core scene with continuous physical state",
-            "time": "one continuous time phase", "materials": ["photographically plausible materials"],
+            "space": "nine distinct scene designs inside one coherent photographic theme" if strategy == "chaptered_variation" else "one core scene with continuous physical state",
+            "time": "nine declared scene-light states inside one coherent emotional arc" if strategy == "chaptered_variation" else "one continuous time phase", "materials": ["photographically plausible materials"],
             "physical_rules": ["consistent geometry", "gravity", "reflection", "material response"],
-            "continuity": ["location", "time", "weather", "object placement"],
-            "scene_strategy": strategy, "scene_count": scene_count, "scene_chapters": scene_chapters,
+            "continuity": ["identity", "photographic realism", "theme grammar", "prop ownership"],
+            "scene_strategy": strategy, "scene_count": scene_count, "scene_chapters": scene_chapters, "scene_plan": scene_plan,
         }, [
-            "Architecture, entrances, windows, reflections and object positions remain physically coherent.",
-            "Three related sub-scenes are visibly distinct while sharing one world grammar." if strategy == "chaptered_variation" else "One core scene preserves geometry, object state and time across the continuous event.",
-        ], ["world geometry", "physical causality"], [
-            "Every Job can be inferred to belong to the same world.",
-            "three scenes are visibly distinct but belong to one world" if strategy == "chaptered_variation" else "single scene, look and event state remain continuous",
+            "Each scene has its own architecture, depth, material evidence and physical light.",
+            "Nine scene designs are visibly distinct while sharing one photographic theme grammar." if strategy == "chaptered_variation" else "One core scene preserves geometry, object state and time across the continuous event.",
+        ], ["subject identity", "physical causality", "photographic realism"], [
+            "Every Job has a distinct scene purpose and physically plausible environment.",
+            "nine scenes are visibly distinct and identity remains stable" if strategy == "chaptered_variation" else "single scene, look and event state remain continuous",
         ]),
         "look": _decision("look", "worldbuilding", "Define wardrobe, grooming and prop ownership as world state rather than decoration.", {
-            "wardrobe": "three coordinated looks, one locked per chapter" if strategy == "chaptered_variation" else "one confirmed look locked across the continuous event",
-            "grooming": "three related grooming states, one locked per chapter" if strategy == "chaptered_variation" else "one grooming state continuous across the event",
+            "wardrobe": "nine coordinated per-Job wardrobes; facial identity remains unchanged" if strategy == "chaptered_variation" else "one confirmed look locked across the continuous event",
+            "grooming": "nine distinct makeup and hair designs; facial identity remains unchanged" if strategy == "chaptered_variation" else "one grooming state continuous across the event",
             "props": [], "ownership_policy": "every prop has one declared owner, location and state",
             "styling_strategy": strategy, "look_count": look_count, "look_chapters": look_chapters,
-            "transition_rule": "look changes only at a declared chapter boundary; identity never changes" if strategy == "chaptered_variation" else "look changes only when an observable event causes it",
+            "makeup_plan": makeup_plan, "hair_plan": hair_plan, "wardrobe_plan": wardrobe_plan,
+            "transition_rule": "every Job has a declared coordinated look; face geometry and identity never change" if strategy == "chaptered_variation" else "look changes only when an observable event causes it",
         }, [
-            "Each chapter has one internally locked styling state; chapter changes are deliberate and identity remains fixed." if strategy == "chaptered_variation" else "Wardrobe and grooming remain continuous across the event.",
+            "Every Job has distinct makeup, hair and wardrobe while the same face remains unmistakable." if strategy == "chaptered_variation" else "Wardrobe and grooming remain continuous across the event.",
             "Every visible prop has stable ownership and changes state only through an event.",
-        ], ["wardrobe continuity", "prop ownership", "material continuity", "subject identity"], [
+        ], ["facial identity", "prop ownership", "material plausibility"], [
             "No prop duplicates, floats or changes owner without cause.",
-            "three looks are visibly distinct and identity remains stable" if strategy == "chaptered_variation" else "single scene, look and event state remain continuous",
+            "nine looks are visibly distinct and facial identity remains stable" if strategy == "chaptered_variation" else "single scene, look and event state remain continuous",
         ]),
         "event": _decision("event", "narrative", "Make an observable event change world state before designing poses.", {
             "inciting_action": "one observable action initiates the sequence", "state_changes": ["each major action leaves a visible consequence"],
             "consequences": ["later Jobs inherit the changed state"],
             "pose_strategy": "nine distinct action-led body states with declared hands, gaze and weight" if strategy == "chaptered_variation" else "nine causally connected action states inside one continuous event",
-            "pose_states": pose_states,
+            "pose_states": pose_states, "face_orientation_plan": face_orientation_plan, "body_orientation_plan": body_orientation_plan,
         }, ["Actions are physically legible and leave consequences visible in later frames.", "All body states differ in action, hand function, gaze or weight distribution."],
             ["subject identity", "world physics", "prop ownership"], ["Every action changes or reveals state rather than serving as an empty pose.", "all nine body states and shot functions are distinct"]),
         "sequence": _decision("sequence", "narrative", "Organize multiple viewpoints into time, rhythm and narrative progression.", {
             "strategy": "establish → approach → trigger → develop → interiorize → reveal → turn → release → resolve" if count == 9 else "distinct functional progression",
             "rhythm": "measured progression with no duplicate shot function", "progression": list(arc.values()), "shot_count": count,
             "chapter_plan": "three chapters of three Jobs" if strategy == "chaptered_variation" and count == 9 else "one continuous event across nine Jobs" if strategy == "continuous_narrative" and count == 9 else "distinct functional progression",
-            "variation_axes": ["scene", "styling", "action", "pose", "framing", "focal length"] if strategy == "chaptered_variation" else ["action", "pose", "framing", "focal length"],
-            "continuity_axes": ["identity", "world grammar", "photographic medium", "color system"] if strategy == "chaptered_variation" else ["identity", "scene", "styling", "world grammar", "photographic medium", "color system"],
+            "variation_axes": ["scene", "makeup", "hair", "wardrobe", "action", "pose", "gaze", "face orientation", "composition", "focal length", "lighting"] if strategy == "chaptered_variation" else ["action", "pose", "gaze", "face orientation", "composition", "focal length", "lighting"],
+            "continuity_axes": ["facial identity", "adult age", "body proportions", "photographic medium"] if strategy == "chaptered_variation" else ["identity", "scene", "styling", "world grammar", "photographic medium", "color system"],
         }, [f"The {count} Jobs form a readable progression with distinct functions.", "Information, distance, action and emotion evolve across the sequence.",
             "The set uses three visually distinct chapters without becoming nine unrelated images." if strategy == "chaptered_variation" else "The same scene and look carry one causally continuous event."],
             ["event consequences", "world continuity", "shot order"], ["No two Jobs repeat the same narrative function."]),
@@ -1624,13 +1731,14 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             "lens_language": "physically plausible perspective without arbitrary lens drift",
             "composition": "subject, depth, foreground, background and negative space form one relation system",
             "focal_length_strategy": "functional multi-focal coverage by shot purpose" if strategy == "chaptered_variation" else "coherent focal family with functional variation",
-            "focal_length_plan": focal_plan, "perspective_plan": perspective_plan,
+            "focal_length_plan": focal_plan, "perspective_plan": perspective_plan, "composition_plan": composition_plan,
         }, ["Every Job has one motivated viewpoint and visibly distinct composition.", "Focal length changes only when shot function and perspective require it."],
             ["world geometry", "required action visibility"], ["Framing and perspective match the declared shot function."]),
         "light": _decision("light", "image", "Make time, depth, material and emotion visible through physically coherent light.", {
             "source": "one motivated key source with declared practical or ambient support", "direction": "consistent with the world",
             "quality": "physically plausible softness and falloff", "contrast": "motivated by the emotional direction",
             "time_phase": "continuous unless the sequence declares a transition", "continuity": "direction, shadow and exposure remain traceable",
+            "lighting_plan": lighting_plan,
         }, ["Light direction, shadow, falloff and reflections agree with one physical setup."],
             ["skin tone", "world geometry", "time continuity"], ["No contradictory shadows or unmotivated lighting changes appear."]),
         "style": _decision("style", "image", "Define observable photographic rhetoric without using an artist name as a shortcut.", {
@@ -1655,8 +1763,8 @@ def propose_element_decisions(brief: str, theme: dict[str, Any]) -> dict[str, di
             "required_checks": ["identity", "facial presence and styling compatibility", "live-action medium", "anatomy and hands", "world geometry", "prop ownership", "lighting", "color", "continuity", "shot intent", "rights"],
             "reject_if": ["illustrated person", "identity drift", "anatomy failure", "prop duplication", "contradictory light", "collage or text"],
             "human_visual_qa": "pending until evidence",
-            "variation_checks": ["three scenes are visibly distinct but belong to one world", "three looks are visibly distinct and identity remains stable", "all nine body states and shot functions are distinct"] if strategy == "chaptered_variation" else ["all nine body states and shot functions are distinct"],
-            "continuity_checks": ["identity, live-action medium, world physics and color grammar remain coherent"] if strategy == "chaptered_variation" else ["single scene, look and event state remain continuous", "identity, live-action medium, world physics and color grammar remain coherent"],
+            "variation_checks": ["nine scenes, nine looks, nine poses, nine gaze and face directions, nine compositions, nine focal lengths and nine lighting designs are distinct"] if strategy == "chaptered_variation" else ["all nine body states and shot functions are distinct"],
+            "continuity_checks": ["facial identity, adult age, body proportions and live-action medium remain coherent"] if strategy == "chaptered_variation" else ["single scene, look and event state remain continuous", "identity, live-action medium, world physics and color grammar remain coherent"],
         }, ["Every Job carries model visual QA and separate pending human visual QA."],
             ["rights provenance", "successful outputs are immutable"], ["A failed required check rejects the Job; static validation never claims visual quality."],
             source="system_policy", basis=["protocol_quality_policy"]),
@@ -1685,8 +1793,8 @@ def validate_element_decisions(decisions: Any, *, require_confirmed: bool = True
         expected_layer = next(layer for layer, roles in LAYER_ROLES.items() if role in roles)
         if decision.get("role") != role or decision.get("layer") != expected_layer: errors.append(f"{label}: role or layer mismatch")
         if decision.get("status") not in {"proposed", "confirmed"}: errors.append(f"{label}: invalid status")
-        if require_confirmed and decision.get("status") != "confirmed": errors.append(f"{label}: creator confirmation is required")
-        if decision.get("source") not in {"proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed"}: errors.append(f"{label}: invalid source")
+        if require_confirmed and decision.get("status") != "confirmed": errors.append(f"{label}: confirmation is required")
+        if decision.get("source") not in {"proposed_from_brief", "derived_from_dna", "system_policy", "creator_confirmed", "automatic_default"}: errors.append(f"{label}: invalid source")
         if not isinstance(decision.get("intent"), str) or not decision["intent"].strip(): errors.append(f"{label}: intent is required")
         values = decision.get("values")
         if not isinstance(values, dict): errors.append(f"{label}: values must be an object"); values = {}
@@ -1724,19 +1832,35 @@ def validate_element_decisions(decisions: Any, *, require_confirmed: bool = True
         camera = decisions.get("camera", {}).get("values", {}) if isinstance(decisions.get("camera"), dict) else {}
         quality = decisions.get("quality_control", {}).get("values", {}) if isinstance(decisions.get("quality_control"), dict) else {}
         expected_count = sequence.get("shot_count") if isinstance(sequence.get("shot_count"), int) else 0
-        for role, values, field in (("world", world, "scene_chapters"), ("look", look, "look_chapters"), ("event", event, "pose_states"), ("camera", camera, "focal_length_plan"), ("camera", camera, "perspective_plan"), ("sequence", sequence, "variation_axes"), ("sequence", sequence, "continuity_axes"), ("quality_control", quality, "variation_checks"), ("quality_control", quality, "continuity_checks")):
+        light = decisions.get("light", {}).get("values", {}) if isinstance(decisions.get("light"), dict) else {}
+        per_job_lists = (
+            ("world", world, "scene_plan"), ("look", look, "makeup_plan"),
+            ("look", look, "hair_plan"), ("look", look, "wardrobe_plan"),
+            ("event", event, "pose_states"), ("event", event, "face_orientation_plan"),
+            ("event", event, "body_orientation_plan"),
+            ("camera", camera, "focal_length_plan"), ("camera", camera, "perspective_plan"),
+            ("camera", camera, "composition_plan"), ("light", light, "lighting_plan"),
+        )
+        planned_lists = (("world", world, "scene_chapters"), ("look", look, "look_chapters"), *per_job_lists)
+        for role, values, field in (*planned_lists, ("sequence", sequence, "variation_axes"), ("sequence", sequence, "continuity_axes"), ("quality_control", quality, "variation_checks"), ("quality_control", quality, "continuity_checks")):
             value = values.get(field)
             if not isinstance(value, list) or not value or any(not isinstance(item, str) or not item.strip() for item in value):
                 errors.append(f"element_decisions.{role}.values.{field}: must be a non-empty string array")
-        if expected_count and len(event.get("pose_states", [])) != expected_count: errors.append("element_decisions.event.values.pose_states: must contain one state per Job")
-        if expected_count and len(camera.get("focal_length_plan", [])) != expected_count: errors.append("element_decisions.camera.values.focal_length_plan: must contain one focal plan per Job")
-        if expected_count and len(camera.get("perspective_plan", [])) != expected_count: errors.append("element_decisions.camera.values.perspective_plan: must contain one perspective purpose per Job")
+        if expected_count:
+            for role, values, field in per_job_lists:
+                if len(values.get(field, [])) != expected_count:
+                    errors.append(f"element_decisions.{role}.values.{field}: must contain one entry per Job")
+            if set_strategy == "chaptered_variation":
+                for role, values, field in planned_lists:
+                    items = values.get(field, [])
+                    if len(items) != len(set(items)):
+                        errors.append(f"element_decisions.{role}.values.{field}: chaptered variation requires unique entries")
         for role, values, field in (("world", world, "scene_count"), ("look", look, "look_count")):
             if not isinstance(values.get(field), int) or isinstance(values.get(field), bool) or values.get(field, 0) < 1: errors.append(f"element_decisions.{role}.values.{field}: positive integer required")
         if set_strategy == "continuous_narrative" and (world.get("scene_count") != 1 or look.get("look_count") != 1):
             errors.append("element_decisions: continuous_narrative requires one scene and one look")
-        if set_strategy == "chaptered_variation" and expected_count >= 3 and (world.get("scene_count") != 3 or look.get("look_count") != 3):
-            errors.append("element_decisions: chaptered_variation requires three scenes and three looks for a set of at least three Jobs")
+        if set_strategy == "chaptered_variation" and expected_count and (world.get("scene_count") != expected_count or look.get("look_count") != expected_count):
+            errors.append("element_decisions: chaptered_variation requires one distinct scene and look per Job")
     job = decisions.get("job", {}).get("values", {}) if isinstance(decisions.get("job"), dict) else {}
     if job.get("one_job_one_image") is not True: errors.append("element_decisions.job.values.one_job_one_image: must remain true")
     if not isinstance(job.get("output_count"), int) or isinstance(job.get("output_count"), bool) or job.get("output_count", 0) < 1: errors.append("element_decisions.job.values.output_count: positive integer required")
@@ -2079,8 +2203,13 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
     set_strategy = theme.get("set_strategy")
     if set_strategy is not None:
         if set_strategy not in SET_STRATEGIES: errors.append("theme: unknown set_strategy")
+        variation_fields = (
+            "scene_design", "pose_state", "action", "hands", "gaze", "face_orientation",
+            "body_orientation", "expression", "composition", "makeup", "hair", "wardrobe",
+            "focal_length", "perspective_intent", "lighting",
+        )
         for shot in shots:
-            for key in ("chapter", "focal_length", "perspective_intent", "pose_state"):
+            for key in ("chapter", *variation_fields):
                 if not str(shot.get(key, "")).strip(): errors.append(f"shot {shot.get('shot_id')}: set strategy requires {key}")
             if shot.get("continuity", {}).get("set_strategy") != set_strategy: errors.append(f"shot {shot.get('shot_id')}: continuity set strategy mismatch")
         pose_states = [shot.get("pose_state") for shot in shots]
@@ -2088,7 +2217,13 @@ def validate_theme(theme: dict[str, Any], assets: list[dict[str, Any]] | None = 
         scenes = {shot.get("continuity", {}).get("scene") for shot in shots}
         looks = {shot.get("continuity", {}).get("wardrobe") for shot in shots}
         if set_strategy == "continuous_narrative" and (scenes != {"SCENE_A"} or looks != {"LOOK_A"}): errors.append("theme: continuous_narrative requires one scene and one look")
-        if set_strategy == "chaptered_variation" and len(shots) >= 3 and (len(scenes) != 3 or len(looks) != 3): errors.append("theme: chaptered_variation requires three scene and look chapters")
+        if set_strategy == "chaptered_variation":
+            if len(scenes) != len(shots) or len(looks) != len(shots):
+                errors.append("theme: chaptered_variation requires one distinct scene and look per Job")
+            for field in variation_fields:
+                values = [str(shot.get(field, "")).strip().casefold() for shot in shots]
+                if len(values) != len(set(values)):
+                    errors.append(f"theme: chaptered_variation requires distinct {field} for every Job")
         decision_strategy = theme.get("element_decisions", {}).get("content", {}).get("values", {}).get("set_strategy")
         if decision_strategy is not None and decision_strategy != set_strategy: errors.append("theme: set_strategy conflicts with Content decision")
     rights = theme.get("rights", {})
@@ -2203,6 +2338,28 @@ def _confirmed_element_prompt(theme: dict[str, Any]) -> str:
     return strategy_prefix + ("APSAL CONFIRMED ELEMENT DESIGN — " + " | ".join(parts) + ". " if parts else "")
 
 
+def _shot_reference_policy(theme: dict[str, Any], shot_id: str) -> tuple[list[str], str]:
+    """Compile executable per-Job reference rules without exposing private paths."""
+    relevant = [
+        ref for ref in theme.get("references", [])
+        if "*" in ref.get("applies_to", []) or shot_id in ref.get("applies_to", [])
+    ]
+    reference_ids = [str(ref["reference_id"]) for ref in relevant]
+    rules = []
+    for ref in relevant:
+        ref_id = str(ref["reference_id"]); uses = set(ref.get("uses", []))
+        allowed = "; ".join(str(item) for item in ref.get("allowed_uses", [])) or "only the declared reference purpose"
+        forbidden = "; ".join(str(item) for item in ref.get("forbidden_uses", [])) or "none additionally declared"
+        if uses == {"identity"}:
+            rules.append(
+                f"Reference {ref_id} is an identity-only facial anchor: preserve the same adult face geometry, facial features, age and natural skin identity, "
+                "but do not inherit its pose, action, hands, gaze, face direction, expression, scene, composition, makeup, hair, wardrobe, lens, lighting or background."
+            )
+        else:
+            rules.append(f"Reference {ref_id}: allowed — {allowed}; forbidden — {forbidden}; forbidden uses take precedence.")
+    return reference_ids, (" REFERENCE INPUT POLICY — " + " ".join(rules)) if rules else ""
+
+
 def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[str, Any]:
     ordered = sorted(assets, key=lambda a: CATEGORIES.index(a["type"]))
     shared = ", ".join(a["prompt_fragment"] for a in ordered)
@@ -2227,18 +2384,19 @@ def _compile_image(theme: dict[str, Any], assets: list[dict[str, Any]]) -> dict[
         observable_text = f" Observable results: {'; '.join(observable)}." if observable else ""
         instruction = (
             f"Create exactly one independent finished vertical photograph for {shot['shot_id']} ({shot['title']}). "
-            f"Narrative purpose: {shot['narrative_purpose']}. Framing: {shot['framing']}. Action: {shot['action']}. "
-            f"Hands: {shot['hands']}. Gaze: {shot['gaze']}. Composition: {shot['composition']}. "
+            f"Narrative purpose: {shot['narrative_purpose']}. Scene design: {shot.get('scene_design', 'use the declared world')}. "
+            f"Framing: {shot['framing']}. Action: {shot['action']}. Body orientation and weight: {shot.get('body_orientation', 'action-led and physically grounded')}. "
+            f"Hands: {shot['hands']}. Gaze: {shot['gaze']}. Face orientation: {shot.get('face_orientation', 'motivated by the event')}. "
+            f"Expression: {shot.get('expression', 'restrained and event-motivated')}. Composition: {shot['composition']}. "
+            f"Makeup: {shot.get('makeup', 'identity-safe and declared by the look')}. Hair: {shot.get('hair', 'identity-safe and declared by the look')}. "
+            f"Wardrobe: {shot.get('wardrobe', 'declared by the look')}. Lighting: {shot.get('lighting', 'physically motivated by the scene')}. "
             f"Optics: {shot.get('focal_length', 'declared by camera design')}; perspective purpose: {shot.get('perspective_intent', 'match the shot function')}. "
             f"Body state: {shot.get('pose_state', 'action-led and non-repeated')}. Set chapter: {shot.get('chapter', 'not_declared')}. "
             f"Continuity: {canonical_json(shot['continuity'])}. Output file: {shot['output_filename']}."
             f"{observable_text}"
         )
-        positive = f"{medium_prefix}{element_prefix}{shared}, {instruction}"
-        reference_ids = [
-            ref["reference_id"] for ref in theme.get("references", [])
-            if "*" in ref.get("applies_to", []) or shot["shot_id"] in ref.get("applies_to", [])
-        ]
+        reference_ids, reference_policy = _shot_reference_policy(theme, shot["shot_id"])
+        positive = f"{medium_prefix}{element_prefix}{shared}, {instruction}{reference_policy}"
         compiled.append({"shot_id": shot["shot_id"], "title": shot["title"], "positive_prompt": positive,
                          "negative_prompt": negative, "reference_ids": reference_ids,
                          "prompt_digest": digest({"positive": positive, "negative": negative, "references": reference_ids})})
@@ -2384,11 +2542,15 @@ def _new_theme_id() -> str:
 def start_design_session(
     brief: str, *, project_root: Path, theme_id: str | None = None, name: str | None = None,
     shot_count: int = 9, home: Path | None = None, language: str | None = "auto",
-    set_strategy: str | None = None,
+    set_strategy: str | None = None, authoring_mode: str = "guided",
+    reference_path: Path | None = None, reference_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Start a resumable five-layer, thirteen-element natural-language design session."""
     brief = brief.strip()
     if not brief: raise ValidationError("creative brief cannot be empty")
+    if authoring_mode not in AUTHORING_MODES: raise ValidationError(f"authoring mode must be one of {list(AUTHORING_MODES)}")
+    if authoring_mode != "automatic" and (reference_path is not None or reference_bindings):
+        raise ValidationError("start-time reference bindings are only used by automatic authoring; guided mode binds them during worldbuilding confirmation")
     project_root = project_root.expanduser().resolve(); init_workspace(project_root, home)
     theme_id = theme_id or _new_theme_id()
     theme = new_semantic_theme(theme_id, (name or brief[:80]).strip(), shot_count, native_4k=False, live_action=True)
@@ -2401,7 +2563,7 @@ def start_design_session(
     session_id = f"SESSION-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:10].upper()}"
     session = {
         "schema_version": "0.7.0", "interaction_model": "five_layer_thirteen_element",
-        "session_id": session_id, "brief": brief, "set_strategy": theme["set_strategy"],
+        "session_id": session_id, "brief": brief, "set_strategy": theme["set_strategy"], "authoring_mode": authoring_mode,
         "project_root": str(project_root), "state": "direction_pending", "shot_count": shot_count,
         "language": resolve_interface_language(brief, language),
         "layers": {
@@ -2409,10 +2571,14 @@ def start_design_session(
             for layer in CREATIVE_LAYERS
         },
         "private_references": [], "core_visual_anchor_reference_id": None,
+        "automatic_reference_path": str(reference_path) if reference_path is not None else None,
+        "automatic_reference_bindings": list(reference_bindings or []),
         "memory_offers": [], "invalidations": [], "created_at": _utc_now(), "updated_at": _utc_now(),
         "theme_artifact": None,
     }
     _write_session(session, theme, project_root)
+    if authoring_mode == "automatic" and session_interface_language(session)["status"] == "confirmed":
+        return complete_design_session_automatically(session_id, project_root=project_root, home=home)
     return session
 
 
@@ -2422,7 +2588,57 @@ def set_session_language(session_id: str, language: str, *, project_root: Path) 
     session, theme = load_design_session(session_id, project_root)
     session["language"] = resolve_interface_language("", language)
     _write_session(session, theme, project_root)
+    if session.get("authoring_mode") == "automatic":
+        return complete_design_session_automatically(session_id, project_root=project_root)
     return session
+
+
+def set_authoring_mode(
+    session_id: str, authoring_mode: str, *, project_root: Path,
+    language: str | None = None, home: Path | None = None,
+) -> dict[str, Any]:
+    """Switch a resumable session between guided and automatic authoring."""
+    if authoring_mode not in AUTHORING_MODES: raise ValidationError(f"authoring mode must be one of {list(AUTHORING_MODES)}")
+    project_root = project_root.expanduser().resolve(); session, theme = load_design_session(session_id, project_root)
+    if session["state"] in {"generating", "completed", "partial"}: raise ValidationError("generation has already started; authoring mode can no longer change")
+    session["authoring_mode"] = authoring_mode
+    if language and language != "auto": session["language"] = resolve_interface_language("", language)
+    _write_session(session, theme, project_root)
+    if authoring_mode == "automatic" and session_interface_language(session)["status"] == "confirmed":
+        return complete_design_session_automatically(session_id, project_root=project_root, home=home)
+    return session
+
+
+def complete_design_session_automatically(
+    session_id: str, *, project_root: Path, home: Path | None = None,
+) -> dict[str, Any]:
+    """Choose the best valid DNA per layer, confirm all proposals, and package the theme."""
+    project_root = project_root.expanduser().resolve(); session, _ = load_design_session(session_id, project_root)
+    if session.get("authoring_mode") != "automatic": raise ValidationError("automatic completion requires authoring_mode=automatic")
+    if session_interface_language(session)["status"] != "confirmed": return session
+    if session["state"] == "ready": return session
+    if session["state"] in {"generating", "completed", "partial"}: raise ValidationError("generation has already started; automatic authoring cannot run")
+    for layer in CREATIVE_LAYERS:
+        if session["layers"][layer]["status"] == "confirmed": continue
+        recommendation = recommend_layer_dna(
+            session["brief"], layer, project_root=project_root, home=home,
+            session_id=session_id, limit_per_type=1,
+        )
+        refs = []
+        for asset_type in LAYER_TYPES[layer]:
+            candidates = recommendation["by_type"].get(asset_type, [])
+            if not candidates: raise ValidationError(f"automatic authoring could not find required {asset_type} DNA for {layer}")
+            refs.append(asset_ref(candidates[0]["record"]["asset"]))
+        session = commit_element_layer(
+            session_id, layer, refs, project_root=project_root, home=home,
+            reference_path=Path(session["automatic_reference_path"]) if layer == "worldbuilding" and session.get("automatic_reference_path") else None,
+            reference_bindings=session.get("automatic_reference_bindings") if layer == "worldbuilding" else None,
+        )
+        if layer == "worldbuilding":
+            session, theme = load_design_session(session_id, project_root)
+            session.pop("automatic_reference_path", None); session.pop("automatic_reference_bindings", None)
+            _write_session(session, theme, project_root)
+    return finalize_design_session(session_id, project_root=project_root, home=home)
 
 
 def _stage_preview_copy(layer: str, locale: str) -> tuple[str, str, str]:
@@ -2750,6 +2966,9 @@ def commit_element_layer(
         ref for prior in CREATIVE_LAYERS[:layer_index] for ref in session["layers"][prior].get("selection", [])
     ] + next_selection
     mapping = load_semantic_registry()["dna_to_protocol"]
+    automatic_confirmation = session.get("authoring_mode") == "automatic"
+    confirmation_source = "automatic_default" if automatic_confirmation else "creator_confirmed"
+    confirmation_basis = "automatic_mode_selection" if automatic_confirmation else "creator_confirmation"
     for role in LAYER_ROLES[layer]:
         current = json.loads(json.dumps(theme["element_decisions"][role])); supplied = submitted.get(role, {})
         if not isinstance(supplied, dict): raise ValidationError(f"{layer}.{role}: decision must be an object")
@@ -2760,10 +2979,10 @@ def commit_element_layer(
             current["values"] = {**current.get("values", {}), **supplied["values"]}
         role_refs = [ref for ref in confirmed_selections if role in mapping.get(ref["type"], [])]
         current.update({
-            "role": role, "layer": layer, "status": "confirmed", "source": "creator_confirmed",
+            "role": role, "layer": layer, "status": "confirmed", "source": confirmation_source,
             "dna_refs": role_refs, "confirmed_at": _utc_now(),
         })
-        if "creator_confirmation" not in current["basis"]: current["basis"].append("creator_confirmation")
+        if confirmation_basis not in current["basis"]: current["basis"].append(confirmation_basis)
         theme["element_decisions"][role] = current
     if layer == "direction":
         next_strategy = theme["element_decisions"]["content"].get("values", {}).get("set_strategy")
@@ -3510,7 +3729,7 @@ def get_next_codex_job(
     if local_identity_anchor or recent_identity_anchor:
         anchor_instruction = (
             " Use the immediately previous accepted APSAL image only to preserve the fictional adult identity and facial continuity; "
-            "do not inherit its pose, camera, background, action, wardrobe, lighting, or composition."
+            "do not inherit its pose, action, hands, gaze, face direction, expression, camera, background, composition, makeup, hair, wardrobe, focal length, or lighting."
         )
     if local_identity_anchor and previous_path is not None: reference_paths.append(previous_path)
     prompt = positive + policy_instruction + anchor_instruction + (" Negative constraints: " + negative if negative else "")
@@ -4081,7 +4300,7 @@ Read `PROMPT_GUIDE.en.md` for English creators or `PROMPT_GUIDE.zh-CN.md` for Ch
 
 {execution_instruction}
 
-Generate exactly one independent image per Codex image-generation call. After emitting an image, stop; when the creator says “继续” or “下一张”, continue with the next uncompleted Job. If all required references have local paths, pass those paths. Otherwise use the smallest recent-image count that includes the immediately previous accepted shot and use it only for identity continuity; never combine mutually exclusive reference mechanisms. Do not inherit the anchor's pose, camera, background, action, wardrobe, or composition.
+Generate exactly one independent image per Codex image-generation call. After emitting an image, stop; when the creator says “继续” or “下一张”, continue with the next uncompleted Job. If all required references have local paths, pass those paths. Otherwise use the smallest recent-image count that includes the immediately previous accepted shot and use it only for facial identity continuity; never combine mutually exclusive reference mechanisms. Do not inherit the anchor's pose, action, hands, gaze, face direction, expression, camera, background, composition, makeup, hair, wardrobe, focal length, or lighting.
 
 Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspect every returned image for live-action medium, identity, skin, eyes, hands, anatomy, optics, physical light, materials, prop ownership, continuity and shot intent. Keep Codex visual review separate from human visual QA. Record actual dimensions or format only when Codex reports them; otherwise use `not_reported` and never claim native 4K.
 '''
@@ -4093,6 +4312,9 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         prompt_files[f"prompts/{shot_id}.negative.txt"] = (shot["negative_prompt"] + "\n").encode()
         prompt_files[f"prompts/{shot_id}.full.txt"] = (shot["positive_prompt"] + "\n\nNegative constraints:\n" + shot["negative_prompt"] + "\n").encode()
     prompt_checksums = {name: hashlib.sha256(data).hexdigest() for name, data in prompt_files.items()}
+    packaged_reference_files = {
+        item["reference_id"]: item["packaged_file"] for item in reference_manifest.get("references", [])
+    }
     run_manifest = {
         "schema_version": "0.15.0",
         "theme_id": theme["id"],
@@ -4104,6 +4326,8 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
             {
                 "shot_id": shot["shot_id"],
                 "prompt_digest": shot["prompt_digest"],
+                "reference_ids": shot.get("reference_ids", []),
+                "reference_files": [packaged_reference_files[ref_id] for ref_id in shot.get("reference_ids", []) if ref_id in packaged_reference_files],
                 "generation_status": "pending",
                 "model_visual_qa": "pending",
                 "human_visual_qa": "pending",
@@ -4120,6 +4344,10 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
         "credentials_included": False, "api_key_required": False, "direct_api_calls": False,
         "generation_surface": "codex_imagegen", "private_media_included": reference_manifest["private_media_included"],
         "distribution": reference_manifest["distribution"], "redistribution_allowed": reference_manifest["redistribution_allowed"],
+        "reference_files_by_job": {
+            shot["shot_id"]: [packaged_reference_files[ref_id] for ref_id in shot.get("reference_ids", []) if ref_id in packaged_reference_files]
+            for shot in compiled["shots"]
+        },
         "output_request": output, "returned_dimensions_guaranteed": False,
         "rendering_contract_required": bool(theme.get("rendering_contract")), "prompt_files": prompt_checksums,
         "run_manifest_digest": digest(run_manifest),
@@ -4143,6 +4371,7 @@ Never use a grid, collage, contact sheet, typography, logo, or watermark. Inspec
 - Codex 管理实际图像模型、格式和像素尺寸；除非返回元数据明确报告，否则它们记为 `not_reported`。本包不承诺原生 4K。
 - 一次调用只生成一个 Job，不生成九宫格、拼图、联系表、文字、标志或水印。
 - `assets/references/` 中的图片必须按用途、禁止用途与权利清单实际传入；文字分析不能替代图片。
+- identity 参考图只锁定同一个人物的面部身份；不得继承原图姿势、动作、手势、眼神、面部朝向、表情、场景、构图、妆发服装、焦段、灯光或背景。
 - `references/reference_manifest.json` 会指定一张核心视觉锚点；它仍然只能用于各镜头明确允许的范围。若状态为 `not_bound`，表示本主题没有真实参考图，不能拿缩略图代替。
 - `assets/previews/` 是五阶段中文/英文语义缩略图，只帮助理解设计进度，绝不能传给图像生成。
 - 后续镜头若使用上一张图保持人物身份，只继承身份，不继承姿势、机位、背景、动作、服装或构图。
@@ -4167,6 +4396,7 @@ This ZIP is both an installable Codex Skill and a directly readable Prompt packa
 - Codex manages the actual image model, format, and pixel dimensions. Unless returned metadata explicitly reports them, they remain `not_reported`. This package does not promise native 4K.
 - One call creates one Job. Never create a grid, collage, contact sheet, text, logo, or watermark.
 - Images under `assets/references/` must be passed according to their allowed uses, forbidden uses, and rights manifest. A prose analysis cannot replace the actual image.
+- An identity reference preserves the same adult facial identity only. Never inherit its pose, action, hands, gaze, face direction, expression, scene, composition, makeup, hair, wardrobe, focal length, lighting, or background.
 - `references/reference_manifest.json` designates one core visual anchor when real references exist. Its declared shot scope still applies. `not_bound` means no real reference is available; never substitute a thumbnail.
 - Files under `assets/previews/` are localized semantic thumbnails for reviewing the five design stages. Never send them to image generation.
 - A prior accepted shot may preserve identity only. It must not transfer pose, camera, background, action, wardrobe, or composition.

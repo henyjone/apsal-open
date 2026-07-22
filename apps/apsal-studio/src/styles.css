@@ -322,6 +322,10 @@ button:disabled {
 .project-meta { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding: 9px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0, 0, 0, 0.20); color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .project-meta strong { overflow: hidden; color: var(--text-soft); text-overflow: ellipsis; white-space: nowrap; }
 .project-meta span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.authoring-mode-chip { display: inline-flex; min-height: 28px; align-items: center; gap: 6px; align-self: flex-start; padding: 0 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-soft); font: 600 10px system-ui, -apple-system, "PingFang SC", sans-serif; }
+.authoring-mode-chip svg { width: 13px; height: 13px; }
+.authoring-mode-chip.automatic { border-color: rgba(245, 165, 36, 0.34); background: rgba(245, 165, 36, 0.09); color: var(--accent-soft); }
+.authoring-mode-chip.guided { background: rgba(246, 237, 220, 0.035); color: var(--muted); }
 
 .layer-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .layer-item { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; min-height: 46px; align-items: center; gap: 8px; padding: 7px; border: 1px solid rgba(246, 237, 220, 0.075); border-radius: 9px; background: rgba(246, 237, 220, 0.025); transition: border-color 160ms ease, background 160ms ease; }

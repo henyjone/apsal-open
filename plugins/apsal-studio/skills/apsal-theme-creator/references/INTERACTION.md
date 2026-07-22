@@ -1,8 +1,16 @@
-# APSAL Studio 0.14 interaction and delivery contract
+# APSAL Studio 0.15 interaction and delivery contract
 
 ## Language before creative decisions
 
 Follow the current Codex conversation language automatically when it is clearly Chinese or English. Do not insert a mandatory language screen at installation or first use. If the first usable message is genuinely ambiguous, ask the one-line bilingual question “English or 中文?” and persist the answer with `set_session_language`. Switching language later changes presentation only and does not invalidate confirmed layers or recompile the theme.
+
+## Authoring mode choice
+
+Before the frontend question, ask once whether this creation uses “全自动创作（推荐）” or “逐步确认”. Store the choice as session-only `authoring_mode`; it is independent from `frontend_mode` and does not enter theme or Prompt digests.
+
+`automatic` is up-front permission to select the top valid explained Registry recommendation for every required DNA type, confirm the five layers in protocol order, and finalize the Prompt/Skill package in one project revision. The resulting element source is `automatic_default`, not `creator_confirmed`. `guided` preserves the existing cards, revisions, explicit layer confirmations and final overview confirmation. Existing sessions without the field behave as guided.
+
+Automatic mode may pause only for information that cannot be safely inferred: interface language, reference role/rights/consent, a missing required DNA type, protocol incompatibility or validation failure. Reference bindings that have already been resolved are passed with `start_design_session` and applied at Worldbuilding. Automatic mode never broadens image rights, bypasses QA, generates collages, or claims human visual QA. Image generation remains a separate delivery action after the automatically created package.
 
 ## Codex-first frontend choice
 
@@ -54,18 +62,20 @@ The seven DNA categories remain reusable Registry assets. The thirteen roles rem
 
 Each element card shows a fully populated design proposal, rationale, adjustable directions, purpose, current values, source, observable effect, invariants and QA expectations. Do not render empty proposal areas or hide the useful recommendation in chat outside the card. A deliberately empty machine value such as no secondary mood or no prop yet must be presented as a meaningful recommendation explaining when it should be added.
 
-Unless the brief explicitly requests another subject, the default Subject proposal is a poised, distinctive East Asian adult female protagonist with reliable camera presence and broad compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Preserve facial geometry, adult age, natural skin, hair color/hairline and body proportions so styling versatility never becomes face substitution. The current set follows its confirmed set strategy: Chaptered Variation locks one coordinated look inside each chapter and permits changes only at chapter boundaries; Continuous Narrative locks one confirmed look unless an observable event explicitly motivates a change.
+Unless the brief explicitly requests another subject, the default Subject proposal is a poised, distinctive East Asian adult female protagonist with reliable camera presence and broad compatibility across classical, contemporary, editorial and ceremonial makeup, hair and wardrobe. Preserve facial geometry, facial features, adult age, natural skin identity and body proportions so styling versatility never becomes face substitution. The current set follows its confirmed set strategy: Chaptered Variation gives every Job a different makeup/hair/wardrobe design while preserving the face; Continuous Narrative locks one confirmed look unless an observable event explicitly motivates a change.
 
 ## Set organization strategy and controlled variation
 
 Confirm one of two strategies in the Direction layer before Worldbuilding:
 
-1. **Chaptered Variation** (default): three related sub-scenes, three coordinated looks, and three Jobs per chapter. Across the nine Jobs, action/body state, hand plan, gaze, framing and focal perspective are distinct. Subject identity, live-action medium, world physics, photographic grammar and color system remain coherent.
+1. **Chaptered Variation** (default): three narrative chapters of three Jobs, but all nine Jobs use different scene designs, makeup, hair, wardrobe, action/body state, hand plan, gaze, face orientation, body orientation, expression, composition, focal length, perspective purpose and physically motivated lighting. Facial identity, adult age, body proportions and live-action medium remain coherent.
 2. **Continuous Narrative**: one core scene, one confirmed look and one causally continuous event. Action/body state, hand plan, gaze, framing and focal perspective still vary by Job function, while scene, styling and event state remain strongly continuous.
 
 The visible card labels are “章节式丰富变化” and “连续叙事” in Chinese. The internal controlled values are `chaptered_variation` and `continuous_narrative`. Card option buttons request a revision and must not silently confirm a layer.
 
-For the nine-Job default, Chaptered Variation uses these functional perspectives: environmental wide, full-action, natural medium, emotional close and hand/prop detail. The canonical plan may store nominal focal lengths, but every Prompt must also state the observable perspective purpose because an image model cannot be assumed to simulate a lens from a number alone.
+For the nine-Job default, Chaptered Variation uses nine distinct focal lengths—24, 28, 35, 40, 50, 65, 85, 105 and 135 mm—with a different composition and observable perspective purpose for each. Every Prompt also freezes that Job's complete scene, pose/action, gaze/face direction, makeup/hair/wardrobe and lighting design. A model cannot be assumed to simulate a lens from a number alone, so the observable purpose is mandatory.
+
+When an identity reference is bound, every Job uses the actual image only for the same adult facial identity. It must not inherit the reference pose, action, hands, gaze, face direction, expression, scene, composition, makeup, hair, wardrobe, lens, lighting or background. The finalized Skill ZIP must contain a sanitized copy under `assets/references/`, list it in `references/reference_manifest.json`, and map it to each applicable Job in `references/run_manifest.json`.
 
 Changing the set strategy rebuilds World, Look, Event, Sequence, Camera and Quality Control proposals plus the per-Job scene/look/focal/body-state plan. Any confirmed downstream layer becomes pending again. Existing 0.7 sessions that do not contain a set strategy preserve their prior intent and are not silently migrated.
 
@@ -80,6 +90,9 @@ Use this order:
 ```text
 brief
 → language auto-detected, or one concise choice if ambiguous
+→ authoring_mode: automatic or guided
+→ automatic: ready (five layers confirmed and packaged in one revision)
+  or guided:
 → direction_pending
 → worldbuilding_pending
 → narrative_pending

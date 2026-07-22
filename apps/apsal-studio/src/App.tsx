@@ -67,6 +67,7 @@ type CanvasViewport = { x: number; y: number; zoom: number }
 
 const METHOD_LABELS: Record<string, string> = {
   'design.start': '开始设计',
+  'design.authoring_mode': '切换创作模式',
   'design.propose': '创建变更提案',
   'design.commit_preview': '确认变更',
   'design.reject_preview': '拒绝变更',
@@ -158,6 +159,7 @@ function ProjectPanel() {
   const busy = useStudioStore((state) => state.busy)
   const chooseProject = useStudioStore((state) => state.chooseProject)
   const refresh = useStudioStore((state) => state.refresh)
+  const automatic = snapshot?.session?.authoring_mode === 'automatic'
 
   return (
     <div className="panel-content left-content">
@@ -185,6 +187,10 @@ function ProjectPanel() {
         {snapshot ? (
           <div className="project-meta">
             <strong title={snapshot.project.project_id}>{snapshot.project.project_id}</strong>
+            <div className={`authoring-mode-chip ${automatic ? 'automatic' : 'guided'}`} aria-label={`创作模式：${automatic ? '全自动' : '逐步确认'}`}>
+              {automatic ? <Sparkles aria-hidden="true" /> : <LayoutGrid aria-hidden="true" />}
+              <span>{automatic ? '全自动创作' : '逐步确认'}</span>
+            </div>
             <span>项目版本 {snapshot.revision}</span>
             <span>引擎 {snapshot.engine_version} · 协议 {snapshot.protocol_version}</span>
             <span title={snapshot.project_root}>{snapshot.project_root}</span>
@@ -219,7 +225,7 @@ function ProjectPanel() {
 
       <section className="panel-section workflow-note">
         <span className="eyebrow">使用方式</span>
-        <p>Codex 与 Studio 共享同一项目内核。你可以在属性面板编辑，再发送给 Codex 继续确认或调整。</p>
+        <p>{automatic ? 'Codex 已自动完成五层设计与打包；你仍可查看全部元素和最终状态。' : 'Codex 与 Studio 共享同一项目内核。你可以在属性面板编辑，再发送给 Codex 继续确认或调整。'}</p>
       </section>
     </div>
   )

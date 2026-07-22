@@ -321,7 +321,7 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(subject["values"]["identity"], "one poised fictional East Asian adult female protagonist")
             self.assertIn("classical", subject["values"]["styling_versatility"])
             self.assertIn("makeup", subject["values"]["variable_styling_traits"])
-            self.assertIn("hair color and hairline", subject["values"]["identity_locks"])
+            self.assertIn("facial features", subject["values"]["identity_locks"])
             self.assertTrue(any("without face substitution" in item for item in subject["observable"]))
             for layer_name in engine.CREATIVE_LAYERS:
                 layer = engine.present_element_layer(session["session_id"], layer_name, project_root=project)
@@ -335,20 +335,20 @@ class EngineTests(unittest.TestCase):
             male = engine.propose_element_decisions("创建一位成年男性主角的肖像", engine.new_semantic_theme("TEST-MALE", "Male"))["subject"]
             self.assertIn("male protagonist", male["values"]["identity"])
 
-    def test_new_session_defaults_to_three_chapter_controlled_variation(self):
+    def test_new_session_defaults_to_nine_job_controlled_variation(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("创建九张东方极简窗边真人摄影主题", project_root=project, home=home, theme_id="TEST-CHAPTERED")
             _, theme = engine.load_design_session(session["session_id"], project)
             self.assertEqual(theme["set_strategy"], "chaptered_variation")
             self.assertEqual(session["set_strategy"], "chaptered_variation")
-            self.assertEqual({shot["continuity"]["scene"] for shot in theme["shots"]}, {"SCENE_A", "SCENE_B", "SCENE_C"})
-            self.assertEqual({shot["continuity"]["wardrobe"] for shot in theme["shots"]}, {"LOOK_A", "LOOK_B", "LOOK_C"})
-            self.assertEqual(len({shot["pose_state"] for shot in theme["shots"]}), 9)
-            self.assertGreaterEqual(len({shot["focal_length"] for shot in theme["shots"]}), 5)
+            self.assertEqual({shot["continuity"]["scene"] for shot in theme["shots"]}, {f"SCENE_{letter}" for letter in "ABCDEFGHI"})
+            self.assertEqual({shot["continuity"]["wardrobe"] for shot in theme["shots"]}, {f"LOOK_{letter}" for letter in "ABCDEFGHI"})
+            for field in ("scene_design", "pose_state", "action", "hands", "gaze", "face_orientation", "body_orientation", "expression", "composition", "makeup", "hair", "wardrobe", "focal_length", "perspective_intent", "lighting"):
+                self.assertEqual(len({shot[field] for shot in theme["shots"]}), 9, field)
             decisions = theme["element_decisions"]
-            self.assertEqual(decisions["world"]["values"]["scene_count"], 3)
-            self.assertEqual(decisions["look"]["values"]["look_count"], 3)
+            self.assertEqual(decisions["world"]["values"]["scene_count"], 9)
+            self.assertEqual(decisions["look"]["values"]["look_count"], 9)
             self.assertEqual(len(decisions["camera"]["values"]["focal_length_plan"]), 9)
             content_card = engine.present_element_layer(session["session_id"], "direction", project_root=project)["cards"][0]
             self.assertEqual(content_card["display_options"], ["章节式丰富变化（推荐）", "连续叙事"])
@@ -359,8 +359,87 @@ class EngineTests(unittest.TestCase):
             image = engine.compile_theme(frozen, "image")
             qa = engine.compile_theme(frozen, "qa")
             self.assertIn("APSAL SET STRATEGY — chaptered_variation", image["shots"][0]["positive_prompt"])
-            self.assertIn("Optics: 28 mm environmental wide", image["shots"][0]["positive_prompt"])
+            self.assertIn("Optics: 24 mm environmental wide", image["shots"][0]["positive_prompt"])
+            self.assertIn("Face orientation:", image["shots"][0]["positive_prompt"])
+            self.assertIn("Makeup:", image["shots"][0]["positive_prompt"])
+            self.assertIn("Lighting:", image["shots"][0]["positive_prompt"])
+            self.assertEqual(len({shot["positive_prompt"] for shot in image["shots"]}), 9)
             self.assertTrue(any(check["id"].startswith("set_strategy.variation_checks") for check in qa["global_checks"]))
+
+    def test_automatic_authoring_confirms_all_layers_and_packages_without_layer_prompts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            session = engine.start_design_session(
+                "雨夜窗边等待重逢的九张人像",
+                project_root=project,
+                home=home,
+                theme_id="TEST-AUTOMATIC",
+                language="zh-CN",
+                authoring_mode="automatic",
+            )
+            self.assertEqual(session["authoring_mode"], "automatic")
+            self.assertEqual(session["state"], "ready")
+            self.assertTrue(all(layer["status"] == "confirmed" for layer in session["layers"].values()))
+            self.assertTrue(Path(session["theme_artifact"]["prompt_package"]["path"]).is_file())
+            self.assertNotIn("automatic_reference_path", session)
+            self.assertNotIn("automatic_reference_bindings", session)
+            _, theme = engine.load_design_session(session["session_id"], project)
+            self.assertTrue(all(decision["source"] == "automatic_default" for decision in theme["element_decisions"].values()))
+            self.assertTrue(all("automatic_mode_selection" in decision["basis"] for decision in theme["element_decisions"].values()))
+
+    def test_guided_authoring_remains_the_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"; project.mkdir()
+            session = engine.start_design_session("安静的人像", project_root=project, language="zh-CN")
+            self.assertEqual(session["authoring_mode"], "guided")
+            self.assertEqual(session["state"], "direction_pending")
+            self.assertTrue(all(layer["status"] == "pending" for layer in session["layers"].values()))
+
+    def test_automatic_authoring_resumes_after_ambiguous_language_is_resolved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"; project.mkdir()
+            pending = engine.start_design_session("APSAL", project_root=project, authoring_mode="automatic")
+            self.assertEqual(pending["language"]["status"], "pending")
+            self.assertEqual(pending["state"], "direction_pending")
+            ready = engine.set_session_language(pending["session_id"], "zh-CN", project_root=project)
+            self.assertEqual(ready["state"], "ready")
+            self.assertTrue(Path(ready["theme_artifact"]["prompt_package"]["path"]).is_file())
+
+    def test_automatic_authoring_binds_resolved_reference_during_worldbuilding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
+            source = ROOT / "plugins/apsal-studio/assets/previews/character.webp"
+            ready = engine.start_design_session(
+                "参考图只用于锁定人物身份",
+                project_root=project,
+                home=home,
+                language="zh-CN",
+                authoring_mode="automatic",
+                reference_bindings=[{
+                    "path": str(source),
+                    "reference_id": "AUTO_IDENTITY_REF",
+                    "uses": ["identity"],
+                    "core_visual_anchor": True,
+                }],
+            )
+            self.assertEqual(ready["state"], "ready")
+            self.assertEqual(ready["core_visual_anchor_reference_id"], "AUTO_IDENTITY_REF")
+            self.assertEqual(ready["theme_artifact"]["reference_count"], 1)
+            self.assertEqual(ready["theme_artifact"]["distribution"], "private_only")
+            package = Path(ready["theme_artifact"]["prompt_package"]["path"])
+            with zipfile.ZipFile(package) as archive:
+                names = archive.namelist()
+                reference_name = next(name for name in names if name.endswith("assets/references/auto_identity_ref.webp"))
+                self.assertTrue(archive.read(reference_name))
+                prompt_names = sorted(name for name in names if re.search(r"prompts/SHOT_[0-9]+\.full\.txt$", name))
+                prompts = [archive.read(name).decode() for name in prompt_names]
+                self.assertEqual(len(prompts), 9)
+                self.assertEqual(len(set(prompts)), 9)
+                self.assertTrue(all("identity-only facial anchor" in prompt for prompt in prompts))
+                self.assertTrue(all("do not inherit its pose, action, hands, gaze, face direction" in prompt for prompt in prompts))
+                run_manifest = json.loads(archive.read(next(name for name in names if name.endswith("references/run_manifest.json"))))
+                self.assertTrue(all(job["reference_ids"] == ["AUTO_IDENTITY_REF"] for job in run_manifest["jobs"]))
+                self.assertTrue(all(job["reference_files"] == ["assets/references/auto_identity_ref.webp"] for job in run_manifest["jobs"]))
 
     def test_direction_can_switch_to_continuous_narrative_and_rebuild_downstream(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -393,7 +472,7 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(revised["state"], "worldbuilding_pending")
             self.assertEqual({item["invalidated"] for item in revised["invalidations"][-4:]}, set(engine.CREATIVE_LAYERS[1:]))
             _, rebuilt = engine.load_design_session(session["session_id"], project)
-            self.assertEqual({shot["continuity"]["scene"] for shot in rebuilt["shots"]}, {"SCENE_A", "SCENE_B", "SCENE_C"})
+            self.assertEqual({shot["continuity"]["scene"] for shot in rebuilt["shots"]}, {f"SCENE_{letter}" for letter in "ABCDEFGHI"})
 
     def test_pre_013_session_without_set_strategy_keeps_its_original_intent(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -754,6 +833,7 @@ class EngineTests(unittest.TestCase):
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             start_tool = next(item for item in responses[1]["result"]["tools"] if item["name"] == "start_design_session")
             self.assertEqual(start_tool["inputSchema"]["properties"]["frontend_mode"]["enum"], ["headless", "studio"])
+            self.assertEqual(start_tool["inputSchema"]["properties"]["authoring_mode"]["enum"], ["automatic", "guided"])
             self.assertIn("set_session_language", names)
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)

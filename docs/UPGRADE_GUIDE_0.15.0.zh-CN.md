@@ -378,7 +378,18 @@ Codex MCP（本次创作已明确选择 Studio）
 
 `start_design_session` 通过 `frontend_mode=studio|headless` 记录本次 MCP 创作进程的选择。新建项目先由统一 Engine 初始化，再由插件使用固定的 APSAL Studio 应用路径和 `--project-root ... --codex-link` 启动前端。只有插件本次明确选择的项目才能进入联动路由；磁盘上已有 descriptor 不等于本次创作已经授权。
 
-### 11.3 八个前端联动工具
+### 11.3 全自动与逐步确认
+
+创作开始或恢复时，插件先让创作者选择：
+
+- `authoring_mode=automatic`：按权利、身份、场景意图、依赖兼容、摄影语言、个人记忆与 QA 排序，为每个必需类型选择首个有效 DNA；按 Direction → Worldbuilding → Narrative → Image → Delivery 确认全部十三角色，并在同一个项目 revision 中完成 finalize 与 Prompt/Skill 打包；
+- `authoring_mode=guided`：保留五层卡片、逐层修改、确认和最终总览确认。旧会话没有该字段时按 guided 处理。
+
+自动模式的元素来源必须记录为 `automatic_default`，不能写成 `creator_confirmed`。自动模式只免除设计确认，不能跳过语言确定、参考图用途与权利、必需 DNA、结构验证、人工视觉 QA 或生成结果检查。`authoring_mode` 属于会话交互状态，不进入主题和 Prompt digest。Studio 的项目面板只投影该状态，不拥有第二套模式设置。
+
+0.15 的章节式默认套片按九个 Job 逐镜完成差异化：九个场景、九套妆容/发型/服装、九种姿态动作、九种眼神与面部朝向、九种构图、九个焦段和九套灯光均必须不同；只锁定人物面部身份、成年年龄、身体比例与真人摄影媒介。若绑定 identity 参考图，最终 Skill ZIP 必须把清理元数据后的真实图片写入 `assets/references/`，在 `reference_manifest.json` 中记录权利和用途，并在 `run_manifest.json` 中逐镜映射。每镜完整 Prompt 明确禁止继承参考图原有姿势、妆造、场景、构图、焦段和灯光。
+
+### 11.4 八个前端联动工具
 
 | MCP 工具 | 领域方法 | UI 结果 |
 |---|---|---|
@@ -611,15 +622,17 @@ codex plugin list
 ### 18.4 首次联调
 
 1. 在 Codex 中打开 APSAL 插件并开始创作。
-2. 对“是否同时打开 APSAL Studio 前端？”选择“打开并联动（推荐）”。
-3. 插件通过 `start_design_session(frontend_mode=studio)` 创建或恢复项目，并自动启动 Studio。
-4. 调用 apsal_frontend_status，必须返回 connected、compatible、selected_for_codex 和当前项目。
-5. 先做一个 Direction 层 preview，不要直接升级完整主题。
-6. 确认 Studio 出现变更卡和受影响层。
-7. 在 Studio 确认整层，再从 Codex 读取快照。
-8. 在 Studio 属性面板修改一个字段并点击“发送给 Codex”。
-9. Codex 调用 `apsal_frontend_get_updates`，核对 `origin=studio`、字段差异和当前 revision，再应用或拒绝。
-10. 两端一致后再继续 Worldbuilding 到 Delivery。
+2. 对“选择创作方式？”先选择“逐步确认”，用于检查原有卡片与双向变更链路。
+3. 对“是否同时打开 APSAL Studio 前端？”选择“打开并联动（推荐）”。
+4. 插件通过 `start_design_session(authoring_mode=guided, frontend_mode=studio)` 创建或恢复项目，并自动启动 Studio。
+5. 调用 apsal_frontend_status，必须返回 connected、compatible、selected_for_codex 和当前项目。
+6. 先做一个 Direction 层 preview，不要直接升级完整主题。
+7. 确认 Studio 出现变更卡和受影响层。
+8. 在 Studio 确认整层，再从 Codex 读取快照。
+9. 在 Studio 属性面板修改一个字段并点击“发送给 Codex”。
+10. Codex 调用 `apsal_frontend_get_updates`，核对 `origin=studio`、字段差异和当前 revision，再应用或拒绝。
+11. 两端一致后再继续 Worldbuilding 到 Delivery。
+12. 另建项目选择“全自动创作”，调用 `start_design_session(authoring_mode=automatic, frontend_mode=studio)`；必须在一个 revision 内返回 `state=ready`、五层全部 confirmed、十三元素来源为 `automatic_default`、Prompt/Skill 包存在，且 Studio 显示“全自动创作”。
 
 ### 18.5 回退边界
 
