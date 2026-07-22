@@ -480,14 +480,14 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  const selectProject = async (project: LibraryProject) => {
+  const selectProjectById = async (projectId: string) => {
     if (!runtime) return
-    setSelectedId(project.project_id)
+    setSelectedId(projectId)
     setBusyAction('detail')
     try {
       const [value, lineage] = await Promise.all([
-        runtime.call<LibraryDetail>('library.get', { project_id: project.project_id }),
-        runtime.call<NonNullable<LibraryDetail['lineage']>>('library.lineage', { project_id: project.project_id }),
+        runtime.call<LibraryDetail>('library.get', { project_id: projectId }),
+        runtime.call<NonNullable<LibraryDetail['lineage']>>('library.lineage', { project_id: projectId }),
       ])
       setDetail({ ...value, lineage })
     } catch (error) {
@@ -495,6 +495,15 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
     } finally {
       setBusyAction('')
     }
+  }
+
+  const selectProject = async (project: LibraryProject) => selectProjectById(project.project_id)
+
+  const handleProjectCreated = async (snapshot: ApsalProjectSnapshot) => {
+    setCreating(false)
+    setNotice('参考图已安全入库并显示在项目详情中；下一步可启动 Codex 分析。')
+    await load()
+    await selectProjectById(snapshot.project.project_id)
   }
 
   const openProject = async (project: LibraryProject, switchView = true): Promise<ApsalProjectSnapshot | null> => {
@@ -632,7 +641,9 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
     }
   }
 
+  const referenceAssets = useMemo(() => detail?.assets.filter((item) => item.kind === 'reference') ?? [], [detail])
   const outputAssets = useMemo(() => detail?.assets.filter((item) => item.kind === 'output') ?? [], [detail])
+  const latestAnalysis = detail?.analyses.at(-1)
 
   return (
     <main className="creative-library" id="creative-library" tabIndex={-1}>
@@ -657,7 +668,9 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
           <div className="detail-summary"><span><strong>{detail.project.reference_count}</strong>参考图</span><span><strong>{detail.project.output_count}</strong>产出</span><span><strong>{detail.analyses.length}</strong>分析批次</span></div>
           {detail.project.parent_project_id && <div className="lineage-callout"><GitBranch /><div><strong>继承自父项目</strong><span>{detail.project.parent_project_id}</span></div></div>}
           {detail.lineage?.comparison.available && <section className="lineage-comparison"><h3>五层十三要素谱系比较</h3><div><span><strong>{detail.lineage.comparison.inherited.length}</strong>继承</span><span><strong>{detail.lineage.comparison.modified.length}</strong>修改</span><span><strong>{detail.lineage.comparison.added.length}</strong>新增</span></div>{detail.lineage.comparison.modified.length > 0 && <p>修改：{detail.lineage.comparison.modified.map((role) => APSAL_ROLE_LABELS[role] || role).join('、')}</p>}{detail.lineage.comparison.added.length > 0 && <p>新增：{detail.lineage.comparison.added.map((role) => APSAL_ROLE_LABELS[role] || role).join('、')}</p>}</section>}
-          {outputAssets.length > 0 && <div className="detail-gallery">{outputAssets.slice(0, 6).map((item) => <img key={item.asset_id} src={mediaUrl(item.archived_path)} alt={`生成结果 ${item.shot_id || ''}`} loading="lazy" />)}</div>}
+          {referenceAssets.length > 0 && <section className="detail-media"><h3>参考图片</h3><div className="detail-gallery">{referenceAssets.slice(0, 12).map((item, index) => <img key={item.asset_id} src={mediaUrl(item.archived_path || item.path)} alt={`参考图片 ${index + 1}`} loading="lazy" />)}</div></section>}
+          {outputAssets.length > 0 && <section className="detail-media"><h3>生成结果</h3><div className="detail-gallery">{outputAssets.slice(0, 6).map((item) => <img key={item.asset_id} src={mediaUrl(item.archived_path || item.path)} alt={`生成结果 ${item.shot_id || ''}`} loading="lazy" />)}</div></section>}
+          {latestAnalysis && <div className="analysis-progress"><Sparkles /><div><strong>{latestAnalysis.status === 'completed' ? 'Codex 分析已完成' : '等待 Codex 分析'}</strong><span>{latestAnalysis.completed_job_count} / {latestAnalysis.job_count} 个结构化任务已回写</span></div></div>}
           <div className="detail-actions">
             <button type="button" className="button-primary" onClick={() => void openProject(detail.project)}><ArrowRight />进入工作流画布</button>
             <button type="button" className="button-ghost" disabled={Boolean(busyAction)} onClick={() => setCreatingFork(true)}><GitBranch />创建扩展子项目</button>
@@ -671,7 +684,7 @@ export function CreativeLibrary({ onOpenProject }: { onOpenProject: () => void }
           {busyAction === 'detail' && <div className="detail-loading"><LoaderCircle className="spin" />读取项目</div>}
         </aside>}
       </div>
-      {creating && <CreateProjectSheet onClose={() => setCreating(false)} onCreated={() => { setCreating(false); setNotice('根项目已创建并进入项目库。'); void load() }} />}
+      {creating && <CreateProjectSheet onClose={() => setCreating(false)} onCreated={(snapshot) => { void handleProjectCreated(snapshot) }} />}
       {creatingFork && detail && <ForkProjectSheet project={detail.project} assets={detail.assets} onClose={() => setCreatingFork(false)} onCreated={() => { setCreatingFork(false); setDetail(null); setSelectedId(null); setNotice('扩展子项目已创建；父项目保持不变。'); void load() }} />}
       {sharePreview && <SharePreviewSheet preview={sharePreview} onClose={() => setSharePreview(null)} onComplete={(message) => { setSharePreview(null); setNotice(message); if (detail) void selectProject(detail.project) }} />}
     </main>

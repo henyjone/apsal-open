@@ -79,6 +79,22 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertNotIn("generation.record", renderer_contract)
         self.assertNotIn("qa.record", renderer_contract)
 
+    def test_private_reference_media_is_visible_only_through_the_safe_protocol(self) -> None:
+        index = (STUDIO / "index.html").read_text()
+        main = (STUDIO / "electron" / "main.mjs").read_text()
+        library = (STUDIO / "src" / "CreativeLibrary.tsx").read_text()
+
+        csp = re.search(r'Content-Security-Policy" content="([^"]+)', index)
+        self.assertIsNotNone(csp)
+        self.assertIn("img-src 'self' data: apsal-media:", csp.group(1))
+        self.assertNotIn("file:", csp.group(1))
+        self.assertIn("protocol.handle('apsal-media'", main)
+        self.assertIn("isInside(mediaPath, join(apsalHome, 'vault'))", main)
+        self.assertIn("isInside(mediaPath, join(apsalHome, 'library', 'objects'))", main)
+        self.assertIn("if (!wasRunning) publish('apsal-protocol:status', await protocolStatus())", main)
+        self.assertIn("apsal-media://asset?path=", library)
+        self.assertIn("参考图已安全入库并显示在项目详情中", library)
+
     def test_codex_bridge_keeps_full_domain_route_without_arbitrary_proxy(self) -> None:
         bridge = (STUDIO / "electron" / "apsal-link.mjs").read_text()
         self.assertIn("design.authoring_mode", bridge)

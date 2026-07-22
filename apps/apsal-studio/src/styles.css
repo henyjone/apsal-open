@@ -321,8 +321,15 @@ button:disabled {
 .lineage-comparison > div span { padding: 7px; border-radius: 6px; background: var(--surface-soft); color: var(--muted); font-size: 8px; }
 .lineage-comparison strong { display: block; margin-bottom: 2px; color: var(--accent-soft); font-size: 13px; }
 .lineage-comparison p { margin: 7px 0 0; color: var(--muted); font-size: 8px; line-height: 1.5; }
-.detail-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 0 20px 14px; }
+.detail-media { margin: 0 20px 14px; }
+.detail-media h3 { margin: 0 0 8px; color: var(--text-soft); font-size: 10px; }
+.detail-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .detail-gallery img { width: 100%; aspect-ratio: 1; border-radius: 7px; object-fit: cover; background: #22180f; }
+.analysis-progress { display: flex; align-items: center; gap: 10px; margin: 0 20px 14px; padding: 10px; border: 1px solid rgba(245, 165, 36, 0.18); border-radius: 9px; background: rgba(245, 165, 36, 0.05); }
+.analysis-progress > svg { width: 18px; height: 18px; color: var(--accent-soft); }
+.analysis-progress strong, .analysis-progress span { display: block; }
+.analysis-progress strong { color: var(--text-soft); font-size: 10px; }
+.analysis-progress span { margin-top: 3px; color: var(--muted); font-size: 8px; }
 .detail-actions { display: grid; gap: 7px; padding: 4px 20px 16px; }
 .detail-actions button { width: 100%; min-height: 40px; justify-content: center; }
 .library-tags { margin: 0 20px 16px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255, 255, 255, .015); }
