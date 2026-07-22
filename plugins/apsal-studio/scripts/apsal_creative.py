@@ -293,6 +293,7 @@ def _append_analysis_activity(
     *,
     job: dict[str, Any] | None = None,
     error: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     event: dict[str, Any] = {
         "event_id": f"EVENT-{uuid.uuid4().hex[:12].upper()}",
@@ -303,6 +304,8 @@ def _append_analysis_activity(
         event.update({"job_id": job["job_id"], "kind": job["kind"]})
     if error:
         event["error"] = error
+    if details:
+        event["details"] = json.loads(json.dumps(details))
     activity = analysis.setdefault("activity", [])
     activity.append(event)
     analysis["activity"] = activity[-200:]
@@ -343,8 +346,13 @@ def start_analysis(project_root: Path) -> dict[str, Any]:
         "created_at": engine._utc_now(),
         "updated_at": engine._utc_now(),
     }
-    _append_analysis_activity(value, "analysis_started")
+    _append_analysis_activity(value, "analysis_started", details={
+        "reference_count": len(references),
+        "job_count": len(jobs),
+        "analysis_schema_version": ANALYSIS_SCHEMA_VERSION,
+    })
     _write_analysis(root, value)
+    reconcile_library(root)
     return value
 
 
@@ -395,6 +403,64 @@ def _analysis_reference_map(project_root: Path) -> dict[str, dict[str, Any]]:
     return {item["reference_id"]: item for item in load_project_references(project_root).get("references", [])}
 
 
+def _analysis_task_contract(
+    job: dict[str, Any],
+    references: dict[str, dict[str, Any]],
+    image_jobs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if job["kind"] == "image":
+        identity_allowed = all(references[item].get("identity_lock_allowed") is True for item in job["reference_ids"])
+        instruction = (
+            "Analyze only observable photographic evidence and separate observations from inference. "
+            "Do not identify a person or infer sensitive traits. "
+            + ("Identity continuity may be described only as authorized visual attributes. " if identity_allowed else "Do not describe or preserve identity-specific facial traits. ")
+            + "Return every APSAL five-layer/thirteen-element role in the supplied JSON schema."
+        )
+        schema = _image_analysis_schema()
+        context_job_ids: list[str] = []
+        codex_tool = "multimodal_analysis"
+        input_mode = "private_reference_media"
+    else:
+        identity_allowed = False
+        instruction = "Synthesize the completed per-image analyses into one APSAL visual DNA without reading new media. Return the supplied JSON schema."
+        schema = _synthesis_schema()
+        context_job_ids = [item["job_id"] for item in image_jobs]
+        codex_tool = "structured_synthesis"
+        input_mode = "validated_analysis_results"
+    return {
+        "instruction": instruction,
+        "codex_tool": codex_tool,
+        "direct_api_calls": False,
+        "input_mode": input_mode,
+        "reference_ids": list(job["reference_ids"]),
+        "context_job_ids": context_job_ids,
+        "identity_continuity_allowed": identity_allowed,
+        "result_schema": schema,
+        "result_schema_digest": engine.digest(schema),
+    }
+
+
+def _analysis_result_summary(kind: str, result: dict[str, Any]) -> dict[str, Any]:
+    if kind == "image":
+        return {
+            "observed_count": len(result["observed"]),
+            "inferred_count": len(result["inferred"]),
+            "reference_role_count": len(result["reference_roles"]),
+            "lock_count": len(result["locks"]),
+            "variable_count": len(result["variables"]),
+            "risk_count": len(result["risks"]),
+            "uncertainty_count": len(result["uncertainties"]),
+            "apsal_element_count": len(result["elements"]),
+        }
+    return {
+        "visual_dna_count": len(result["common_visual_dna"]),
+        "conflict_count": len(result["conflicts"]),
+        "complement_count": len(result["complements"]),
+        "recommended_direction_count": len(result["recommended_directions"]),
+        "apsal_element_count": len(result["element_decisions"]),
+    }
+
+
 def next_analysis_job(project_root: Path, analysis_id: str) -> dict[str, Any]:
     root = project_root.expanduser().resolve()
     analysis = load_analysis(root, analysis_id)
@@ -416,23 +482,19 @@ def next_analysis_job(project_root: Path, analysis_id: str) -> dict[str, Any]:
         job["status"] = "in_progress"
         job["claimed_at"] = engine._utc_now()
         job["claim_count"] = int(job.get("claim_count", 0)) + 1
-        _append_analysis_activity(analysis, event_type, job=job)
-    _write_analysis(root, analysis)
+        _append_analysis_activity(analysis, event_type, job=job, details={
+            "claim_count": job["claim_count"],
+            "reference_ids": job["reference_ids"],
+        })
     references = _analysis_reference_map(root)
     reference_paths = [str(engine._vault_reference_path(references[item]["vault_uri"])) for item in job["reference_ids"]]
+    task = _analysis_task_contract(job, references, image_jobs)
+    job["task"] = task
+    _write_analysis(root, analysis)
+    reconcile_library(root)
     if job["kind"] == "image":
-        identity_allowed = all(references[item].get("identity_lock_allowed") is True for item in job["reference_ids"])
-        instruction = (
-            "Analyze only observable photographic evidence and separate observations from inference. "
-            "Do not identify a person or infer sensitive traits. "
-            + ("Identity continuity may be described only as authorized visual attributes. " if identity_allowed else "Do not describe or preserve identity-specific facial traits. ")
-            + "Return every APSAL five-layer/thirteen-element role in the supplied JSON schema."
-        )
-        schema = _image_analysis_schema()
         context = None
     else:
-        instruction = "Synthesize the completed per-image analyses into one APSAL visual DNA without reading new media. Return the supplied JSON schema."
-        schema = _synthesis_schema()
         context = [{"job_id": item["job_id"], "result": item["result"]} for item in image_jobs]
     return {
         "analysis_id": analysis_id,
@@ -440,11 +502,11 @@ def next_analysis_job(project_root: Path, analysis_id: str) -> dict[str, Any]:
         "kind": job["kind"],
         "reference_ids": job["reference_ids"],
         "referenced_image_paths": reference_paths if job["kind"] == "image" else [],
-        "instruction": instruction,
-        "result_schema": schema,
+        "instruction": task["instruction"],
+        "result_schema": task["result_schema"],
         "context": context,
-        "codex_tool": "multimodal_analysis" if job["kind"] == "image" else "structured_synthesis",
-        "direct_api_calls": False,
+        "codex_tool": task["codex_tool"],
+        "direct_api_calls": task["direct_api_calls"],
         "attempt_count": len(job.get("attempts", [])),
         "last_error": job.get("error"),
         "claim_status": "resumed" if resumed else "claimed",
@@ -505,6 +567,8 @@ def record_analysis(
         validated = _validate_analysis_result(job["kind"], result)
         job["result"] = validated
         attempt["result_digest"] = engine.digest(validated)
+        attempt["schema_validated"] = True
+        attempt["result_summary"] = _analysis_result_summary(job["kind"], validated)
         job["error"] = None
     else:
         message = str(error or "analysis_error_not_reported").strip()
@@ -518,6 +582,7 @@ def record_analysis(
         "job_succeeded" if status == "succeeded" else "job_failed",
         job=job,
         error=attempt.get("error"),
+        details={key: attempt[key] for key in ("result_digest", "schema_validated", "result_summary") if key in attempt},
     )
     image_jobs = [item for item in analysis["jobs"] if item["kind"] == "image"]
     synthesis = next(item for item in analysis["jobs"] if item["kind"] == "synthesis")
@@ -656,7 +721,13 @@ def _project_stage(project_root: Path, analyses: list[dict[str, Any]]) -> str:
     if any(item.get("status") == "completed" for item in analyses):
         return "design_ready"
     if analyses:
-        return "analyzing"
+        latest = analyses[-1]
+        jobs = latest.get("jobs", [])
+        if any(job.get("status") == "in_progress" for job in jobs):
+            return "analyzing"
+        if any(job.get("status") == "failed" for job in jobs):
+            return "analysis_partial"
+        return "analysis_waiting"
     return "references_ready"
 
 
@@ -856,6 +927,33 @@ def library_list(
         connection.close()
 
 
+def _library_analysis_job(
+    analysis: dict[str, Any],
+    job: dict[str, Any],
+    references: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    task = job.get("task")
+    if not task:
+        try:
+            image_jobs = [item for item in analysis.get("jobs", []) if item.get("kind") == "image"]
+            task = _analysis_task_contract(job, references, image_jobs)
+        except (KeyError, engine.ValidationError):
+            task = None
+    return {
+        "job_id": job.get("job_id"),
+        "kind": job.get("kind"),
+        "status": job.get("status"),
+        "reference_ids": job.get("reference_ids", []),
+        "attempt_count": len(job.get("attempts", [])),
+        "attempts": job.get("attempts", []),
+        "last_error": job.get("error"),
+        "claimed_at": job.get("claimed_at"),
+        "claim_count": int(job.get("claim_count", 0)),
+        "task": task,
+        "result": job.get("result"),
+    }
+
+
 def library_get(project_id: str, *, home: Path | None = None) -> dict[str, Any]:
     connection = _library_connection(home)
     try:
@@ -871,20 +969,13 @@ def library_get(project_id: str, *, home: Path | None = None) -> dict[str, Any]:
             item["rights"] = json.loads(item.pop("rights_json") or "{}")
         project = _project_row(row)
         root = Path(project["project_root"])
+        references = _analysis_reference_map(root)
         analyses = [{
             "analysis_id": item.get("analysis_id"),
             "status": item.get("status"),
             "job_count": len(item.get("jobs", [])),
             "completed_job_count": sum(job.get("status") == "succeeded" for job in item.get("jobs", [])),
-            "jobs": [{
-                "job_id": job.get("job_id"),
-                "kind": job.get("kind"),
-                "status": job.get("status"),
-                "reference_ids": job.get("reference_ids", []),
-                "attempt_count": len(job.get("attempts", [])),
-                "last_error": job.get("error"),
-                "claimed_at": job.get("claimed_at"),
-            } for job in item.get("jobs", [])],
+            "jobs": [_library_analysis_job(item, job, references) for job in item.get("jobs", [])],
             "activity": item.get("activity", []),
             "design_session_id": item.get("design_session_id"),
             "updated_at": item.get("updated_at"),

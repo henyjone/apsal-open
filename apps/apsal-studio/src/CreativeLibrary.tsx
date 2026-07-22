@@ -59,8 +59,29 @@ interface LibraryAnalysis {
     status: string
     reference_ids: string[]
     attempt_count: number
+    attempts: Array<{
+      status: string
+      recorded_at: string
+      result_digest?: string
+      schema_validated?: boolean
+      result_summary?: Record<string, number>
+      error?: string
+    }>
     last_error?: string | null
     claimed_at?: string | null
+    claim_count: number
+    task?: {
+      instruction: string
+      codex_tool: string
+      direct_api_calls: boolean
+      input_mode: string
+      reference_ids: string[]
+      context_job_ids: string[]
+      identity_continuity_allowed: boolean
+      result_schema: Record<string, unknown>
+      result_schema_digest: string
+    } | null
+    result?: Record<string, unknown> | null
   }>
   activity: Array<{
     event_id: string
@@ -69,6 +90,7 @@ interface LibraryAnalysis {
     job_id?: string
     kind?: 'image' | 'synthesis'
     error?: string
+    details?: Record<string, unknown>
   }>
 }
 
@@ -113,7 +135,9 @@ interface SharePreview {
 
 const STAGE_LABELS: Record<string, string> = {
   references_ready: '参考图已入库',
-  analyzing: 'Codex 分析中',
+  analysis_waiting: '等待 Codex 领取',
+  analyzing: 'Codex 执行中',
+  analysis_partial: '分析失败，可重试',
   design_ready: '分析已完成',
   skill_ready: 'Prompt / Skill 就绪',
   generating: '扩展生成中',
@@ -170,6 +194,7 @@ function operationId(prefix: string): string {
 }
 
 function stageIndex(stage: string): number {
+  if (stage === 'analysis_waiting' || stage === 'analysis_partial') return 1
   const index = PIPELINE.findIndex(([value]) => value === stage)
   return index < 0 ? 0 : index
 }
@@ -230,6 +255,124 @@ function jobStatusLabel(status: string): string {
   return status
 }
 
+type AnalysisJob = LibraryAnalysis['jobs'][number]
+
+function formatAnalysisTime(value?: string | null): string {
+  if (!value) return '未记录'
+  return new Date(value).toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+}
+
+function jsonText(value: unknown): string {
+  return JSON.stringify(value, null, 2)
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function AnalysisValueList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <section className="analysis-value-list">
+      <h6>{title}<span>{items.length}</span></h6>
+      {items.length ? <ul>{items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p>无</p>}
+    </section>
+  )
+}
+
+function AnalysisElementGrid({ value }: { value: unknown }) {
+  const elements = value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.entries(value as Record<string, unknown>) : []
+  return (
+    <section className="analysis-elements">
+      <h5>APSAL 五层十三要素<span>{elements.length}</span></h5>
+      <div>{elements.map(([role, decision]) => (
+        <details key={role}>
+          <summary>{APSAL_ROLE_LABELS[role] ?? role}</summary>
+          <pre>{jsonText(decision)}</pre>
+        </details>
+      ))}</div>
+    </section>
+  )
+}
+
+function AnalysisResult({ job }: { job: AnalysisJob }) {
+  const result = job.result
+  if (!result) return <p className="analysis-empty-result">{job.status === 'in_progress' ? 'Codex 正在生成结构化结果，回写后会在这里完整显示。' : '尚无结构化回写。'}</p>
+  const image = job.kind === 'image'
+  const groups = image ? [
+    ['可观测事实', stringList(result.observed)],
+    ['创作推断', stringList(result.inferred)],
+    ['参考图角色', stringList(result.reference_roles)],
+    ['锁定元素', stringList(result.locks)],
+    ['可变化元素', stringList(result.variables)],
+    ['风险', stringList(result.risks)],
+    ['不确定项', stringList(result.uncertainties)],
+  ] as Array<[string, string[]]> : [
+    ['共同视觉 DNA', stringList(result.common_visual_dna)],
+    ['冲突项', stringList(result.conflicts)],
+    ['互补关系', stringList(result.complements)],
+    ['推荐创作方向', stringList(result.recommended_directions)],
+  ] as Array<[string, string[]]>
+  return (
+    <div className="analysis-result">
+      <div className="analysis-value-grid">{groups.map(([title, items]) => <AnalysisValueList key={title} title={title} items={items} />)}</div>
+      <AnalysisElementGrid value={image ? result.elements : result.element_decisions} />
+      <details className="analysis-json-record">
+        <summary>查看 Engine 原样保存的完整 JSON 回写</summary>
+        <pre>{jsonText(result)}</pre>
+      </details>
+    </div>
+  )
+}
+
+function AnalysisJobRecord({ job, index }: { job: AnalysisJob; index: number }) {
+  const task = job.task
+  return (
+    <li className={job.status}>
+      <div className="analysis-job-heading">
+        <i>{job.status === 'succeeded' ? <BadgeCheck /> : job.status === 'in_progress' ? <LoaderCircle className="spin" /> : <span>{index + 1}</span>}</i>
+        <div><strong>{job.kind === 'image' ? `参考图 ${index + 1} · 五层十三要素` : '整组综合 · 视觉 DNA'}</strong><span>{jobStatusLabel(job.status)}{job.attempt_count > 0 ? ` · ${job.attempt_count} 次回写` : ''}</span>{job.last_error && <em>{job.last_error}</em>}</div>
+      </div>
+      <details className="analysis-job-record" open={job.status === 'in_progress' || job.status === 'failed'}>
+        <summary>完整任务、Schema 与回写记录</summary>
+        <div className="analysis-job-body">
+          <section className="analysis-contract">
+            <h5>Codex 收到的分析任务</h5>
+            {task ? <>
+              <p>{task.instruction}</p>
+              <dl>
+                <div><dt>任务 ID</dt><dd>{job.job_id}</dd></div>
+                <div><dt>输入</dt><dd>{task.input_mode}</dd></div>
+                <div><dt>参考图</dt><dd>{task.reference_ids.join('、') || '不读取新媒体'}</dd></div>
+                <div><dt>上下文任务</dt><dd>{task.context_job_ids.join('、') || '无'}</dd></div>
+                <div><dt>人物身份保持</dt><dd>{task.identity_continuity_allowed ? '已明确授权' : '禁止'}</dd></div>
+                <div><dt>外部视觉 API</dt><dd>{task.direct_api_calls ? '允许' : '未调用'}</dd></div>
+                <div><dt>领取时间</dt><dd>{formatAnalysisTime(job.claimed_at)}</dd></div>
+                <div><dt>Schema SHA-256</dt><dd>{task.result_schema_digest}</dd></div>
+              </dl>
+              <details className="analysis-json-record"><summary>查看严格 JSON Schema</summary><pre>{jsonText(task.result_schema)}</pre></details>
+            </> : <p>旧任务没有保存任务快照；结果与回写记录仍按原文件显示。</p>}
+          </section>
+          <section className="analysis-attempts">
+            <h5>校验与回写尝试<span>{job.attempts.length}</span></h5>
+            {job.attempts.length ? <ol>{job.attempts.map((attempt, attemptIndex) => <li key={`${attempt.recorded_at}-${attemptIndex}`}>
+              <strong>{attempt.status === 'succeeded' ? 'Schema 校验通过并回写' : '回写失败'}</strong>
+              <time>{formatAnalysisTime(attempt.recorded_at)}</time>
+              {attempt.result_digest && <code>结果 SHA-256：{attempt.result_digest}</code>}
+              {attempt.result_summary && <pre>{jsonText(attempt.result_summary)}</pre>}
+              {attempt.error && <em>{attempt.error}</em>}
+            </li>)}</ol> : <p>尚未回写。</p>}
+          </section>
+          <AnalysisResult job={job} />
+        </div>
+      </details>
+    </li>
+  )
+}
+
 function AnalysisExecutionPanel({ analysis, linkStatus, projectId }: {
   analysis: LibraryAnalysis
   linkStatus?: ApsalLinkStatus | null
@@ -243,9 +386,9 @@ function AnalysisExecutionPanel({ analysis, linkStatus, projectId }: {
       <header><div><span className="eyebrow">CODEX 执行记录</span><h3>{analysis.status === 'completed' ? '参考图分析已完成' : active ? 'Codex 正在分析' : '等待 Codex 分析'}</h3></div><span className={`analysis-link ${linked ? 'connected' : ''}`}>{linked ? '已联动' : '未联动'}</span></header>
       {!linked && waiting && <div className="analysis-blocker"><strong>当前没有 Codex 领取任务</strong><span>请从 Codex 插件选择“打开并联动 APSAL Studio”，并绑定当前项目；单独打开 Studio 只会建立任务。</span></div>}
       {!linked && active && <div className="analysis-blocker headless"><strong>任务已被 Headless Codex 领取</strong><span>当前没有 Studio 实时联动，但结构化进度仍会从项目语义真源刷新。</span></div>}
-      <ol className="analysis-jobs">{analysis.jobs.map((job, index) => <li key={job.job_id} className={job.status}><i>{job.status === 'succeeded' ? <BadgeCheck /> : job.status === 'in_progress' ? <LoaderCircle className="spin" /> : <span>{index + 1}</span>}</i><div><strong>{job.kind === 'image' ? `参考图 ${index + 1} · 五层十三要素` : '整组综合 · 视觉 DNA'}</strong><span>{jobStatusLabel(job.status)}{job.attempt_count > 0 ? ` · ${job.attempt_count} 次回写` : ''}</span>{job.last_error && <em>{job.last_error}</em>}</div></li>)}</ol>
-      <div className="analysis-timeline"><h4>交流时间线</h4>{analysis.activity.length > 0 ? <ol>{analysis.activity.slice(-12).map((event) => <li key={event.event_id}><time>{new Date(event.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time><span>{activityLabel(event)}</span></li>)}</ol> : <p>旧分析批次尚无执行事件；下一次 Codex 领取或回写后开始记录。</p>}</div>
-      <footer>这里只显示可验证的任务、Schema 校验和回写事件，不展示模型内部隐藏推理。</footer>
+      <ol className="analysis-jobs">{analysis.jobs.map((job, index) => <AnalysisJobRecord key={job.job_id} job={job} index={index} />)}</ol>
+      <div className="analysis-timeline"><h4>完整执行时间线<span>{analysis.activity.length} 条</span></h4>{analysis.activity.length > 0 ? <ol>{analysis.activity.map((event) => <li key={event.event_id}><time title={event.at}>{formatAnalysisTime(event.at)}</time><div><span>{activityLabel(event)}</span><code>{event.event_id}{event.job_id ? ` · ${event.job_id}` : ''}</code>{event.details && <pre>{jsonText(event.details)}</pre>}</div></li>)}</ol> : <p>旧分析批次尚无执行事件；下一次 Codex 领取或回写后开始记录。</p>}</div>
+      <footer>完整展示任务输入、可观测事实、创作推断、十三要素、Schema、摘要和回写事件。模型内部隐藏思维链不记录也不展示。</footer>
     </section>
   )
 }

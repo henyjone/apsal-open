@@ -96,7 +96,11 @@ class StudioFrontendTests(unittest.TestCase):
         self.assertIn("参考图已安全入库并显示在项目详情中", library)
         self.assertIn("CODEX 执行记录", library)
         self.assertIn("当前没有 Codex 领取任务", library)
-        self.assertIn("不展示模型内部隐藏推理", library)
+        self.assertIn("Engine 原样保存的完整 JSON 回写", library)
+        self.assertIn("可观测事实", library)
+        self.assertIn("完整执行时间线", library)
+        self.assertNotIn("activity.slice(-12)", library)
+        self.assertIn("模型内部隐藏思维链不记录也不展示", library)
 
     def test_codex_bridge_keeps_full_domain_route_without_arbitrary_proxy(self) -> None:
         bridge = (STUDIO / "electron" / "apsal-link.mjs").read_text()
