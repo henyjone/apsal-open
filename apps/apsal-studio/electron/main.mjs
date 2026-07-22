@@ -334,7 +334,10 @@ async function callProtocol(message = {}) {
   if (!RENDERER_METHODS.has(method)) throw new Error(`Studio renderer is not allowed to call APSAL method: ${method}`)
   if (!currentProjectRoot && !PROJECT_OPTIONAL_METHODS.has(method)) throw new Error('请先新建或打开 APSAL 项目目录')
   const params = { ...(message.params || {}), project_root: currentProjectRoot || app.getPath('userData') }
-  const result = await getSidecar().call(method, params)
+  const sidecar = getSidecar()
+  const wasRunning = sidecar.status().running
+  const result = await sidecar.call(method, params)
+  if (!wasRunning) publish('apsal-protocol:status', await protocolStatus())
   if (PROTOCOL_MUTATIONS.has(method) || method === 'studio.view.save') {
     publish('apsal-protocol:change', { method, result })
     if (result?.snapshot) publish('apsal-protocol:snapshot', result.snapshot)

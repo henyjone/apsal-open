@@ -161,6 +161,21 @@ class CreativeLibraryTests(unittest.TestCase):
             "analysis.status", {"project_root": str(project), "analysis_id": analysis_id}
         )
         self.assertEqual(status["status"], "completed")
+        historical = creative.load_analysis(project, analysis_id)
+        historical["jobs"][0].pop("task")
+        creative._write_analysis(project, historical)
+        library = protocol.handle_domain_method("library.get", {"project_root": str(project)})
+        analysis_view = next(item for item in library["analyses"] if item["analysis_id"] == analysis_id)
+        first_view = analysis_view["jobs"][0]
+        self.assertEqual(first_view["result"]["observed"], image_analysis_result()["observed"])
+        self.assertEqual(first_view["task"]["codex_tool"], "multimodal_analysis")
+        self.assertFalse(first_view["task"]["direct_api_calls"])
+        self.assertFalse(first_view["task"]["identity_continuity_allowed"])
+        self.assertEqual(len(first_view["task"]["result_schema"]["required"]), 8)
+        self.assertTrue(first_view["attempts"][0]["schema_validated"])
+        self.assertEqual(first_view["attempts"][0]["result_summary"]["apsal_element_count"], 13)
+        self.assertNotIn(str(project), json.dumps(first_view["task"]))
+        self.assertEqual(analysis_view["activity"][0]["details"]["reference_count"], 2)
 
         first_job = status["jobs"][0]
         replay = protocol.handle_domain_method(
@@ -209,9 +224,19 @@ class CreativeLibraryTests(unittest.TestCase):
                 "operation_id": "RETRY-START",
             },
         )
+        waiting_library = protocol.handle_domain_method("library.get", {"project_root": str(project)})
+        self.assertEqual(waiting_library["project"]["stage"], "analysis_waiting")
         first = protocol.handle_domain_method(
             "analysis.next", {"project_root": str(project), "analysis_id": started["analysis_id"]}
         )
+        active_library = protocol.handle_domain_method("library.get", {"project_root": str(project)})
+        self.assertEqual(active_library["project"]["stage"], "analyzing")
+        claimed = protocol.handle_domain_method(
+            "analysis.status", {"project_root": str(project), "analysis_id": started["analysis_id"]}
+        )
+        self.assertEqual(claimed["jobs"][0]["status"], "in_progress")
+        self.assertEqual(first["claim_status"], "claimed")
+        self.assertEqual([event["type"] for event in claimed["activity"]], ["analysis_started", "job_claimed"])
         failed = protocol.handle_domain_method(
             "analysis.record",
             {
@@ -237,6 +262,7 @@ class CreativeLibraryTests(unittest.TestCase):
         self.assertEqual(retry["job_id"], first["job_id"])
         self.assertEqual(retry["attempt_count"], 1)
         self.assertEqual(retry["last_error"], "temporary interruption")
+        self.assertEqual(retry["claim_status"], "claimed")
         recovered = protocol.handle_domain_method(
             "analysis.record",
             {

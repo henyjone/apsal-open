@@ -397,15 +397,15 @@ function CodexLinkPanel() {
         </span>
         <div>
           <span className="eyebrow">CODEX 联动</span>
-          <h2>{linkStatus?.connected ? 'Codex 已连接' : '等待 Codex 启动'}</h2>
+          <h2>{linkStatus?.connected ? 'Codex 已连接' : '等待 Codex 选择项目'}</h2>
         </div>
         <span className="link-origin">由插件启动</span>
       </div>
       <div className={`connection-state ${linkStatus?.connected ? 'connected' : ''}`}>
         <span className="pulse" />
-        {linkStatus?.connected ? '正在联动当前 APSAL 项目' : '单独打开 Studio 不会连接 Codex'}
+        {linkStatus?.connected ? '正在联动当前 APSAL 项目' : '请从 Codex 发起当前项目联动'}
       </div>
-      <p>{linkStatus?.connected ? 'Codex 插件正通过本机认证桥访问当前项目。它不能代理任意路径，也不能绕过协议 revision。' : '请在 Codex 中打开 APSAL 插件并开始创作；选择“打开并联动 APSAL Studio”后，插件会自动打开并绑定此界面。'}</p>
+      <p>{linkStatus?.connected ? 'Codex 插件正通过本机认证桥访问当前项目。它不能代理任意路径，也不能绕过协议 revision。' : '请在 Codex 中发送“连接我刚上传的 APSAL 项目并继续分析”。插件会选择已有项目、启动本机认证桥并绑定此界面，不会额外创建主题。'}</p>
       <div className="link-project">
         <div><span>绑定项目</span><strong>{snapshot?.project.project_id ?? '未选择'}</strong></div>
         <em>{studioUpdates.length ? `${studioUpdates.length} 条已发往 Codex` : '双方已同步'}</em>
@@ -949,7 +949,7 @@ export function App() {
           <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><GitBranch />工作流</button>
         </nav>
       </header>
-      {screen === 'library' ? <CreativeLibrary onOpenProject={() => setScreen('studio')} /> : <>
+      {screen === 'library' ? <CreativeLibrary onOpenProject={() => setScreen('studio')} linkStatus={linkStatus} /> : <>
         {snapshot?.read_only && <div className="compatibility-banner"><span>只读模式：{snapshot.compatibility_error || '协议版本不兼容，请预览并复制迁移到 APSAL 0.16。'}</span><button type="button" disabled={migrationBusy} onClick={() => void migrateProject()}>{migrationBusy ? <RefreshCw className="spin" /> : <GitBranch />}预览并复制迁移</button>{migrationError && <em role="alert">{migrationError}</em>}</div>}
         <nav className="project-pipeline-strip" aria-label="当前项目流水线">
           {['参考图', '分析', '设计', '生成', 'QA', 'Skill', '分享'].map((label, index) => <span key={label} className={snapshot?.session ? (index < 3 ? 'complete' : index === 3 ? 'current' : '') : index === 0 ? 'current' : ''}><i>{index + 1}</i>{label}</span>)}

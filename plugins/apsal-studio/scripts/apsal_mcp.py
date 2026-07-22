@@ -176,9 +176,9 @@ TOOLS = [
         "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
-        "name": "get_next_analysis_job", "description": "Return the next strict multimodal analysis or synthesis job without calling an external vision API.",
+        "name": "get_next_analysis_job", "description": "Claim and return the next strict multimodal analysis or synthesis job, recording auditable progress without calling an external vision API.",
         "inputSchema": _schema({"analysis_id": {"type": "string"}, "project_root": {"type": "string"}}, ["analysis_id"]),
-        "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "record_analysis_result", "description": "Record one validated thirteen-element Codex analysis result or failure with resumable attempts.",
@@ -259,6 +259,11 @@ TOOLS = [
         "name": "apsal_frontend_status", "description": "Report whether APSAL Studio Codex linkage is enabled, authenticated, protocol-compatible, and bound to a current project.",
         "inputSchema": _schema({}, []),
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+    },
+    {
+        "name": "apsal_frontend_connect", "description": "Select and authenticate an existing APSAL project for Studio linkage without creating or changing a design session.",
+        "inputSchema": _schema({"project_root": {"type": "string"}}, []),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
     },
     {
         "name": "apsal_frontend_get_project", "description": "Read the canonical APSAL project snapshot currently open in linked APSAL Studio.",
@@ -823,6 +828,13 @@ def _tool_frontend_status(arguments: dict[str, Any]) -> dict[str, Any]:
     return {**status, "selected_for_codex": selected}
 
 
+def _tool_frontend_connect(arguments: dict[str, Any]) -> dict[str, Any]:
+    root = _root(arguments)
+    status = _frontend_choice({**arguments, "frontend_mode": "studio"}, root)
+    selected = str(root.resolve()) in ACTIVE_FRONTEND_PROJECTS
+    return {**status, "selected_for_codex": selected}
+
+
 def _tool_frontend_get_project(arguments: dict[str, Any]) -> dict[str, Any]:
     del arguments
     _selected_frontend_status()
@@ -942,6 +954,7 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "publish_share": _tool_share_publish,
     "get_share_status": _tool_share_status,
     "apsal_frontend_status": _tool_frontend_status,
+    "apsal_frontend_connect": _tool_frontend_connect,
     "apsal_frontend_get_project": _tool_frontend_get_project,
     "apsal_frontend_get_updates": _tool_frontend_updates,
     "apsal_frontend_preview_changes": _tool_frontend_preview,
@@ -956,7 +969,7 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name not in HANDLERS: raise ValidationError(f"unknown MCP tool: {name}")
     value = HANDLERS[name](arguments)
     if ACTIVE_FRONTEND_PROJECTS and name not in {
-        "apsal_frontend_status", "apsal_frontend_get_project", "apsal_frontend_get_updates",
+        "apsal_frontend_status", "apsal_frontend_connect", "apsal_frontend_get_project", "apsal_frontend_get_updates",
     }:
         try:
             _selected_frontend_status()

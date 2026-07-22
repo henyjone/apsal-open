@@ -59,6 +59,8 @@ Import 1–24 images as one root project. For each image, record source/attribut
 
 Codex receives one strict analysis Job at a time. It separates observable facts from creative inference, records uncertainty and risk, covers the five layers and thirteen protocol roles, then synthesizes common visual DNA, conflicts, complements and recommended directions for the whole set. Interrupted Jobs resume; invalid JSON is rejected; repeating a recorded operation does not duplicate project content.
 
+The project detail's **CODEX execution record** distinguishes waiting, actively executing, retryable failure and completion instead of calling an unclaimed Job active. Expand a Job to inspect the exact instruction, reference IDs, identity boundary, strict JSON Schema and SHA-256, every validation/write attempt, observable facts, creative inferences, risks, uncertainties, all thirteen APSAL elements and the complete JSON value stored by the Engine. The timeline shows every retained event rather than only the latest entries. Private model chain-of-thought is neither recorded nor displayed.
+
 After analysis, **Build from analysis** creates the theme, positive and negative Prompts, QA contract and shareable Skill. A scene, camera, light, styling, series or complete nine-shot expansion always creates a child project. The child records source assets, change intent and parent snapshot digest; the parent stays byte-for-byte unchanged.
 
 The library can search, tag, favorite and archive projects and show lineage. These are projection features: `.apsal/project.json`, analysis, themes, runs and share records inside each project remain authoritative. `~/.apsal/library/` can be rebuilt.

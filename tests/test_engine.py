@@ -805,7 +805,7 @@ class EngineTests(unittest.TestCase):
                 engine.store_private_reference(source, home=home)
             self.assertFalse((home / "vault").exists())
 
-    def test_mcp_lists_fifty_tools_and_returns_text_only_card_data(self):
+    def test_mcp_lists_fifty_one_tools_and_returns_text_only_card_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project, home = Path(tmp) / "project", Path(tmp) / "home"; project.mkdir()
             session = engine.start_design_session("欢喜但克制的窗边真人摄影", project_root=project, home=home, theme_id="TEST-MCP-ELEMENTS")
@@ -832,7 +832,7 @@ class EngineTests(unittest.TestCase):
             process = subprocess.run([sys.executable, "scripts/apsal_mcp.py"], cwd=ROOT / "plugins/apsal-studio", input="".join(json.dumps(item) + "\n" for item in requests), text=True, capture_output=True, env=env, check=True)
             responses = [json.loads(line) for line in process.stdout.splitlines()]
             self.assertEqual(responses[0]["result"]["serverInfo"]["version"], "0.16.0")
-            self.assertEqual(len(responses[1]["result"]["tools"]), 50)
+            self.assertEqual(len(responses[1]["result"]["tools"]), 51)
             names = {item["name"] for item in responses[1]["result"]["tools"]}
             start_tool = next(item for item in responses[1]["result"]["tools"] if item["name"] == "start_design_session")
             self.assertEqual(start_tool["inputSchema"]["properties"]["frontend_mode"]["enum"], ["headless", "studio"])
@@ -841,6 +841,7 @@ class EngineTests(unittest.TestCase):
             self.assertIn("get_next_codex_job", names)
             self.assertIn("import_apsal_package", names)
             self.assertIn("bind_import_reference", names)
+            self.assertIn("apsal_frontend_connect", names)
             self.assertIn("apsal_frontend_preview_changes", names)
             self.assertIn("apsal_frontend_get_updates", names)
             self.assertIn("apsal_frontend_focus_elements", names)
