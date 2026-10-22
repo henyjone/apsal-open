@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "apsal-studio"
 OUTPUT = PLUGIN / "assets" / "previews"
-ENGINE_PATH = PLUGIN / "scripts" / "apsal_engine.py"
+ENGINE_PATH = PLUGIN / "scripts" / "apsal_engine" / "__init__.py"
 BRAND_MASTER = ROOT / "assets" / "brand" / "apsal-worldbuilding-master.png"
 
 spec = importlib.util.spec_from_file_location("apsal_engine_previews", ENGINE_PATH)

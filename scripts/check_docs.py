@@ -100,7 +100,12 @@ def main() -> int:
     plugin = json.loads((ROOT / "plugins/apsal-studio/.codex-plugin/plugin.json").read_text(encoding="utf-8"))
     studio = json.loads((ROOT / "apps/apsal-studio/package.json").read_text(encoding="utf-8"))
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    engine_text = (ROOT / "plugins/apsal-studio/scripts/apsal_engine.py").read_text(encoding="utf-8")
+    engine_dir = ROOT / "plugins/apsal-studio/scripts/apsal_engine"
+    if not engine_dir.is_dir():
+        errors.append("plugins/apsal-studio/scripts/apsal_engine package is missing")
+        engine_text = ""
+    else:
+        engine_text = "\n".join(path.read_text(encoding="utf-8") for path in sorted(engine_dir.glob("*.py")))
     protocol_text = (ROOT / "plugins/apsal-studio/scripts/apsal_protocol.py").read_text(encoding="utf-8")
     creative_text = (ROOT / "plugins/apsal-studio/scripts/apsal_creative.py").read_text(encoding="utf-8")
     electron_text = (ROOT / "apps/apsal-studio/electron/apsal-protocol.mjs").read_text(encoding="utf-8")

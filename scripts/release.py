@@ -9,6 +9,10 @@ VERSION = "0.16.0"
 RELEASE_TAG = os.environ.get("APSAL_RELEASE_TAG", f"v{VERSION}")
 RELEASE_TAG_PATTERN = re.compile(rf"^v{re.escape(VERSION)}(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$")
 DENY = re.compile("(" + "|".join(("gh" + "o_", "github" + "_pat_", "s" + "k-[A-Za-z0-9]", "BEGIN (RSA|OPENSSH|EC)" + " PRIVATE KEY", "APSAL_ACCESS" + r"_TOKEN\s*=")) + ")")
+ENGINE_PACKAGE_FILES = (
+    "__init__.py", "constants.py", "locale.py", "io.py", "registry.py",
+    "theme.py", "compile.py", "session.py", "runs.py", "packages.py",
+)
 
 def check_tree() -> list[str]:
     errors = []
@@ -49,6 +53,13 @@ def build() -> tuple[Path, str]:
         for path in sorted(p for p in PLUGIN.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             info = zipfile.ZipInfo(str(Path("apsal-studio") / path.relative_to(PLUGIN)), (1980, 1, 1, 0, 0, 0)); info.compress_type = zipfile.ZIP_DEFLATED; info.external_attr = 0o644 << 16
             archive.writestr(info, path.read_bytes())
+        missing = [
+            f"apsal-studio/scripts/apsal_engine/{name}"
+            for name in ENGINE_PACKAGE_FILES
+            if f"apsal-studio/scripts/apsal_engine/{name}" not in archive.namelist()
+        ]
+    if missing:
+        raise SystemExit("release archive missing engine package files:\n" + "\n".join(missing))
     sha = hashlib.sha256(out.read_bytes()).hexdigest()
     checksum = dist / (out.name + ".sha256"); checksum.write_text(f"{sha}  {out.name}\n", encoding="utf-8")
     return out, sha

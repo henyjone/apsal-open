@@ -13,7 +13,8 @@ from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("apsal_engine", ROOT / "plugins/apsal-studio/scripts/apsal_engine.py")
+ENGINE_DIR = ROOT / "plugins/apsal-studio/scripts/apsal_engine"
+spec = importlib.util.spec_from_file_location("apsal_engine", ENGINE_DIR / "__init__.py")
 engine = importlib.util.module_from_spec(spec); spec.loader.exec_module(engine)
 
 class EngineTests(unittest.TestCase):
@@ -992,7 +993,7 @@ class EngineTests(unittest.TestCase):
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
             with self.assertRaisesRegex(engine.ValidationError, "direct provider execution was removed"):
                 engine.execute_generation_run(run["run_id"], project_root=project)
-            source = (ROOT / "plugins/apsal-studio/scripts/apsal_engine.py").read_text(encoding="utf-8")
+            source = "".join(path.read_text(encoding="utf-8") for path in sorted(ENGINE_DIR.glob("*.py")))
             self.assertNotIn("/v1/images/generations", source)
             self.assertNotIn('os.environ.get("OPENAI_API_KEY")', source)
 

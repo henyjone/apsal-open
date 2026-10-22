@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ENGINE = ROOT / "plugins/apsal-studio/scripts/apsal_engine.py"
+ENGINE = ROOT / "plugins/apsal-studio/scripts/apsal_engine/__init__.py"
 spec = importlib.util.spec_from_file_location("apsal_engine", ENGINE)
 engine = importlib.util.module_from_spec(spec); spec.loader.exec_module(engine)
 
