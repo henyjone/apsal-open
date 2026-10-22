@@ -1,10 +1,18 @@
 # RFC 0009 — Controlled Variation and Set Strategy
 
-Status: implemented in APSAL Studio / Engine 0.13.0
+Status: implemented in APSAL Studio / Engine 0.13.0. Engine 0.16 changes scene and look cardinality; see [Engine 0.16 per-Job scene and look](#engine-016-per-job-scene-and-look).
 
 Protocol compatibility: APSAL Open Protocol 0.3.0
 
 Semantic Contract compatibility: 0.3.0
+
+<a id="engine-016-per-job-scene-and-look"></a>
+
+## Engine 0.16 per-Job scene and look
+
+The [Chaptered Variation](#chaptered-variation) table below is the Studio / Engine 0.13 contract and stays in this RFC as that record. Engine 0.16 still organizes a nine-image set as three narrative chapters of three Jobs, and it assigns one distinct scene and one distinct look to each Job. A nine-image chaptered set therefore has nine scenes (`SCENE_A` through `SCENE_I`) and nine looks (`LOOK_A` through `LOOK_I`). A look is no longer locked for a whole chapter. Continuous Narrative is unchanged: one scene and one look for the whole set.
+
+`_strategy_counts` returns the shot count for both the scene count and the look count when the strategy is Chaptered Variation. `tests/test_engine.py` (`test_new_session_defaults_to_nine_job_controlled_variation`) locks that behavior.
 
 ## Abstract
 
@@ -18,6 +26,8 @@ Studio exposes two creator-facing choices:
 This RFC does not introduce a new DNA type or a fourteenth protocol role. It coordinates values already owned by Content, World, Look, Event, Sequence, Camera and Quality Control.
 
 ## Chaptered Variation
+
+The following table is the Engine 0.13 plan and is retained unchanged. Engine 0.16 scene and look cardinality is the [status note](#engine-016-per-job-scene-and-look) above: one scene and one look per Job, still grouped as three narrative chapters.
 
 The default nine-image plan contains three chapters of three Jobs:
 

@@ -134,9 +134,34 @@ def main() -> int:
     if f"APSAL Studio {studio_version}" not in app_text or f"{studio_version} / {engine_version}" not in app_text:
         errors.append("Studio shell version labels must match the Studio and Engine versions")
     protocol_note = (ROOT / "plugins/apsal-studio/assets/protocol/README.md").read_text(encoding="utf-8")
-    for token in (protocol_version, engine_version, studio_version, semantic_version):
-        if token not in protocol_note:
-            errors.append(f"plugin protocol note missing current version {token}")
+    # Label and version must occur together. Studio Desktop and the Semantic
+    # Contract can share a version number, so a bare "0.3.0" must not satisfy both.
+    for label, version in (
+        ("Open Protocol", protocol_version),
+        ("Reference engine and Codex plugin", engine_version),
+        ("Semantic Contract", semantic_version),
+        ("APSAL Studio Desktop", studio_version),
+    ):
+        needle = f"{label}: `{version}`"
+        if needle not in protocol_note:
+            errors.append(f"plugin protocol note must contain {needle}")
+    if re.search(r"\[[^\]]*\]\(\.\./", protocol_note):
+        errors.append("plugin protocol note must not use a relative link; the release ZIP does not contain the repository tree")
+    canonical_protocol = "https://github.com/henyjone/apsal-open/blob/main/protocol/APSAL_OPEN_PROTOCOL.md"
+    if canonical_protocol not in protocol_note:
+        errors.append("plugin protocol note must link to the canonical protocol with an absolute GitHub URL")
+    status_anchor = "engine-016-per-job-scene-and-look"
+    rfc9 = (ROOT / "protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md").read_text(encoding="utf-8")
+    if f'id="{status_anchor}"' not in rfc9 or "one distinct scene and one distinct look" not in rfc9:
+        errors.append("RFC-0009 must keep its Engine 0.16 per-Job scene and look status note")
+    if "three chapters of three Jobs" not in rfc9:
+        errors.append("RFC-0009 must keep the 0.13 three-chapter table")
+    for relative in (
+        "protocol/RFC-0005-FIVE-LAYER-THIRTEEN-ELEMENT-AUTHORING.md",
+        "docs/README.md",
+    ):
+        if f"#{status_anchor}" not in (ROOT / relative).read_text(encoding="utf-8"):
+            errors.append(f"{relative}: must point at the RFC-0009 Engine 0.16 status note")
 
     tracked_dist = subprocess.run(
         ["git", "ls-files", "dist"], cwd=ROOT, check=True, capture_output=True, text=True,
