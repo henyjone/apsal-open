@@ -3,7 +3,7 @@
 This note is packed inside the Codex plugin ZIP, which does not include the
 rest of the repository. The summary below is enough to use the plugin. The
 normative protocol text is
-[APSAL Open Protocol 0.4](https://github.com/henyjone/apsal-open/blob/main/protocol/APSAL_OPEN_PROTOCOL.md).
+[APSAL Open Protocol 0.4](https://github.com/henyjone/apsal-open/blob/trunk/protocol/APSAL_OPEN_PROTOCOL.md).
 
 Current public versions:
 

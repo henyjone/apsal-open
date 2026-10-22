@@ -1,4 +1,7 @@
 name: Release
+# A v* tag publishes this workflow from whichever branch the tag points at.
+# After trunk is the default branch, cut release tags from trunk. This file
+# does not filter on a branch name.
 on:
   push:
     tags: ["v*"]

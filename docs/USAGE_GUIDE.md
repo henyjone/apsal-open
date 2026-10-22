@@ -47,7 +47,7 @@ codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-Use `--ref main` instead of the release tag only when you intentionally want the current development branch.
+Use `--ref trunk` instead of the release tag only when you intentionally want unreleased changes on the `trunk` development branch.
 
 ## Reference-led project workflow
 

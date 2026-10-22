@@ -1,4 +1,7 @@
 name: CI
+# Unfiltered on purpose. A push to main, trunk, or any other branch runs this
+# workflow, and so does every pull request and every tag push. Leave the
+# filters off when trunk becomes the default branch.
 on:
   push:
   pull_request:

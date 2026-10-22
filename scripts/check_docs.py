@@ -64,6 +64,30 @@ def local_link_errors(relative: str, text: str) -> list[str]:
     return errors
 
 
+def _branch_filter_omits(text: str, branch: str) -> bool:
+    """True when a workflow lists branches and the list leaves out `branch`.
+
+    An absent branches key matches every branch, which is the intended CI trigger.
+    """
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        code = line.split("#", 1)[0]
+        if not re.search(r"^\s*branches\s*:", code):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        block = [code.split(":", 1)[1]]
+        for follow in lines[index + 1:]:
+            if not follow.strip() or follow.lstrip().startswith("#"):
+                continue
+            follow_indent = len(follow) - len(follow.lstrip(" "))
+            if follow_indent <= indent:
+                break
+            block.append(follow.split("#", 1)[0])
+        if not re.search(rf"['\"]?{re.escape(branch)}['\"]?", "\n".join(block)):
+            return True
+    return False
+
+
 def assignment(name: str, text: str) -> str | None:
     found = re.search(CONST_TEMPLATE.replace("{name}", re.escape(name)), text, re.M)
     return found.group(1) if found else None
@@ -157,9 +181,35 @@ def main() -> int:
             errors.append(f"plugin protocol note must contain {needle}")
     if re.search(r"\[[^\]]*\]\(\.\./", protocol_note):
         errors.append("plugin protocol note must not use a relative link; the release ZIP does not contain the repository tree")
-    canonical_protocol = "https://github.com/henyjone/apsal-open/blob/main/protocol/APSAL_OPEN_PROTOCOL.md"
+    development_branch = "trunk"
+    canonical_protocol = f"https://github.com/henyjone/apsal-open/blob/{development_branch}/protocol/APSAL_OPEN_PROTOCOL.md"
     if canonical_protocol not in protocol_note:
         errors.append("plugin protocol note must link to the canonical protocol with an absolute GitHub URL")
+    if "blob/main/" in protocol_note:
+        errors.append("plugin protocol note must use the trunk development branch, not main")
+    privacy_url = plugin.get("interface", {}).get("privacyPolicyURL")
+    expected_privacy = f"https://github.com/henyjone/apsal-open/blob/{development_branch}/plugins/apsal-studio/PRIVACY.md"
+    if privacy_url != expected_privacy:
+        errors.append(f"plugin privacyPolicyURL is {privacy_url!r}, expected {expected_privacy!r}")
+    for relative in (
+        "README.md",
+        "README.zh-CN.md",
+        "docs/USAGE_GUIDE.md",
+        "docs/USAGE_GUIDE.zh-CN.md",
+    ):
+        install_text = (ROOT / relative).read_text(encoding="utf-8")
+        if f"--ref {development_branch}" not in install_text:
+            errors.append(f"{relative}: install docs must name the trunk development ref")
+        if "--ref main" in install_text:
+            errors.append(f"{relative}: install docs still hard-code --ref main")
+    for relative in ("README.md", "README.zh-CN.md"):
+        readme_text = (ROOT / relative).read_text(encoding="utf-8")
+        badge = f"actions/workflows/ci.yml/badge.svg?branch={development_branch}"
+        if badge not in readme_text:
+            errors.append(f"{relative}: CI badge must follow the trunk branch")
+    ci_workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    if _branch_filter_omits(ci_workflow, development_branch):
+        errors.append("CI workflow filters branches and does not include trunk")
     status_anchor = "engine-016-per-job-scene-and-look"
     rfc9 = (ROOT / "protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md").read_text(encoding="utf-8")
     if f'id="{status_anchor}"' not in rfc9 or "one distinct scene and one distinct look" not in rfc9:

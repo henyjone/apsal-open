@@ -12,7 +12,7 @@
 <p align="center"><strong>结构元素，构建世界。</strong><br>把创作意图转译为可组合、可验证、可复现的摄影世界。</p>
 
 <p align="center">
-  <a href="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml?query=branch%3Atrunk"><img alt="CI" src="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml/badge.svg?branch=trunk"></a>
   <a href="https://github.com/henyjone/apsal-open/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/henyjone/apsal-open?color=78988A"></a>
   <a href="LICENSE"><img alt="代码许可" src="https://img.shields.io/badge/code-Apache--2.0-B79A62"></a>
   <a href="CONTENT_LICENSE.md"><img alt="内容许可" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
@@ -71,7 +71,7 @@ codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-安装后重新启动 Codex，或打开一个新任务。固定版插件 ZIP 和校验和可从 [0.16.0 beta 预发布](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1)下载。只有明确测试尚未发布的开发变化时才使用 `--ref main`。
+安装后重新启动 Codex，或打开一个新任务。固定版插件 ZIP 和校验和可从 [0.16.0 beta 预发布](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1)下载。只有明确测试尚未发布的开发变化时才使用 `--ref trunk`。开发分支是 `trunk`。
 
 APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片与中文阶段缩略图，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文版本。每张元素卡都直接填入“我的设计提案、为什么这样建议、可调整方向、建议取值、应当看到、必须保持、验收标准”，不再把关键建议留空或散落在卡片外。重要标题、提案、取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
 

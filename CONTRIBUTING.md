@@ -1,6 +1,6 @@
 # Contributing
 
-Contributions are welcome through GitHub pull requests.
+Contributions are welcome through GitHub pull requests against `trunk`, the development branch. The CI workflow runs on every branch push and every pull request, including `trunk`.
 
 1. Use a globally distinct namespace and stable asset ID.
 2. Add semantic version, parent version, changed fields, change summary, rights metadata, and QA status.

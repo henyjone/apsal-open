@@ -36,12 +36,12 @@ codex plugin add apsal-studio@apsal-open
 
 然后重启 Codex，或至少打开一个新任务。插件是在任务启动时加载的，已经打开的旧任务不一定能看到刚安装的能力。
 
-### 2.2 仅在开发时跟随主分支
+### 2.2 仅在开发时跟随 trunk
 
-日常创作请使用上一节的 `v0.16.0-beta.1`。只有明确测试尚未发布的开发变化时，才改用 `--ref main`：
+日常创作请使用上一节的 `v0.16.0-beta.1`。只有明确测试尚未发布的开发变化时，才改用 `--ref trunk`。开发分支是 `trunk`：
 
 ```bash
-codex plugin marketplace add henyjone/apsal-open --ref main
+codex plugin marketplace add henyjone/apsal-open --ref trunk
 codex plugin add apsal-studio@apsal-open
 ```
 

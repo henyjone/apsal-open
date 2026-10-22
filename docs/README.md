@@ -37,7 +37,7 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 - [Single project kernel and Codex/Studio dual entry](../protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
 - [Creative project library, reference analysis and confirmed sharing](../protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
 
-Historical upgrade and release documents remain immutable records. Start with the 0.16 guides above for current installation instructions. `docs/releases/` and older upgrade guides describe the release they name; they are not rewritten when later behavior changes. RFC-0009 keeps its 0.13 three-scene / chapter-locked-look table. The current scene and look count is that RFC's [Engine 0.16 status note](../protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md#engine-016-per-job-scene-and-look): one scene and one look per Job.
+The development branch is `trunk`. Current install guides pin the `v0.16.0-beta.1` release tag and use `--ref trunk` for unreleased work. Historical upgrade and release documents remain immutable records. Start with the 0.16 guides above for current installation instructions. `docs/releases/` and older upgrade guides describe the release they name; they are not rewritten when later behavior changes. RFC-0009 keeps its 0.13 three-scene / chapter-locked-look table. The current scene and look count is that RFC's [Engine 0.16 status note](../protocol/RFC-0009-CONTROLLED-VARIATION-SET-STRATEGY.md#engine-016-per-job-scene-and-look): one scene and one look per Job.
 
 ## Repository layout
 

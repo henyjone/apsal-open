@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml?query=branch%3Atrunk"><img alt="CI" src="https://github.com/henyjone/apsal-open/actions/workflows/ci.yml/badge.svg?branch=trunk"></a>
   <a href="https://github.com/henyjone/apsal-open/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/henyjone/apsal-open?color=78988A"></a>
   <a href="LICENSE"><img alt="Code license" src="https://img.shields.io/badge/code-Apache--2.0-B79A62"></a>
   <a href="CONTENT_LICENSE.md"><img alt="Content license" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
@@ -81,7 +81,7 @@ codex plugin marketplace add henyjone/apsal-open --ref v0.16.0-beta.1
 codex plugin add apsal-studio@apsal-open
 ```
 
-Restart Codex or open a new task after installation. The pinned plugin ZIP and checksum are available from the [0.16.0 beta release](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1). Use `--ref main` only when intentionally testing unreleased development changes.
+Restart Codex or open a new task after installation. The pinned plugin ZIP and checksum are available from the [0.16.0 beta release](https://github.com/henyjone/apsal-open/releases/tag/v0.16.0-beta.1). Use `--ref trunk` only when intentionally testing unreleased development changes. `trunk` is the development branch.
 
 APSAL Studio is fully bilingual. It follows the language of the current Codex conversation: an English brief opens English cards and guidance; a Chinese brief opens creator-facing Chinese cards with no exposed English machine labels. Every element card is fully populated with the design proposal, rationale, adjustable directions, values, expected result, invariants and acceptance criteria. Important titles, proposals, values, recommendation reasons and primary actions use an accessible celadon highlight hierarchy. There is no mandatory installation-time language screen. Only a genuinely ambiguous or mixed first message triggers the concise question “English or 中文?”. You can ask to switch at any time; the choice is stored in the local session and never changes the theme, DNA, or Prompt digests.
 

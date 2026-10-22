@@ -20,7 +20,7 @@
     "category": "Design",
     "capabilities": ["Interactive", "Read", "Write"],
     "websiteURL": "https://github.com/henyjone/apsal-open",
-    "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/main/plugins/apsal-studio/PRIVACY.md",
+    "privacyPolicyURL": "https://github.com/henyjone/apsal-open/blob/trunk/plugins/apsal-studio/PRIVACY.md",
     "defaultPrompt": [
       "把这些参考图建立为 APSAL 项目，逐张分析后全自动构建 Prompt 和 Skill。",
       "Create a nine-image live-action photography theme, confirm all thirteen elements, and package every Prompt.",
