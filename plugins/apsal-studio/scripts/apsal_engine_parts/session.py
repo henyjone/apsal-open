@@ -1,4 +1,4 @@
-# Part of apsal_engine. __init__.py executes this file in the package namespace.
+# Executed by apsal_engine/__init__.py into that module. Not an importable submodule.
 from __future__ import annotations
 
 import hashlib

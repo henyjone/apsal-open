@@ -33,9 +33,11 @@ except ModuleNotFoundError:  # Supports direct importlib loading in tests and em
     dump_yaml = _yaml_module.dumps
     load_yaml_text = _yaml_module.loads
 
-# Sibling modules execute in this module's globals. Every historical name,
-# public and private, stays on apsal_engine, and a patch of apsal_engine.X
-# is the binding internal calls read.
+# Part files live in a sibling directory, not in this package. Executing them
+# here keeps every historical name on apsal_engine, so a patch of
+# apsal_engine.X is the binding internal calls read. They are not submodules:
+# import apsal_engine.io would replace the stdlib io binding, and
+# import apsal_engine.compile would replace the builtin used to load them.
 _ENGINE_PARTS = (
     "constants",
     "locale",
@@ -47,9 +49,10 @@ _ENGINE_PARTS = (
     "runs",
     "packages",
 )
+_compile = __import__("builtins").compile
 _namespace = globals()
-_package_dir = Path(__file__).resolve().parent
+_parts_dir = Path(__file__).resolve().parent.parent / "apsal_engine_parts"
 for _part in _ENGINE_PARTS:
-    _path = _package_dir / f"{_part}.py"
-    exec(compile(_path.read_text(encoding="utf-8"), str(_path), "exec"), _namespace)
-del _ENGINE_PARTS, _namespace, _package_dir, _part, _path
+    _path = _parts_dir / f"{_part}.py"
+    exec(_compile(_path.read_text(encoding="utf-8"), str(_path), "exec"), _namespace)
+del _ENGINE_PARTS, _compile, _namespace, _parts_dir, _part, _path

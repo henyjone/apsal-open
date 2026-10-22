@@ -10,12 +10,13 @@ const versionMap = JSON.parse(readFileSync(join(repositoryRoot, 'manifest', 'CUR
 const studioPackage = JSON.parse(readFileSync(join(studioRoot, 'package.json'), 'utf8'))
 const target = join(studioRoot, '.build', 'apsal-engine')
 const enginePackage = 'apsal_engine'
+const engineParts = 'apsal_engine_parts'
 const scriptNames = ['apsal_creative.py', 'apsal_yaml.py', 'apsal_protocol.py', 'apsal_rpc.py']
 
 const expectedEngine = versionMap.project_protocol.engine_version
 const expectedProtocol = versionMap.project_protocol.version
 const expectedStudio = versionMap.project_protocol.studio_version
-const engineSource = readFileSync(join(pluginRoot, 'scripts', enginePackage, 'constants.py'), 'utf8')
+const engineSource = readFileSync(join(pluginRoot, 'scripts', engineParts, 'constants.py'), 'utf8')
 const protocolSource = readFileSync(join(pluginRoot, 'scripts', 'apsal_protocol.py'), 'utf8')
 const engineVersion = engineSource.match(/^ENGINE_VERSION\s*=\s*"([^"]+)"/m)?.[1]
 const protocolVersion = protocolSource.match(/^PROTOCOL_VERSION\s*=\s*"([^"]+)"/m)?.[1]
@@ -27,9 +28,14 @@ if (engineVersion !== expectedEngine || protocolVersion !== expectedProtocol || 
 rmSync(target, { recursive: true, force: true })
 mkdirSync(join(target, 'scripts'), { recursive: true })
 cpSync(join(pluginRoot, 'assets'), join(target, 'assets'), { recursive: true })
+const skipGenerated = (source) => !source.split(/[\\/]/).includes('__pycache__') && !source.endsWith('.pyc')
 cpSync(join(pluginRoot, 'scripts', enginePackage), join(target, 'scripts', enginePackage), {
   recursive: true,
-  filter: (source) => !source.split(/[\\/]/).includes('__pycache__') && !source.endsWith('.pyc'),
+  filter: skipGenerated,
+})
+cpSync(join(pluginRoot, 'scripts', engineParts), join(target, 'scripts', engineParts), {
+  recursive: true,
+  filter: skipGenerated,
 })
 for (const name of scriptNames) cpSync(join(pluginRoot, 'scripts', name), join(target, 'scripts', name))
 
@@ -45,7 +51,9 @@ function pythonFiles(dir) {
 }
 
 const checksum = createHash('sha256')
-for (const file of pythonFiles(join(target, 'scripts', enginePackage))) checksum.update(readFileSync(file))
+for (const directory of [enginePackage, engineParts]) {
+  for (const file of pythonFiles(join(target, 'scripts', directory))) checksum.update(readFileSync(file))
+}
 for (const name of scriptNames) checksum.update(readFileSync(join(target, 'scripts', name)))
 writeFileSync(join(target, 'bundle.json'), `${JSON.stringify({
   schema_version: '0.1.0',

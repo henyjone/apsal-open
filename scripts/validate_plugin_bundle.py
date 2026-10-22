@@ -46,18 +46,22 @@ def main() -> int:
             errors.append(f"plugin interface: {key} must be byte-identical to the APSAL Studio icon")
 
     engine_package = PLUGIN / "scripts" / "apsal_engine"
-    required_engine = (
-        "__init__.py", "constants.py", "locale.py", "io.py", "registry.py",
+    engine_parts = PLUGIN / "scripts" / "apsal_engine_parts"
+    part_names = (
+        "constants.py", "locale.py", "io.py", "registry.py",
         "theme.py", "compile.py", "session.py", "runs.py", "packages.py",
     )
-    if not engine_package.is_dir():
-        errors.append("engine package missing: scripts/apsal_engine")
-    else:
-        for name in required_engine:
-            if not (engine_package / name).is_file():
-                errors.append(f"engine package missing: scripts/apsal_engine/{name}")
-        if (PLUGIN / "scripts" / "apsal_engine.py").exists():
-            errors.append("engine package shadowed by scripts/apsal_engine.py")
+    if not (engine_package / "__init__.py").is_file():
+        errors.append("engine package missing: scripts/apsal_engine/__init__.py")
+    if (PLUGIN / "scripts" / "apsal_engine.py").exists():
+        errors.append("engine package shadowed by scripts/apsal_engine.py")
+    if (engine_parts / "__init__.py").exists():
+        errors.append("apsal_engine_parts must stay a plain directory, not a package")
+    for name in part_names:
+        if (engine_package / name).exists():
+            errors.append(f"engine part is an importable submodule: scripts/apsal_engine/{name}")
+        if not (engine_parts / name).is_file():
+            errors.append(f"engine part missing: scripts/apsal_engine_parts/{name}")
 
     mcp_config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))
     server = mcp_config.get("mcpServers", {}).get("apsal-studio", {})

@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE_DIR = ROOT / "plugins/apsal-studio/scripts/apsal_engine"
+ENGINE_PARTS = ROOT / "plugins/apsal-studio/scripts/apsal_engine_parts"
 spec = importlib.util.spec_from_file_location("apsal_engine", ENGINE_DIR / "__init__.py")
 engine = importlib.util.module_from_spec(spec); spec.loader.exec_module(engine)
 
@@ -993,7 +995,11 @@ class EngineTests(unittest.TestCase):
             run = engine.start_generation_run(session["session_id"], project_root=project, home=home, confirmed=True)
             with self.assertRaisesRegex(engine.ValidationError, "direct provider execution was removed"):
                 engine.execute_generation_run(run["run_id"], project_root=project)
-            source = "".join(path.read_text(encoding="utf-8") for path in sorted(ENGINE_DIR.glob("*.py")))
+            source = "".join(
+                path.read_text(encoding="utf-8")
+                for directory in (ENGINE_DIR, ENGINE_PARTS)
+                for path in sorted(directory.glob("*.py"))
+            )
             self.assertNotIn("/v1/images/generations", source)
             self.assertNotIn('os.environ.get("OPENAI_API_KEY")', source)
 
@@ -1157,5 +1163,18 @@ class EngineTests(unittest.TestCase):
                 package.writestr("../escape.txt", "unsafe")
             with self.assertRaisesRegex(engine.ValidationError, "unsafe APSAL package path"):
                 engine.import_apsal_package(archive, project_root=project, home=root / "home")
+
+    def test_engine_parts_are_not_importable_submodules(self):
+        scripts = str(ROOT / "plugins/apsal-studio/scripts")
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        facade = importlib.import_module("apsal_engine")
+        for name in ("io", "compile"):
+            with self.assertRaises(ModuleNotFoundError):
+                importlib.import_module(f"apsal_engine.{name}")
+        self.assertTrue(facade._zip_bytes({"a.txt": b"hi"}).startswith(b"PK"))
+        importlib.reload(facade)
+        self.assertTrue(facade._zip_bytes({"a.txt": b"hi"}).startswith(b"PK"))
+        self.assertIs(facade.io.BytesIO, io.BytesIO)
 
 if __name__ == "__main__": unittest.main()
