@@ -16,6 +16,8 @@
   <a href="https://github.com/henyjone/apsal-open/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/henyjone/apsal-open?color=78988A"></a>
   <a href="LICENSE"><img alt="代码许可" src="https://img.shields.io/badge/code-Apache--2.0-B79A62"></a>
   <a href="CONTENT_LICENSE.md"><img alt="内容许可" src="https://img.shields.io/badge/content-CC%20BY%204.0-78988A"></a>
+  <a href="protocol/APSAL_OPEN_PROTOCOL.md"><img alt="协议" src="https://img.shields.io/badge/protocol-APSAL%20Open%200.4-F1EEE4?labelColor=111412"></a>
+  <a href="plugins/apsal-studio"><img alt="Codex 插件" src="https://img.shields.io/badge/Codex-APSAL%20Studio-78988A"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <a href="#安装-codex-插件">安装插件</a> · <a href="#30-秒开始使用">快速开始</a> · <a href="docs/USAGE_GUIDE.zh-CN.md"><strong>完整使用手册</strong></a> · <a href="docs/monograph/README.md">阅读方法论专著</a> · <a href="protocol/APSAL_OPEN_PROTOCOL.md">阅读协议</a></p>
@@ -73,7 +75,7 @@ codex plugin add apsal-studio@apsal-open
 
 APSAL Studio 已完整支持中文和英文。插件默认跟随当前 Codex 对话：中文输入显示纯中文创作卡片与中文阶段缩略图，不再暴露英文机器角色名、字段名、状态、来源、资源编号或推荐标签；英文输入显示英文版本。每张元素卡都直接填入“我的设计提案、为什么这样建议、可调整方向、建议取值、应当看到、必须保持、验收标准”，不再把关键建议留空或散落在卡片外。重要标题、提案、取值、匹配理由、已选状态和主确认按钮使用可访问的青瓷高亮层级。安装时不会强制弹出语言选择；只有第一条有效信息太短、混合或无法判断时，才会询问一次“English or 中文?”。你也可以随时切换语言，且不会改变主题、资源或提示词摘要。
 
-新建九张套片默认采用**章节式丰富变化**：三个关联场景、三套相互协调的妆造、九种由行动驱动的身体状态，以及按镜头职能变化的多种焦段；人物身份、真人摄影媒介、世界规则和色彩体系保持统一。如果更强调同一场景、同一妆造和事件连续，可以选择**连续叙事**。两个选项都在第一张卡片中直接点击；点击会先更新方案，不会跳过确认。
+新建九张套片默认采用**章节式丰富变化**：三章、每章三镜，九个不同场景、九套相互协调的妆造、九种由行动驱动的身体状态，以及按镜头职能变化的多种焦段；同一张脸、真人摄影媒介和主题语法保持统一。如果更强调同一场景、同一妆造和事件连续，可以选择**连续叙事**。两个选项都在第一张卡片中直接点击；点击会先更新方案，不会跳过确认。
 
 ### APSAL Studio 0.3.0 创作项目库
 
@@ -102,7 +104,7 @@ Studio 可以建立参考图根项目，Codex 负责领取逐图分析任务、�
 1. 先询问“是否同时打开 APSAL Studio 前端？”，可选择“打开并联动（推荐）”或“仅在 Codex 中继续”。
 2. 确认“作品关于什么”，选择“章节式丰富变化”或“连续叙事”，再确认总体情绪与九镜情绪弧线。
 3. 再用完整提案卡依次确认人物与世界、事件与序列、摄影与成像、执行与验证；七类元素资源都会按场景推荐并说明理由。若未指定其他人物，默认提案是一位非常有气质、镜头表现稳定、适合古典、当代、编辑与礼服等多种妆造的东亚成年女主角，同时锁定身份，避免换妆造变成换脸。
-4. 单独确认三场景三妆造章节方案或单场景连续锁定、九种不同动作与身体状态、按职能变化的焦段、道具归属、灯光、色彩后期和拒绝条件；既可以用自然语言修改，也可以直接点击卡片中的建议方向。
+4. 单独确认九场景九妆造的章节方案（三章、每章三镜）或单场景连续锁定、九种不同动作与身体状态、按职能变化的焦段、道具归属、灯光、色彩后期和拒绝条件；既可以用自然语言修改，也可以直接点击卡片中的建议方向。
 5. 为新 DNA 建议受控标签，再询问“保存到我的 DNA、仅当前项目，还是稍后决定”。
 6. 展示十三元素与九镜头总览，同时自动打包全部 Prompt、真实参考图、五阶段缩略图和使用说明。真实参考图存在时指定一个核心视觉锚点；缩略图始终单独存放，绝不冒充参考图。你确认一次后，由 Codex 逐张生成九张独立的 9:16 图片。
 

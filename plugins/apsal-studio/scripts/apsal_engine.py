@@ -1197,11 +1197,6 @@ def promote_registry_asset(ref: dict[str, str], *, project_root: Path, home: Pat
     )
 
 
-def catalog_index() -> dict[tuple[str, str, str, str], dict[str, Any]]:
-    assets = load_catalog().get("assets", [])
-    return {(a["namespace"], a["id"], a["type"], a["version"]): a for a in assets}
-
-
 def _asset_index(assets: list[dict[str, Any]] | None = None) -> dict[tuple[str, str, str, str], dict[str, Any]]:
     values = assets if assets is not None else load_catalog().get("assets", [])
     return {_asset_key(asset): asset for asset in values}

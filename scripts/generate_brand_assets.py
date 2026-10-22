@@ -13,6 +13,8 @@ MASTER = BRAND / "apsal-worldbuilding-master.png"
 SOCIAL_SIZE = (1280, 640)
 MASTER_SIZE = (1920, 960)
 
+# Separate filenames stay even when the bytes match. GitHub README, social
+# preview, and worldbuilding surfaces each point at their own path.
 JPEG_TARGETS = (
     "apsal-readme-banner.jpg",
     "apsal-social-preview-v2.jpg",
@@ -20,7 +22,6 @@ JPEG_TARGETS = (
     "apsal-worldbuilding-banner.jpg",
     "apsal-worldbuilding-social-preview.jpg",
 )
-PNG_TARGETS = ("apsal-social-preview-v2.png",)
 
 
 def generate() -> None:
@@ -30,8 +31,6 @@ def generate() -> None:
     social = image.resize(SOCIAL_SIZE, Image.Resampling.LANCZOS)
     for name in JPEG_TARGETS:
         social.save(BRAND / name, "JPEG", quality=94, optimize=True, progressive=True, subsampling=0)
-    for name in PNG_TARGETS:
-        image.save(BRAND / name, "PNG", optimize=True)
 
 
 def check() -> list[str]:
@@ -48,12 +47,6 @@ def check() -> list[str]:
             errors.append(f"{name}: expected {SOCIAL_SIZE[0]}x{SOCIAL_SIZE[1]}")
         elif path.stat().st_size >= 1_000_000:
             errors.append(f"{name}: exceeds GitHub's 1 MB social-preview limit")
-    for name in PNG_TARGETS:
-        path = BRAND / name
-        if not path.is_file():
-            errors.append(f"missing brand asset: {path.relative_to(ROOT)}")
-        elif Image.open(path).size != MASTER_SIZE:
-            errors.append(f"{name}: expected {MASTER_SIZE[0]}x{MASTER_SIZE[1]}")
     return errors
 
 

@@ -509,15 +509,6 @@ def set_project_authoring_mode(
     return {**result, "snapshot": project_snapshot(project_root, session_id)}
 
 
-def _active_session_id(project_root: Path, requested: str | None = None) -> str:
-    if requested:
-        return requested
-    active = project_manifest(project_root).get("active_session_id")
-    if not active:
-        raise ValidationError("APSAL project has no active design session")
-    return str(active)
-
-
 def _element_projection(session: dict[str, Any], theme: dict[str, Any]) -> list[dict[str, Any]]:
     locale = session_interface_language(session).get("code") or "zh-CN"
     theme_id = theme["id"]

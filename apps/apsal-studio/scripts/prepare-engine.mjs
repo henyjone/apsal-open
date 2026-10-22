@@ -7,6 +7,7 @@ const studioRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = resolve(studioRoot, '..', '..')
 const pluginRoot = join(repositoryRoot, 'plugins', 'apsal-studio')
 const versionMap = JSON.parse(readFileSync(join(repositoryRoot, 'manifest', 'CURRENT_VERSION_MAP.json'), 'utf8'))
+const studioPackage = JSON.parse(readFileSync(join(studioRoot, 'package.json'), 'utf8'))
 const target = join(studioRoot, '.build', 'apsal-engine')
 const scriptNames = ['apsal_engine.py', 'apsal_creative.py', 'apsal_yaml.py', 'apsal_protocol.py', 'apsal_rpc.py']
 
@@ -18,8 +19,8 @@ const protocolSource = readFileSync(join(pluginRoot, 'scripts', 'apsal_protocol.
 const engineVersion = engineSource.match(/^ENGINE_VERSION\s*=\s*"([^"]+)"/m)?.[1]
 const protocolVersion = protocolSource.match(/^PROTOCOL_VERSION\s*=\s*"([^"]+)"/m)?.[1]
 
-if (engineVersion !== expectedEngine || protocolVersion !== expectedProtocol || expectedStudio !== '0.3.0') {
-  throw new Error(`APSAL component version mismatch: Engine ${engineVersion}/${expectedEngine}, Protocol ${protocolVersion}/${expectedProtocol}, Studio ${expectedStudio}/0.3.0`)
+if (engineVersion !== expectedEngine || protocolVersion !== expectedProtocol || studioPackage.version !== expectedStudio) {
+  throw new Error(`APSAL component version mismatch: Engine ${engineVersion}/${expectedEngine}, Protocol ${protocolVersion}/${expectedProtocol}, Studio package ${studioPackage.version}/map ${expectedStudio}`)
 }
 
 rmSync(target, { recursive: true, force: true })

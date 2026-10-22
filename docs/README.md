@@ -37,6 +37,20 @@ APSAL documentation is organized by what you want to do. Creators can stay entir
 - [Single project kernel and Codex/Studio dual entry](../protocol/RFC-0011-SINGLE-PROJECT-DUAL-ENTRY.md)
 - [Creative project library, reference analysis and confirmed sharing](../protocol/RFC-0012-CREATIVE-PROJECT-LIBRARY-ANALYSIS-AND-SHARING.md)
 
-Historical upgrade and release documents remain immutable records. Start with the 0.16 guides above for current installation instructions.
+Historical upgrade and release documents remain immutable records. Start with the 0.16 guides above for current installation instructions. `docs/releases/` and older upgrade guides describe the release they name; they are not rewritten when later behavior changes.
+
+## Repository layout
+
+| Path | Role |
+|---|---|
+| `protocol/` | Normative Open Protocol and RFCs |
+| `plugins/apsal-studio/` | Codex plugin: dependency-free engine, MCP, schemas, DNA, Skill |
+| `apps/apsal-studio/` | Electron desktop library at its own `0.3.0` version |
+| `manifest/CURRENT_VERSION_MAP.json` | Version matrix checked by `scripts/check_docs.py` |
+| `examples/quiet-window/` | Committed semantic-contract pilot |
+| `scripts/` | Validators, example checks, and `release.py` |
+| `dist/` | Generated plugin ZIP. Not part of the source tree |
+
+`scripts/release.py` builds `dist/apsal-studio-codex-plugin-<tag>.zip` during CI and the release workflow uploads it. Do not commit that ZIP. The desktop app copies the plugin engine into the ignored `apps/apsal-studio/.build/` directory at build time.
 
 Static validation proves structure, lineage and reproducibility. Generated photographs still require Codex visual review and a separate human visual-QA decision.

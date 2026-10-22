@@ -3,6 +3,20 @@ __pycache__/
 .DS_Store
 .env
 .venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage/
+*.egg-info/
+*.tsbuildinfo
+node_modules/
+.vite/
+
+# Local and CI build outputs. `scripts/release.py` writes the current plugin
+# ZIP under dist/; GitHub Actions uploads that ZIP. Do not commit these
+# artifacts. Ignore rules do not drop files that are already in the index.
 build/
 dist/
 *.zip
@@ -10,8 +24,8 @@ dist/
 private/
 references/private/
 generated/
-apps/apsal-studio/node_modules/
 apps/apsal-studio/.build/
 apps/apsal-studio/release/
+
 # Local rights-unresolved APSAL-006 migration and its bundled reference media.
 examples/crayon-reverie/

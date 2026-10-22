@@ -313,7 +313,7 @@ Schema, Prompt and digest validation establish structure and lineage, not photog
 | Element cards show only headings or blank proposal areas | Confirm version 0.16.0 and start a new task; each card should show its proposal, rationale, clickable options, values, expected effects, locks and acceptance criteria |
 | Five-stage thumbnails are missing | Confirm version 0.16.0 and start a new task; DNA choices remain text-only, while the element-card surface shows the thumbnail strip |
 | A Skill has stage thumbnails but no real reference | Check `reference_manifest.json`; `not_bound` means no real image was bound, and thumbnails cannot replace one |
-| Every image repeats the same scene, look, pose or focal perspective | Start a new 0.15 project and keep Chaptered Variation, or switch the first Content card from Continuous Narrative; review the three scene/look chapters and nine body-state plan before confirmation |
+| Every image repeats the same scene, look, pose or focal perspective | Start a new 0.16 project and keep Chaptered Variation, or switch the first Content card from Continuous Narrative; review the nine scene designs, nine looks, and nine body-state plan before confirmation |
 | Studio asks for language every time | Use a clear Chinese or English brief; the chooser should appear only for an ambiguous first message |
 | A programming interface or code image appears | Reject the current image as visual-QA failure and retry that Job; it is never a valid photographic output |
 | The human looks illustrated, doll-like or 3D | Fail live-action medium QA and retry only that Job with the Rendering Contract preserved |
